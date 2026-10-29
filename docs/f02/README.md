@@ -2,7 +2,7 @@
 
 ## Resultado y autorización vigente
 
-F01 cerrada con G01 aceptado. El laboratorio F02 fue desplegado posteriormente por el usuario en la cuenta `423597267645`, región `us-east-1`. El 23 de octubre de 2026 el usuario autorizó primero una **validación de solo lectura**, después diagnóstico por SSM y, por separado, crear roles PostgreSQL de migración/runtime, corregir permisos y configurar el servicio NEXO. No se autorizan apply de IaC, restore, producción, clientes/datos reales, migración de OpenVPN, commits ni push.
+F01 cerrada con G01 aceptado. El laboratorio F02 fue desplegado posteriormente por el usuario en la cuenta `423597267645`, región `us-east-1`. El 23 de octubre de 2026 el usuario autorizó primero una **validación de solo lectura**, después diagnóstico por SSM y, por separado, crear roles PostgreSQL de migración/runtime, corregir permisos y configurar el servicio NEXO. El 29 de octubre de 2026 autorizó crear el commit y tag **solo localmente** para la baseline `v0.1.0`; **push sigue sin autorización**. No se autorizan apply de IaC, restore, producción, clientes/datos reales ni migración de OpenVPN.
 
 La identidad observada fue `arn:aws:iam::423597267645:user/nexo-lab-admin`, en la cuenta esperada. La lectura efectiva y sus límites se registran en [evidence.md](evidence.md). El laboratorio local de PostgreSQL/copia/restore se documenta en [local-lab.md](local-lab.md); no sustituye un restore AWS.
 
