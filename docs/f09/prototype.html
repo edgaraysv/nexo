@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nexo F09 — prototipo local</title>
+  <style>
+    :root {
+      font-family: var(--sys-font-secondary), system-ui, sans-serif;
+      color: #082B53;
+      background: #FFFFFF;
+      font-synthesis: none;
+      --sys-brand-navy: #003B6F;
+      --sys-brand-cyan: #00AEDA;
+      --sys-brand-ice: #D8EAF4;
+      --sys-brand-white: #FFFFFF;
+      --sys-action-primary: #0069CE;
+      --sys-action-hover: #004F9D;
+      --sys-text-primary: #082B53;
+      --sys-text-secondary: #52677C;
+      --sys-border-default: #D6E3EF;
+      --sys-success: #18794E;
+      --sys-warning: #9A5B00;
+      --sys-danger: #B42332;
+      --sys-info: #0069CE;
+      --sys-radius-sm: 8px;
+      --sys-radius-md: 12px;
+      --sys-radius-lg: 16px;
+      --sys-radius-xl: 20px;
+      --sys-radius-full: 9999px;
+      --sys-space-1: 4px;
+      --sys-space-2: 8px;
+      --sys-space-3: 12px;
+      --sys-space-4: 16px;
+      --sys-space-6: 24px;
+      --sys-space-8: 32px;
+      --sys-space-12: 48px;
+      --sys-space-16: 64px;
+      --sys-space-24: 96px;
+      --sys-font-primary: "Manrope";
+      --sys-font-secondary: "Inter";
+      --sys-shadow-sm: 0 2px 8px rgba(0, 59, 111, .06);
+      --sys-shadow-md: 0 8px 24px rgba(0, 59, 111, .08);
+      --sys-shadow-lg: 0 16px 40px rgba(0, 59, 111, .12);
+      --sys-transition-fast: 150ms ease;
+      --sys-transition-normal: 200ms ease;
+      --sys-transition-slow: 250ms ease;
+      --ink: var(--sys-text-primary);
+      --muted: var(--sys-text-secondary);
+      --line: var(--sys-border-default);
+      --green: var(--sys-action-primary);
+      --deep: var(--sys-brand-navy);
+      --surface: var(--sys-brand-white);
+      --warning: var(--sys-warning);
+      --warning-bg: #FFF7E8;
+      --danger: var(--sys-danger);
+      --danger-bg: #FEE4E2;
+      --info: var(--sys-info);
+      --info-bg: #EAF4FB;
+      --success: var(--sys-success);
+      --success-bg: #E7F5EE;
+      --focus: var(--sys-action-primary);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: #F5F9FC;
+    }
+    button, input, select { font: inherit; }
+    button, select { cursor: pointer; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    a.skip-link {
+      position: fixed; left: .7rem; top: .7rem; z-index: 10;
+      transform: translateY(-160%); padding: .7rem 1rem;
+      border-radius: .6rem; background: var(--deep); color: white;
+    }
+    a.skip-link:focus { transform: translateY(0); }
+    .shell { max-width: 1280px; margin: auto; padding: 1rem; }
+    .demo-banner {
+      display: flex; gap: .6rem; align-items: flex-start;
+      padding: .75rem 1rem; border: 1px solid #E6C789; border-radius: var(--sys-radius-md);
+      background: var(--warning-bg); color: #5D4300; font-size: .88rem;
+    }
+    .demo-banner strong { white-space: nowrap; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem .1rem; }
+    .brand { display: flex; align-items: center; gap: .7rem; min-width: 12rem; }
+    .brand-placeholder { max-width: 13rem; padding: .48rem .62rem; border: 1px dashed var(--sys-brand-navy); border-radius: var(--sys-radius-sm); background: var(--sys-brand-white); color: var(--sys-text-secondary); font-size: .68rem; line-height: 1.3; font-weight: 700; }
+    .brand-title { display: block; font-weight: 750; }
+    .brand-subtitle { display: block; color: var(--muted); font-size: .8rem; margin-top: .1rem; }
+    .surface-switch { display: flex; gap: .25rem; padding: .25rem; background: var(--sys-brand-ice); border: 1px solid var(--line); border-radius: var(--sys-radius-md); }
+    .surface-switch button, .nav button, .button-secondary {
+      border: 1px solid transparent; border-radius: var(--sys-radius-sm); background: transparent;
+      color: var(--sys-brand-navy); font-weight: 700; padding: .62rem .85rem;
+    }
+    .surface-switch button[aria-pressed="true"], .nav button[aria-current="page"] {
+      background: white; color: var(--deep); border-color: var(--line); box-shadow: var(--sys-shadow-sm);
+    }
+    .contextbar {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem;
+      padding: .85rem; margin-bottom: 1rem; background: rgba(255,255,255,.96);
+      border: 1px solid var(--line); border-radius: 14px;
+    }
+    .context-item { min-width: 0; }
+    .context-item > span, .context-item > label:first-child {
+      display: block; margin-bottom: .3rem; color: var(--muted); font-size: .75rem; font-weight: 700;
+    }
+    .context-item strong { display: block; overflow-wrap: anywhere; }
+    .context-item select { width: 100%; min-height: 2.55rem; border: 1px solid #9FB4C8; border-radius: var(--sys-radius-sm); background: white; color: var(--ink); padding: .45rem .6rem; }
+    .permission-demo { display: flex; align-items: flex-start; gap: .5rem; padding-top: .3rem; font-size: .82rem; line-height: 1.35; }
+    .permission-demo input { flex: 0 0 auto; width: 1.1rem; height: 1.1rem; margin: .1rem 0 0; accent-color: var(--green); }
+    .permission-demo small { display: block; color: var(--muted); }
+    .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 1rem; align-items: start; }
+    .nav { padding: .6rem; background: var(--sys-brand-ice); border: 1px solid var(--line); border-radius: var(--sys-radius-lg); }
+    .nav h2 { margin: .45rem .6rem .5rem; color: var(--muted); font-size: .73rem; letter-spacing: .08em; text-transform: uppercase; }
+    .nav button { display: block; width: 100%; margin: .12rem 0; text-align: left; }
+    .content { min-width: 0; }
+    .scope-line { display: flex; justify-content: space-between; gap: .8rem; margin: .1rem 0 .8rem; color: var(--muted); font-size: .85rem; }
+    .scope-line strong { color: var(--ink); }
+    .heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: .25rem 0 1rem; }
+    .eyebrow { margin: 0; color: var(--sys-brand-navy); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 800; }
+    h1 { margin: .22rem 0 .3rem; color: var(--sys-text-primary); font-family: var(--sys-font-primary), var(--sys-font-secondary), system-ui, sans-serif; font-size: clamp(1.7rem, 3vw, 2.35rem); font-weight: 700; line-height: 1.15; }
+    h2 { margin: .12rem 0 .75rem; color: var(--sys-text-primary); font-family: var(--sys-font-primary), var(--sys-font-secondary), system-ui, sans-serif; font-size: 1.18rem; font-weight: 650; }
+    h3 { margin: .1rem 0 .4rem; font-size: .98rem; }
+    p { margin: .35rem 0; }
+    .lede { max-width: 58rem; color: var(--muted); }
+    .chip { display: inline-flex; align-items: center; gap: .35rem; border-radius: var(--sys-radius-full); padding: .32rem .58rem; background: var(--sys-brand-ice); color: var(--sys-brand-navy); font-size: .76rem; font-weight: 750; white-space: normal; }
+    .chip.success { background: var(--success-bg); color: var(--success); }
+    .chip.warning { background: var(--warning-bg); color: var(--warning); }
+    .chip.danger { background: var(--danger-bg); color: var(--danger); }
+    .chip.info { background: var(--info-bg); color: var(--info); }
+    .panel, .metric {
+      min-width: 0; margin-bottom: .8rem; padding: 1rem;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--sys-radius-lg);
+      box-shadow: var(--sys-shadow-sm);
+    }
+    .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .7rem; margin-bottom: .65rem; }
+    .panel-head h2 { margin-bottom: .2rem; }
+    .panel-head p { color: var(--muted); font-size: .85rem; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; margin: .7rem 0; }
+    .metric small { display: block; color: var(--muted); }
+    .metric strong { display: block; margin: .28rem 0; font-size: 1.45rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .metric em { display: block; color: var(--muted); font-size: .77rem; font-style: normal; }
+    .metric details { margin-top: .55rem; }
+    .metric summary, details summary { color: var(--sys-brand-navy); font-size: .8rem; font-weight: 700; cursor: pointer; }
+    .meta-list { margin: .45rem 0 0; padding-left: 1rem; color: var(--muted); font-size: .76rem; line-height: 1.5; }
+    .split { display: grid; grid-template-columns: 1.15fr .85fr; gap: .8rem; }
+    .list { display: grid; gap: .35rem; }
+    .list-row { display: flex; justify-content: space-between; align-items: flex-start; gap: .8rem; padding: .65rem 0; border-top: 1px solid var(--sys-border-default); }
+    .list-row:first-child { border-top: 0; }
+    .list-row small { display: block; margin-top: .18rem; color: var(--muted); }
+    .filters { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; margin: .7rem 0; }
+    .field { display: grid; flex: 1 1 10rem; gap: .25rem; min-width: min(100%, 9rem); }
+    .field label { color: var(--sys-text-primary); font-size: .78rem; font-weight: 700; }
+    .field input, .field select { width: 100%; min-height: 2.55rem; padding: .5rem .62rem; border: 1px solid #9FB4C8; border-radius: var(--sys-radius-sm); background: white; color: var(--ink); }
+    .table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--sys-border-default); border-radius: var(--sys-radius-sm); }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: .86rem; }
+    th, td { padding: .65rem .6rem; border-bottom: 1px solid var(--sys-border-default); vertical-align: top; }
+    th { background: #F5F9FC; color: var(--sys-text-primary); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td small { display: block; margin-top: .18rem; color: var(--muted); }
+    td code, code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .82em; }
+    .detail-button, .button-primary, .button-secondary {
+      min-height: 2.5rem; border-radius: 8px; padding: .52rem .75rem; font-weight: 700;
+    }
+    .button-primary { border: 1px solid var(--sys-action-primary); background: var(--sys-action-primary); color: white; border-radius: var(--sys-radius-md); transition: background-color var(--sys-transition-fast); }
+    .button-primary:hover:not(:disabled) { border-color: var(--sys-action-hover); background: var(--sys-action-hover); }
+    .button-secondary { border: 1px solid var(--sys-action-primary); background: white; color: var(--sys-action-primary); border-radius: var(--sys-radius-md); }
+    button:disabled { cursor: not-allowed; opacity: .56; }
+    .detail-button { border: 1px solid var(--sys-action-primary); background: white; color: var(--sys-action-primary); border-radius: var(--sys-radius-md); }
+    .detail-row td { padding: .85rem; background: #F5F9FC; }
+    .callout { margin-top: .65rem; padding: .7rem .8rem; border-left: 3px solid var(--sys-warning); border-radius: 0 var(--sys-radius-sm) var(--sys-radius-sm) 0; background: var(--warning-bg); color: #5D4300; font-size: .85rem; }
+    .state-select { width: min(100%, 18rem); min-height: 2.45rem; border: 1px solid #9FB4C8; border-radius: var(--sys-radius-sm); background: white; color: var(--ink); padding: .45rem .55rem; }
+    .state-message { padding: .9rem; border: 1px solid var(--line); border-radius: var(--sys-radius-sm); background: #F5F9FC; }
+    .state-message[data-state="stale"] { border-color: #E6C789; background: var(--warning-bg); }
+    .state-message[data-state="error"] { border-color: #E6A9AE; background: var(--danger-bg); }
+    .state-message[data-state="permission"] { border-color: #9FB4C8; background: var(--info-bg); }
+    .state-message strong { display: block; margin-bottom: .2rem; }
+    .state-message p { color: var(--sys-text-secondary); }
+    .state-message button { margin-top: .5rem; }
+    .loading { display: flex; align-items: center; gap: .6rem; padding: .8rem; color: var(--muted); }
+    .loading::before { content: ""; width: .9rem; height: .9rem; border: 2px solid var(--sys-border-default); border-top-color: var(--sys-action-primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .demo-note { margin: .6rem 0; padding: .65rem .75rem; border: 1px solid #E6C789; border-radius: var(--sys-radius-sm); background: var(--warning-bg); color: #5D4300; font-size: .82rem; }
+    .result-count { min-height: 1.4rem; color: var(--muted); font-size: .8rem; }
+    .empty-row { padding: 1rem; color: var(--muted); }
+    .footer { padding: .45rem .1rem 1rem; color: var(--muted); font-size: .77rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .live-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 980px) {
+      .contextbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .split { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .shell { padding: .65rem; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .brand { flex-wrap: wrap; }
+      .surface-switch { width: 100%; }
+      .surface-switch button { flex: 1; }
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .15rem; }
+      .nav h2 { grid-column: 1 / -1; }
+      .nav button { width: 100%; min-height: 2.7rem; }
+      .scope-line, .heading { align-items: flex-start; flex-direction: column; }
+      .filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .field { min-width: 0; }
+      .field:first-child { grid-column: 1 / -1; }
+      .table-wrap { overflow: visible; border: 0; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+      table { min-width: 0; }
+      tbody { display: grid; gap: .65rem; }
+      tr { border: 1px solid var(--line); border-radius: 10px; background: white; overflow: hidden; }
+      td { display: grid; grid-template-columns: minmax(6.7rem, 34%) minmax(0, 1fr); gap: .55rem; padding: .55rem .65rem; overflow-wrap: anywhere; }
+      td::before { content: attr(data-label); color: var(--sys-text-primary); font-size: .73rem; font-weight: 750; }
+      td:last-child { border-bottom: 0; }
+      .detail-row td { display: block; }
+      .detail-row td::before { content: none; }
+    }
+    @media (max-width: 420px) {
+      .contextbar, .grid { grid-template-columns: minmax(0, 1fr); }
+      .nav { grid-template-columns: minmax(0, 1fr); }
+      .filters { grid-template-columns: minmax(0, 1fr); }
+      .field:first-child { grid-column: auto; }
+      .demo-banner { flex-direction: column; }
+      .demo-banner strong { white-space: normal; }
+      td { grid-template-columns: minmax(5.4rem, 32%) minmax(0, 1fr); font-size: .82rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <div class="shell">
+    <div class="demo-banner" role="note">
+      <strong>PROTOTIPO LOCAL · DATOS FICTICIOS · NO OPERATIVO</strong>
+      <span>No conecta con Nexo. Los estados, permisos, señales y descargas son demostraciones; no acreditan operación ni autorización real.</span>
+    </div>
+    <header class="topbar">
+      <div class="brand"><div class="brand-placeholder" role="img" aria-label="Logotipo oficial SYSMedia pendiente del archivo maestro">[Logotipo oficial SYSMedia pendiente del archivo maestro]</div><div><span class="brand-title">Nexo · Paneles y reportes</span><span class="brand-subtitle">SYSMedia · BRING SMART SOLUTIONS · F09 · prototipo local</span></div></div>
+      <div class="surface-switch" role="group" aria-label="Cambiar superficie de demostración">
+        <button type="button" data-surface="provider" aria-pressed="true">Panel del proveedor</button>
+        <button type="button" data-surface="company" aria-pressed="false">Portal de la empresa</button>
+      </div>
+    </header>
+    <section class="contextbar" aria-label="Contexto de demostración">
+      <div class="context-item"><span>Superficie</span><strong id="context-surface">Panel del proveedor</strong></div>
+      <div class="context-item"><label for="demo-role">Rol simulado</label><select id="demo-role"></select></div>
+      <div class="context-item"><label for="demo-company">Empresa de demostración</label><select id="demo-company"></select></div>
+      <div class="context-item"><span>Alcance visible (simulado)</span><strong id="context-scope"></strong></div>
+      <div class="context-item permission-demo">
+        <input id="demo-export-permission" type="checkbox">
+        <label for="demo-export-permission">Simular permiso explícito para descargar CSV<small>No es autorización real; descarga únicamente datos ficticios.</small></label>
+      </div>
+    </section>
+    <div class="layout">
+      <nav class="nav" id="navigation" aria-label="Navegación de la superficie"></nav>
+      <main class="content" id="main" tabindex="-1"></main>
+    </div>
+    <p class="footer">La maqueta solo demuestra estructura e interacciones locales. En producto, el servidor debe aplicar tenant, rol, permiso y alcance; la UI no concede acceso.</p>
+  </div>
+  <div id="announcement" class="live-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  <script>
+    'use strict';
+    const companies = [
+      { id: 'alfa', name: 'Empresa Alfa · DEMO', short: 'Empresa Alfa', assigned: true },
+      { id: 'beta', name: 'Empresa Beta · DEMO', short: 'Empresa Beta', assigned: false },
+      { id: 'delta', name: 'Empresa Delta · DEMO', short: 'Empresa Delta', assigned: true }
+    ];
+    const surfaceConfig = {
+      provider: {
+        label: 'Panel del proveedor',
+        roles: [
+          { id: 'owner', label: 'Propietario (simulado)', scope: 'Todas las empresas de muestra' },
+          { id: 'operator', label: 'Operador (simulado)', scope: 'Solo empresas asignadas de muestra' },
+          { id: 'auditor', label: 'Auditor (simulado)', scope: 'Solo lectura en alcance autorizado de muestra' }
+        ],
+        nav: [
+          ['summary', 'Resumen'], ['companies', 'Empresas'], ['nodes', 'Nodos y entornos'],
+          ['operations', 'Operaciones'], ['audit', 'Auditoría'], ['reports', 'Consumo y reportes']
+        ]
+      },
+      company: {
+        label: 'Portal de la empresa',
+        roles: [
+          { id: 'admin', label: 'Administrador (simulado)', scope: 'Una empresa seleccionada de muestra' },
+          { id: 'technician', label: 'Técnico (simulado)', scope: 'Lectura operativa delegada de muestra' },
+          { id: 'auditor', label: 'Auditor (simulado)', scope: 'Solo lectura en una empresa de muestra' }
+        ],
+        nav: [
+          ['summary', 'Resumen'], ['inventory', 'Equipos y sedes'], ['networks', 'Redes y configuración'],
+          ['operations', 'Operaciones'], ['audit', 'Actividad y auditoría'], ['reports', 'Consumo y reportes']
+        ]
+      }
+    };
+    const data = {
+      provider: {
+        companies: [
+          { id: 'co-01', name: 'Empresa Alfa · DEMO', slug: 'alfa-demo', plan: 'VPN de muestra', status: 'Activa (demo)', quota: '34 / 50 endpoints' },
+          { id: 'co-02', name: 'Empresa Beta · DEMO', slug: 'beta-demo', plan: 'VPN de muestra', status: 'Gracia (demo)', quota: '— sin dato' },
+          { id: 'co-03', name: 'Empresa Delta · DEMO', slug: 'delta-demo', plan: 'No contratado (demo)', status: 'Sin suscripción de muestra', quota: 'No contratado' }
+        ],
+        nodes: [
+          { id: 'N-014-DEMO', company: 'Empresa Alfa', name: 'Nodo N-014 · DEMO', registration: 'Aprobado', heartbeat: 'Reciente · muestra', observed: '2026-10-28T09:38:00Z', received: '2026-10-28T09:38:03Z', config: 'Revisión 18 aplicada (demo)', connectivity: 'No comprobada', freshness: '3 min (muestra)' },
+          { id: 'N-018-DEMO', company: 'Empresa Beta', name: 'Nodo N-018 · DEMO', registration: 'Aprobado', heartbeat: 'Antiguo · muestra', observed: '2026-10-28T08:50:00Z', received: '2026-10-28T08:50:04Z', config: 'Sin revisión reciente', connectivity: 'No comprobada', freshness: '51 min (muestra)' },
+          { id: 'N-021-DEMO', company: 'Empresa Alfa', name: 'Nodo N-021 · DEMO', registration: 'Pendiente', heartbeat: 'Sin señal', observed: null, received: null, config: 'Sin configuración aplicada', connectivity: 'No comprobada', freshness: 'Sin observación' }
+        ],
+        operations: [
+          { id: 'OP-2041-DEMO', target: 'Empresa Alfa · Nodo N-014', type: 'vpn.environment.apply.v1', status: 'Aplicación parcial', revision: '18', attempts: 2, expires: '2026-10-28T10:00:00Z', observed: '2026-10-28T09:38:00Z', received: '2026-10-28T09:38:03Z', summary: 'Configuración aplicada; conectividad no comprobada.', result: 'Resultado parcial ficticio. No contiene información de host.' },
+          { id: 'OP-2038-DEMO', target: 'Empresa Beta · Nodo N-018', type: 'node.runtime_info.v1', status: 'Fallida', revision: '7', attempts: 1, expires: '2026-10-28T09:20:00Z', observed: '2026-10-28T09:01:00Z', received: '2026-10-28T09:01:02Z', summary: 'Falló con código saneado de muestra.', result: 'error_code=DEMO_EXECUTION_ERROR' },
+          { id: 'OP-2029-DEMO', target: 'Empresa Alfa · Nodo N-014', type: 'node.runtime_info.v1', status: 'Completada', revision: '17', attempts: 1, expires: '2026-10-28T08:45:00Z', observed: '2026-10-28T08:31:00Z', received: '2026-10-28T08:31:01Z', summary: 'Resultado de ejemplo disponible.', result: 'Datos ficticios de versión y plataforma.' }
+        ],
+        audit: [
+          { id: 'EV-P-001-DEMO', action: 'company.created', resource: 'Empresa Alfa · DEMO', actor: 'owner-demo', outcome: 'Completado (demo)', at: '2026-10-28T09:12:00Z', before: '—', after: 'Alta de muestra', source: 'provider_audit_events' },
+          { id: 'EV-P-002-DEMO', action: 'node.approved', resource: 'Nodo N-014 · DEMO', actor: 'owner-demo', outcome: 'Completado (demo)', at: '2026-10-28T08:54:00Z', before: 'Pendiente', after: 'Aprobado (demo)', source: 'provider_audit_events' },
+          { id: 'EV-P-003-DEMO', action: 'subscription.changed', resource: 'Empresa Beta · DEMO', actor: 'owner-demo', outcome: 'Completado (demo)', at: '2026-10-27T16:08:00Z', before: 'Activa (demo)', after: 'Gracia (demo)', source: 'provider_audit_events' }
+        ]
+      },
+      company: {
+        inventory: [
+          { id: 'DEV-01-DEMO', companyId: 'alfa', name: 'Endpoint FIN-03 · DEMO', kind: 'Equipo', registration: 'Aprobado', heartbeat: 'Reciente · muestra', observed: '2026-10-28T09:37:00Z', received: '2026-10-28T09:37:03Z', config: 'Revisión 18 aplicada (demo)', connectivity: 'No comprobada', freshness: '3 min (muestra)' },
+          { id: 'DEV-02-DEMO', companyId: 'alfa', name: 'Gateway Bodega · DEMO', kind: 'Equipo · tipo gateway declarado', registration: 'Registrado', heartbeat: 'Antiguo · muestra', observed: '2026-10-28T08:49:00Z', received: '2026-10-28T08:49:04Z', config: 'Sin evidencia de aplicación', connectivity: 'No comprobada', freshness: '51 min (muestra)' },
+          { id: 'DEV-03-DEMO', companyId: 'alfa', name: 'Servidor ERP · DEMO', kind: 'Recurso declarado', registration: 'Declarado', heartbeat: 'No aplica a este recurso', observed: null, received: null, config: 'Política de muestra registrada', connectivity: 'No probado', freshness: 'Sin prueba' }
+        ],
+        sites: [
+          { id: 'SITE-01-DEMO', companyId: 'alfa', name: 'Sucursal Centro · DEMO', status: 'Registrada (demo)', detail: 'LAN ficticia · rango oculto en esta vista' },
+          { id: 'SITE-02-DEMO', companyId: 'alfa', name: 'Sucursal Bodega · DEMO', status: 'Registrada (demo)', detail: 'Configuración no acredita ruta ni retorno' }
+        ],
+        operations: [
+          { id: 'OP-8872-DEMO', companyId: 'alfa', target: 'Entorno VPN · revisión 18', type: 'vpn.environment.apply.v1', status: 'Aplicada · verificación pendiente', revision: '18', attempts: 2, expires: '2026-10-28T10:10:00Z', observed: '2026-10-28T09:30:00Z', received: '2026-10-28T09:30:03Z', summary: 'Configuración aplicada; recurso no probado.', result: 'Resultado parcial ficticio.' },
+          { id: 'OP-8869-DEMO', companyId: 'alfa', target: 'Equipo FIN-03 · DEMO', type: 'endpoint.runtime_info.v1', status: 'Completada', revision: '17', attempts: 1, expires: '2026-10-28T09:00:00Z', observed: '2026-10-28T09:02:00Z', received: '2026-10-28T09:02:02Z', summary: 'Información ficticia disponible.', result: 'Sin datos reales de host.' }
+        ],
+        audit: [
+          { id: 'EV-C-001-DEMO', companyId: 'alfa', action: 'device.approved', resource: 'Endpoint FIN-03 · DEMO', actor: 'admin-demo', outcome: 'Completado (demo)', at: '2026-10-28T09:17:00Z', before: 'Pendiente', after: 'Aprobado (demo)', source: 'audit_events' },
+          { id: 'EV-C-002-DEMO', companyId: 'alfa', action: 'policy.updated', resource: 'Política ERP-lectura · DEMO', actor: 'admin-demo', outcome: 'Completado (demo)', at: '2026-10-28T08:51:00Z', before: 'Revisión 2', after: 'Revisión 3 (demo)', source: 'audit_events' },
+          { id: 'EV-C-003-DEMO', companyId: 'alfa', action: 'operation.created', resource: 'Entorno VPN · DEMO', actor: 'technician-demo', outcome: 'Completado (demo)', at: '2026-10-28T08:42:00Z', before: '—', after: 'Revisión 18 (demo)', source: 'audit_events' }
+        ]
+      }
+    };
+    const nowDemo = Date.parse('2026-10-28T09:40:00Z');
+    const stateNames = {
+      sample: 'Datos ficticios', loading: 'Cargando', empty: 'Sin datos', stale: 'Datos antiguos',
+      permission: 'Sin permiso', notContracted: 'No contratado', error: 'Error parcial'
+    };
+    const stateCopy = {
+      loading: ['Cargando datos', 'Cargando esta sección de demostración. No es una espera de servicio real.'],
+      empty: ['Sin datos para el periodo', 'No hay observaciones ficticias para este bloque. La ausencia no representa cero.'],
+      stale: ['Datos antiguos', 'La última observación de ejemplo está fuera de la ventana configurada en esta demostración. Confirma la señal antes de decidir.'],
+      permission: ['Vista no disponible', 'El rol simulado no tiene permiso para este bloque. No se muestran filas ni conteos. Esto no valida autorización real.'],
+      notContracted: ['No contratado', 'El módulo está marcado como no contratado en estos datos ficticios. No indica capacidad técnica ni estado operativo.'],
+      error: ['No se pudo cargar todo el bloque', 'Error parcial de demostración. Se conserva el resumen permitido y se identifica la parte no disponible.']
+    };
+    const stateOptions = [
+      ['sample', 'Datos ficticios'], ['loading', 'Cargando'], ['empty', 'Sin datos'],
+      ['stale', 'Datos antiguos'], ['permission', 'Sin permiso'], ['notContracted', 'No contratado'], ['error', 'Error parcial']
+    ];
+    let surface = 'provider';
+    let view = 'summary';
+    let companyId = 'all';
+    let roleId = 'owner';
+    let exportPermission = false;
+    let overrides = {};
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+    function activeCompany() {
+      if (companyId === 'all') return { id: 'all', name: 'Todas las empresas de muestra', short: 'Todas las empresas', assigned: true };
+      return companies.find(company => company.id === companyId) ?? companies[0];
+    }
+    function visibleCompanies() {
+      const role = roleId;
+      return surface === 'provider' && role === 'operator' ? companies.filter(item => item.assigned) : companies;
+    }
+    function currentRole() { return surfaceConfig[surface].roles.find(role => role.id === roleId) ?? surfaceConfig[surface].roles[0]; }
+    function activeState(key) { return overrides[key] ?? 'sample'; }
+    function stateSelect(key, applicable = stateOptions) {
+      return `<div class="field"><label for="state-${escapeHtml(key)}">Escenario simulado de este bloque</label><select class="state-select" id="state-${escapeHtml(key)}" data-state-key="${escapeHtml(key)}">${applicable.map(([value, label]) => `<option value="${value}" ${activeState(key) === value ? 'selected' : ''}>${label}</option>`).join('')}</select></div>`;
+    }
+    function metadata({ source, unit = '—', period = 'Consulta actual de demostración', observedAt = null, receivedAt = null, freshness = 'No calculable', coverage = 'No disponible' }) {
+      const observed = observedAt ? `${new Date(observedAt).toISOString()} (UTC)` : 'No disponible';
+      const received = receivedAt ? `${new Date(receivedAt).toISOString()} (UTC)` : 'No disponible';
+      return `<details><summary>Fuente, tiempo y cobertura</summary><ul class="meta-list"><li><b>Fuente:</b> <code>${escapeHtml(source)}</code></li><li><b>Unidad:</b> ${escapeHtml(unit)}</li><li><b>Periodo:</b> ${escapeHtml(period)}</li><li><b>Observado:</b> ${escapeHtml(observed)}</li><li><b>Recibido:</b> ${escapeHtml(received)}</li><li><b>Frescura:</b> ${escapeHtml(freshness)}</li><li><b>Cobertura:</b> ${escapeHtml(coverage)}</li></ul></details>`;
+    }
+    function statusBlock(key, body, { allowNotContracted = false, allowLoading = true } = {}) {
+      let states = stateOptions.filter(([id]) => (allowNotContracted || id !== 'notContracted') && (allowLoading || id !== 'loading'));
+      const selected = activeState(key);
+      if (selected === 'notContracted' && !allowNotContracted) overrides[key] = 'sample';
+      if (selected === 'loading' && !allowLoading) overrides[key] = 'sample';
+      const effective = activeState(key);
+      const controls = stateSelect(key, states);
+      if (effective === 'sample') return `${controls}${body}`;
+      const [title, copy] = stateCopy[effective];
+      if (effective === 'loading') return `${controls}<div class="loading" role="status" aria-busy="true">${escapeHtml(copy)}</div>`;
+      if (effective === 'error') return `${controls}<div class="state-message" data-state="error"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(copy)}</p><details><summary>Parte conservada (demostración)</summary><p>El contexto y la marca de datos ficticios se conservan; no se afirma que un servicio real se haya recuperado.</p></details><button class="button-secondary" type="button" data-state-retry="${escapeHtml(key)}">Volver a datos de muestra</button></div>`;
+      return `${controls}<div class="state-message" data-state="${effective === 'stale' ? 'stale' : effective === 'permission' ? 'permission' : 'empty'}"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(copy)}</p>${effective === 'stale' ? '<p>Edad de la muestra: 51 min · cobertura ficticia 1/3.</p>' : ''}</div>`;
+    }
+    function panel(title, key, body, options = {}) {
+      return `<section class="panel" aria-labelledby="heading-${escapeHtml(key)}"><div class="panel-head"><div><h2 id="heading-${escapeHtml(key)}">${escapeHtml(title)}</h2><p>Datos de demostración; no representan estado real.</p></div></div>${statusBlock(key, body, options)}</section>`;
+    }
+    function scopeLine() {
+      const role = currentRole();
+      const company = activeCompany();
+      return `<div class="scope-line"><span><b>Ámbito:</b> ${escapeHtml(surface === 'provider' ? company.name : company.name)}</span><span><b>Rol:</b> ${escapeHtml(role.label)} · <b>Alcance:</b> ${escapeHtml(role.scope)}</span></div>`;
+    }
+    function sourceMetric(label, value, unit, info) {
+      return `<article class="metric"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong><em>Unidad: ${escapeHtml(unit)}</em><em>Fuente: <code>${escapeHtml(info.source)}</code></em><em>Periodo: ${escapeHtml(info.period ?? 'No disponible')}</em><em>Frescura: ${escapeHtml(info.freshness)} · Cobertura: ${escapeHtml(info.coverage)}</em>${metadata(info)}</article>`;
+    }
+    function indicatorGrid() {
+      const isCompany = surface === 'company';
+      const scopedInventory = isCompany ? data.company.inventory.filter(item => item.companyId === companyId) : [];
+      const scopedNodes = isCompany ? [] : data.provider.nodes.filter(item => companyId === 'all' || item.company === activeCompany().short);
+      const eligibleHeartbeats = isCompany ? scopedInventory.filter(item => item.kind === 'Equipo').length : scopedNodes.filter(item => item.registration === 'Aprobado').length;
+      const recentHeartbeats = isCompany ? scopedInventory.filter(item => item.kind === 'Equipo' && item.heartbeat.startsWith('Reciente')).length : scopedNodes.filter(item => item.heartbeat.startsWith('Reciente')).length;
+      const count = isCompany ? scopedInventory.length : scopedNodes.length;
+      const signalCoverage = isCompany
+        ? '1 observación / 2 equipos elegibles (muestra)'
+        : `${recentHeartbeats} observaciones / ${eligibleHeartbeats} nodos elegibles (muestra)`;
+      const signalObserved = isCompany ? '2026-10-28T09:37:00Z' : scopedNodes.find(item => item.observed)?.observed ?? null;
+      const signalReceived = isCompany ? '2026-10-28T09:37:03Z' : scopedNodes.find(item => item.received)?.received ?? null;
+      const scopedOps = isCompany ? data.company.operations.filter(item => item.companyId === companyId) : data.provider.operations.filter(item => companyId === 'all' || item.target.includes(activeCompany().short));
+      const attentionOps = scopedOps.filter(item => /fallida|parcial|pendiente/i.test(item.status)).length;
+      return `<div class="grid">
+        ${sourceMetric(isCompany ? 'Equipos y recursos en la muestra' : 'Nodos en el ámbito de muestra', count ? String(count) : 'No disponible', 'elementos ficticios', { source: isCompany ? 'declared_devices (demo)' : 'provider_nodes (demo)', unit: 'equipos/nodos', period: count ? 'Inventario completo simulado' : 'No hay filas de inventario en este ámbito', freshness: 'Consulta simulada; sin señal implicada', coverage: count ? `${count} elementos elegibles / ${count} visibles en esta muestra` : 'No se dispone de datos ficticios para esta empresa; no equivale a cero operativo' })}
+        ${sourceMetric('Heartbeat reciente', eligibleHeartbeats ? `${recentHeartbeats} / ${eligibleHeartbeats}` : 'No disponible', 'observaciones / elementos con heartbeat elegible', { source: isCompany ? 'device_heartbeats (demo)' : 'node_heartbeats (demo)', unit: 'observaciones', period: eligibleHeartbeats ? 'Últimos 15 minutos (ventana ficticia)' : 'No disponible', observedAt: signalObserved, receivedAt: signalReceived, freshness: signalObserved ? 'Umbral de 15 min solo para demo; edad por observación' : 'Sin observación disponible', coverage: signalCoverage })}
+        ${sourceMetric('Operaciones a revisar', scopedOps.length ? String(attentionOps) : 'No disponible', 'operaciones ficticias', { source: isCompany ? 'operations (demo)' : 'node_operations (demo)', unit: 'operaciones', period: scopedOps.length ? 'Últimas 24 h (muestra)' : 'No hay filas de operación en este ámbito', observedAt: scopedOps.find(item => item.observed)?.observed ?? null, receivedAt: scopedOps.find(item => item.received)?.received ?? null, freshness: scopedOps.length ? 'Edad derivada de la última observación disponible en la muestra' : 'Sin observaciones disponibles', coverage: scopedOps.length ? `${attentionOps} operaciones con atención / ${scopedOps.length} operaciones ficticias en ámbito` : 'No hay operaciones de muestra; no equivale a cero operativo' })}
+      </div>`;
+    }
+    function heading(title, description) {
+      return `<div class="heading"><div><p class="eyebrow">${escapeHtml(surfaceConfig[surface].label)} · F09</p><h1 id="view-heading" tabindex="-1">${escapeHtml(title)}</h1><p class="lede">${escapeHtml(description)}</p></div><span class="chip info">Solo demostración</span></div>`;
+    }
+    function table(headers, rows, emptyMessage = 'No hay filas para los filtros seleccionados.') {
+      if (!rows.length) return `<p class="empty-row">${escapeHtml(emptyMessage)}</p>`;
+      return `<div class="table-wrap"><table><thead><tr>${headers.map(item => `<th scope="col">${escapeHtml(item)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+    }
+    function td(label, value) { return `<td data-label="${escapeHtml(label)}">${value}</td>`; }
+    function filterControls(key, filters) {
+      return `<div class="filters">${filters.map(filter => `<div class="field"><label for="${key}-${filter.id}">${escapeHtml(filter.label)}</label>${filter.type === 'select' ? `<select id="${key}-${filter.id}" data-filter="${key}" data-filter-name="${filter.id}">${filter.options.map(option => `<option value="${escapeHtml(option[0])}">${escapeHtml(option[1])}</option>`).join('')}</select>` : `<input id="${key}-${filter.id}" data-filter="${key}" data-filter-name="${filter.id}" type="search" placeholder="${escapeHtml(filter.placeholder)}" autocomplete="off">`}</div>`).join('')}</div><p class="result-count" id="count-${key}" aria-live="off"></p>`;
+    }
+    function detailButton(key, id) {
+      return `<button class="detail-button" type="button" data-detail="${escapeHtml(key)}" data-id="${escapeHtml(id)}" aria-expanded="false">Ver detalle</button>`;
+    }
+    function renderCompanyList() {
+      const rows = data.provider.companies
+        .filter(item => companyId === 'all' || item.name.startsWith(activeCompany().short))
+        .filter(item => roleId !== 'operator' || companies.find(company => company.short === item.name.split(' ·')[0])?.assigned)
+        .filter(item => !viewFilters.companies.search || `${item.name} ${item.slug} ${item.plan}`.toLowerCase().includes(viewFilters.companies.search.toLowerCase()))
+        .map(item => `<tr>${td('Empresa', `<b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.slug)}</small>`)}${td('Plan', escapeHtml(item.plan))}${td('Estado comercial', `<span class="chip">${escapeHtml(item.status)}</span>`)}${td('Cupo', escapeHtml(item.quota))}${td('Detalle', detailButton('companies', item.id))}</tr>${expanded.has(item.id) ? `<tr class="detail-row"><td colspan="5"><b>Ficha ${escapeHtml(item.name)}</b><p>Empresa y contrato de ejemplo. Sin conectividad ni estado de servicios inferido.</p><p>Fuente: <code>tenants / subscriptions / quota_counters (demo)</code> · consulta simulada · alcance: fila ficticia seleccionada.</p></td></tr>` : ''}`);
+      return filterControls('companies', [{ id: 'search', label: 'Buscar empresa', type: 'search', placeholder: 'Nombre, slug o plan' }]) + table(['Empresa', 'Plan', 'Estado comercial', 'Cupo', 'Detalle'], rows);
+    }
+    function scopedInventoryRecords() {
+      const isProvider = surface === 'provider';
+      let records = isProvider ? data.provider.nodes : data.company.inventory.filter(item => item.companyId === companyId);
+      if (isProvider && companyId !== 'all') records = records.filter(item => item.company === activeCompany().short);
+      return records;
+    }
+    function inventoryRows() {
+      const isProvider = surface === 'provider';
+      let records = scopedInventoryRecords();
+      const filters = viewFilters.inventory;
+      records = records.filter(item => {
+        const text = `${item.name} ${item.company ?? ''} ${item.registration} ${item.heartbeat} ${item.config} ${item.connectivity}`.toLowerCase();
+        const queryMatch = !filters.search || text.includes(filters.search.toLowerCase());
+        const stateMatch = filters.status === 'all' || (filters.status === 'stale' && item.heartbeat.includes('Antiguo')) || (filters.status === 'pending' && item.registration.includes('Pendiente')) || (filters.status === 'unverified' && (item.connectivity.includes('No comprobada') || item.connectivity.includes('No probado')));
+        return queryMatch && stateMatch;
+      });
+      return records.map(item => `<tr>${td(isProvider ? 'Nodo' : 'Equipo o recurso', `<b>${escapeHtml(item.name)}</b>${item.company ? `<small>${escapeHtml(item.company)} · datos ficticios</small>` : `<small>${escapeHtml(item.kind)} · datos ficticios</small>`}`)}${td('Registro', `<span class="chip ${item.registration === 'Aprobado' ? 'success' : 'info'}">${escapeHtml(item.registration)}</span>`)}${td('Heartbeat', `${escapeHtml(item.heartbeat)}${item.observed ? `<small>Observado ${escapeHtml(new Date(item.observed).toISOString())}</small><small>Recibido ${escapeHtml(new Date(item.received).toISOString())}</small>` : '<small>Hora no disponible</small>'}`)}${td('Configuración', escapeHtml(item.config))}${td('Conectividad comprobada', `<span class="chip warning">${escapeHtml(item.connectivity)}</span>`)}</tr>`);
+    }
+    function inventoryPanel() {
+      const filters = filterControls('inventory', [
+        { id: 'search', label: surface === 'provider' ? 'Buscar nodo' : 'Buscar equipo o recurso', type: 'search', placeholder: 'Nombre o estado' },
+        { id: 'status', label: 'Filtrar por estado', type: 'select', options: [['all', 'Todos'], ['stale', 'Heartbeat antiguo'], ['pending', 'Registro pendiente'], ['unverified', 'Conectividad no comprobada']] }
+      ]);
+      const scopedRecords = scopedInventoryRecords();
+      const records = inventoryRows();
+      const body = `${filters}${table(surface === 'provider' ? ['Nodo / empresa', 'Registro', 'Heartbeat', 'Configuración aplicada', 'Conectividad comprobada'] : ['Equipo o recurso', 'Registro', 'Heartbeat', 'Configuración aplicada', 'Conectividad comprobada'], records)}<p class="callout">Registro, heartbeat, configuración aplicada y conectividad comprobada son estados distintos. La muestra no contiene una prueba de recurso; no se puede concluir que un gateway o una sucursal estén operativos.</p>${metadata({ source: surface === 'provider' ? 'provider_nodes + node_heartbeats + vpn_environment_revisions (demo)' : 'declared_devices + device_heartbeats + vpn_environment_revisions (demo)', unit: 'nodos / equipos / revisiones', period: 'Inventario de muestra al consultar', observedAt: scopedRecords.find(item => item.observed)?.observed ?? null, receivedAt: scopedRecords.find(item => item.received)?.received ?? null, freshness: scopedRecords.length ? 'Por fila; heartbeat de muestra con ventana de 15 min' : 'Sin observaciones disponibles en este ámbito', coverage: `${scopedRecords.length} filas de muestra en el ámbito; elegibilidad indicada por tipo de elemento` })}`;
+      return panel(surface === 'provider' ? 'Nodos y entornos' : 'Inventario de equipos', 'inventory', body);
+    }
+    function scopedOperationRecords() {
+      let records = surface === 'company' ? data.company.operations.filter(item => item.companyId === companyId) : data.provider.operations;
+      if (surface === 'provider' && companyId !== 'all') records = records.filter(item => item.target.includes(activeCompany().short));
+      return records;
+    }
+    function operationRows() {
+      const records = scopedOperationRecords();
+      const filters = viewFilters.operations;
+      return records.filter(item => {
+        const match = !filters.search || `${item.id} ${item.target} ${item.type} ${item.status} ${item.summary}`.toLowerCase().includes(filters.search.toLowerCase());
+        const status = filters.status === 'all' || item.status.toLowerCase().includes(filters.status);
+        return match && status;
+      }).map(item => `<tr>${td('Operación', `<b><code>${escapeHtml(item.id)}</code></b><small>${escapeHtml(item.type)}</small>`)}${td('Ámbito / revisión', `${escapeHtml(item.target)}<small>Revisión ${escapeHtml(item.revision)}</small>`)}${td('Estado / resultado', `<span class="chip ${item.status.includes('Fallida') ? 'danger' : item.status.includes('parcial') || item.status.includes('pendiente') ? 'warning' : 'info'}">${escapeHtml(item.status)}</span><small>${escapeHtml(item.summary)}</small>`)}${td('Intentos / vence', `${escapeHtml(item.attempts)} intentos<small>${escapeHtml(new Date(item.expires).toISOString())} (UTC)</small>`)}${td('Observación / recepción', `<small>Obs. ${escapeHtml(item.observed ? new Date(item.observed).toISOString() : 'No disponible')}</small><small>Rec. ${escapeHtml(item.received ? new Date(item.received).toISOString() : 'No disponible')}</small>`)}${td('Detalle', detailButton('operations', item.id))}</tr>${expanded.has(item.id) ? `<tr class="detail-row"><td colspan="6"><b>Resultado saneado de demostración</b><p>${escapeHtml(item.result)}</p><p>Revisión ${escapeHtml(item.revision)} · ${escapeHtml(item.attempts)} intentos · no se ofrece reintento desde esta vista.</p><p>Fuente: <code>${surface === 'provider' ? 'node_operations + node_operation_results (demo)' : 'operations + operation_results (demo)'}</code></p></td></tr>` : ''}`);
+    }
+    function operationsPanel() {
+      const scopedRecords = scopedOperationRecords();
+      const body = `${filterControls('operations', [
+        { id: 'search', label: 'Buscar operación', type: 'search', placeholder: 'ID, destino, tipo o resultado' },
+        { id: 'status', label: 'Filtrar estado', type: 'select', options: [['all', 'Todos'], ['fallida', 'Fallida'], ['parcial', 'Parcial'], ['completada', 'Completada']] }
+      ])}${table(['Operación / tipo', 'Ámbito / revisión', 'Estado / resultado', 'Intentos / vence', 'Observado / recibido', 'Detalle'], operationRows())}<p class="callout">“Aplicada” describe la configuración en el nodo. No confirma túnel, ruta, DNS ni respuesta del recurso. El prototipo no ejecuta reintentos.</p>${metadata({ source: surface === 'provider' ? 'node_operations + node_operation_results + node_operation_outbox (demo)' : 'operations + operation_results + operation_outbox (demo)', unit: 'operaciones; timestamps UTC', period: 'Últimas 24 h de datos ficticios', observedAt: scopedRecords.find(item => item.observed)?.observed ?? null, receivedAt: scopedRecords.find(item => item.received)?.received ?? null, freshness: scopedRecords.length ? 'Por operación, según observed_at; no se usa como salud actual' : 'Sin observaciones disponibles en este ámbito', coverage: `${operationRows().length} filas coincidentes / ${scopedRecords.length} operaciones ficticias en ámbito` })}`;
+      return panel('Operaciones', 'operations', body);
+    }
+    function scopedAuditRecords() {
+      let records = surface === 'company' ? data.company.audit.filter(item => item.companyId === companyId) : data.provider.audit;
+      if (surface === 'provider' && companyId !== 'all') records = records.filter(item => item.resource.includes(activeCompany().short));
+      return records;
+    }
+    function auditRows() {
+      const records = scopedAuditRecords();
+      const filters = viewFilters.audit;
+      return records.filter(item => {
+        const queryMatch = !filters.search || `${item.id} ${item.action} ${item.resource} ${item.actor} ${item.outcome}`.toLowerCase().includes(filters.search.toLowerCase());
+        const actionMatch = filters.action === 'all' || item.action.startsWith(filters.action);
+        const time = Date.parse(item.at);
+        const periodMatch = filters.period === 'all' || (filters.period === '24h' && nowDemo - time <= 86400000) || (filters.period === '7d' && nowDemo - time <= 604800000);
+        return queryMatch && actionMatch && periodMatch;
+      }).map(item => `<tr>${td('Evento', `<b><code>${escapeHtml(item.action)}</code></b><small>${escapeHtml(item.id)}</small>`)}${td(surface === 'provider' ? 'Empresa / recurso' : 'Recurso', escapeHtml(item.resource))}${td('Actor', escapeHtml(item.actor))}${td('Fecha del servidor', `${escapeHtml(new Date(item.at).toISOString())}<small>UTC · muestra</small>`)}${td('Resultado', `<span class="chip info">${escapeHtml(item.outcome)}</span>`)}${td('Detalle', detailButton('audit', item.id))}</tr>${expanded.has(item.id) ? `<tr class="detail-row"><td colspan="6"><b>Detalle saneado (demo)</b><p>Antes: ${escapeHtml(item.before)} · Después: ${escapeHtml(item.after)}</p><p>Fuente conceptual: <code>${escapeHtml(item.source)}</code> · actor/recurso/evento ficticios.</p><p>No hay secretos en este detalle.</p></td></tr>` : ''}`);
+    }
+    function auditPanel() {
+      const scopedRecords = scopedAuditRecords();
+      const body = `<p class="demo-note">Filas completamente ficticias. La maqueta no prueba la existencia de permisos, la cobertura de emisores ni la retención real.</p>${filterControls('audit', [
+        { id: 'search', label: 'Buscar evento', type: 'search', placeholder: 'Actor, recurso, acción o ID' },
+        { id: 'action', label: 'Filtrar acción', type: 'select', options: [['all', 'Todas las acciones'], ['company.', 'Empresa'], ['node.', 'Nodo'], ['device.', 'Equipo'], ['subscription.', 'Suscripción'], ['operation.', 'Operación'], ['policy.', 'Política']] },
+        { id: 'period', label: 'Periodo', type: 'select', options: [['all', 'Todos los datos de muestra'], ['24h', 'Últimas 24 horas'], ['7d', 'Últimos 7 días']] }
+      ])}${table(['Evento', surface === 'provider' ? 'Empresa / recurso' : 'Recurso', 'Actor', 'Fecha del servidor', 'Resultado', 'Detalle'], auditRows())}<div class="export-row"><button class="button-primary" type="button" data-export="audit" ${exportPermission ? '' : 'disabled'}>Descargar CSV de demostración</button><span>${exportPermission ? 'Permiso marcado solo para esta demostración.' : 'Requiere activar “Simular permiso explícito…” arriba.'}</span></div>${metadata({ source: surface === 'provider' ? 'provider_audit_events (demo)' : 'audit_events (demo)', unit: 'eventos', period: viewFilters.audit.period === '24h' ? 'Últimas 24 h (filtro demo)' : viewFilters.audit.period === '7d' ? 'Últimos 7 días (filtro demo)' : 'Todos los datos de muestra', observedAt: scopedRecords.find(item => item.at)?.at ?? null, receivedAt: null, freshness: scopedRecords.length ? 'created_at del servidor en muestra; frescura no equivale a cobertura' : 'Sin evento disponible en este ámbito', coverage: `${auditRows().length} filas coincidentes / ${scopedRecords.length} eventos de muestra en ámbito` })}`;
+      return panel('Actividad y auditoría', 'audit', body);
+    }
+    function networksPanel() {
+      const sites = data.company.sites.filter(site => site.companyId === companyId).map(site => `<tr>${td('Sede', `<b>${escapeHtml(site.name)}</b><small>${escapeHtml(site.id)}</small>`)}${td('Registro', `<span class="chip info">${escapeHtml(site.status)}</span>`)}${td('Configuración', escapeHtml(site.detail))}${td('Conectividad', '<span class="chip warning">No comprobada</span>')}</tr>`);
+      const body = `${table(['Sede / recurso', 'Registro', 'Configuración', 'Conectividad comprobada'], sites)}<p class="callout">La presencia de configuración de red o gateway no prueba ruta de retorno, DNS ni acceso al recurso. No se presenta ningún gateway como operativo.</p>${metadata({ source: 'sites + private_network_profiles + network_diagnostics (demo)', unit: 'sedes / perfiles / pruebas', period: 'Estado ficticio al consultar', observedAt: null, receivedAt: null, freshness: 'Sin prueba de conectividad disponible', coverage: '2 sedes ficticias; 0 pruebas de recurso representadas' })}`;
+      return panel('Redes y configuración', 'networks', body);
+    }
+    function reportPanel() {
+      const companyQuota = companyId === 'beta' ? 'No disponible' : companyId === 'delta' ? 'No contratado' : '34 / 50';
+      const body = `<div class="grid">
+        ${sourceMetric('Cupo comercial de endpoints', companyQuota, 'endpoints (muestra)', { source: 'quota_counters (demo)', unit: 'endpoints', period: 'Consulta actual ficticia', observedAt: null, receivedAt: null, freshness: 'Valor comercial de consulta; no es heartbeat', coverage: companyQuota === 'No disponible' ? 'Sin observación de cupo' : companyQuota === 'No contratado' ? 'Módulo no contratado en los datos demo' : 'Empresa de muestra; usado/límite sin inferencia de red' })}
+        ${sourceMetric('Bytes transmitidos', 'No medido', 'bytes', { source: 'No hay fuente instrumentada en el inicial', unit: 'bytes', period: 'No disponible', freshness: 'No disponible', coverage: 'No calculable; no mostrar cero' })}
+        ${sourceMetric('Tasa / latencia', 'No medido', 'bytes/s / ms', { source: 'No hay fuente instrumentada en el inicial', unit: 'bytes/s, ms', period: 'No disponible', freshness: 'No disponible', coverage: 'No calculable; no mostrar cero' })}
+        ${sourceMetric('Soporte / backup', 'No disponible', 'No aplica', { source: 'Sin fuente operativa en este prototipo', unit: 'No aplica', period: 'No disponible', freshness: 'No disponible', coverage: 'No se presenta como servicio operativo' })}
+      </div><p class="callout">Un cupo contratado no es consumo de tráfico. Bytes, tasas, latencia, soporte y backup no están instrumentados aquí y no se muestran como cero ni como operativos.</p><div class="export-row"><button class="button-primary" type="button" data-export="reports" ${exportPermission ? '' : 'disabled'}>Descargar CSV de demostración</button><span>${exportPermission ? 'Incluye solo filas ficticias visibles en el filtro actual.' : 'Descarga bloqueada hasta simular permiso explícito.'}</span></div>${metadata({ source: 'quota_counters (demo) / fuentes no instrumentadas', unit: 'endpoints; bytes/s; ms', period: 'Periodo no disponible para métricas de red', observedAt: null, receivedAt: null, freshness: 'Cupo: consulta demo; tráfico: no disponible', coverage: 'Cupo según muestra; métricas de red sin denominador ni fuente' })}`;
+      return panel('Consumo y reportes', 'reports', body, { allowNotContracted: true });
+    }
+    function summaryView() {
+      const description = surface === 'provider'
+        ? 'Incidencias, inventario y actividad dentro del alcance de proveedor seleccionado. Los valores son sintéticos.'
+        : 'Señales y cambios de una empresa de muestra. Un heartbeat no demuestra que un recurso privado responda.';
+      const statusBody = `<div class="list"><div class="list-row"><div><b>Configuración del entorno</b><small>Revisión 18 · ejemplo aplicado en agente simulado</small></div><span class="chip success">Aplicada (demo)</span></div><div class="list-row"><div><b>Conectividad al ERP</b><small>No hay prueba de acceso disponible</small></div><span class="chip warning">No comprobada</span></div><div class="list-row"><div><b>Tráfico de red</b><small>Sin fuente instrumentada en el inicial</small></div><span class="chip">No medido</span></div><div class="list-row"><div><b>Soporte / backup</b><small>No se evalúa operación de módulos futuros</small></div><span class="chip">No disponible</span></div></div><p class="callout">Configuración aplicada ≠ conectividad comprobada. No inferir gateway, retorno, soporte, backup ni disponibilidad de recurso.</p>${metadata({ source: 'vpn_environment_revisions (demo)', unit: 'revisiones', period: 'Estado ficticio al consultar', observedAt: '2026-10-28T09:30:00Z', receivedAt: '2026-10-28T09:30:03Z', freshness: 'Muestra; la conectividad carece de observación', coverage: '1 revisión de ejemplo; 0 pruebas de recurso representadas' })}`;
+      return `${scopeLine()}${heading('Resumen', description)}${indicatorGrid()}${panel('Estado del servicio (muestra)', 'summary-status', statusBody)}${inventoryPanel()}`;
+    }
+    function pageContent() {
+      if (view === 'summary') return summaryView();
+      if (view === 'companies') return `${scopeLine()}${heading('Empresas', 'Lista filtrable dentro del alcance de demostración. No representa permisos reales.')}${panel('Empresas y cupos comerciales', 'companies', renderCompanyList())}`;
+      if (view === 'nodes' || view === 'inventory') return `${scopeLine()}${heading(view === 'nodes' ? 'Nodos y entornos' : 'Equipos y sedes', 'Registro, heartbeat, configuración aplicada y conectividad comprobada se muestran en columnas separadas.')}${inventoryPanel()}${surface === 'company' ? panel('Sucursales declaradas', 'sites', table(['Sede', 'Registro', 'Configuración', 'Conectividad'], data.company.sites.filter(site => site.companyId === companyId).map(site => `<tr>${td('Sede', escapeHtml(site.name))}${td('Registro', escapeHtml(site.status))}${td('Configuración', escapeHtml(site.detail))}${td('Conectividad', '<span class="chip warning">No comprobada</span>')}</tr>`))) : ''}`;
+      if (view === 'networks') return `${scopeLine()}${heading('Redes y configuración', 'La configuración declarada no prueba ruta, retorno, DNS ni acceso al recurso.')}${networksPanel()}`;
+      if (view === 'operations') return `${scopeLine()}${heading('Operaciones', 'Progreso y resultado de operaciones ficticias; no se ofrecen reintentos ni cambios desde esta vista.')}${operationsPanel()}`;
+      if (view === 'audit') return `${scopeLine()}${heading('Actividad y auditoría', 'Eventos de muestra, filtrables y con detalle saneado. El control de acceso real pertenece al servidor.')}${auditPanel()}`;
+      return `${scopeLine()}${heading('Consumo y reportes', 'Cupos comerciales disponibles separados de métricas de tráfico no instrumentadas.')}${reportPanel()}`;
+    }
+    const viewFilters = {
+      companies: { search: '' },
+      inventory: { search: '', status: 'all' },
+      operations: { search: '', status: 'all' },
+      audit: { search: '', action: 'all', period: 'all' }
+    };
+    const expanded = new Set();
+    function clearTenantState() {
+      for (const filters of Object.values(viewFilters)) for (const key of Object.keys(filters)) filters[key] = key === 'status' || key === 'action' || key === 'period' ? 'all' : '';
+      overrides = {};
+      expanded.clear();
+      document.getElementById('demo-export-permission').checked = false;
+      exportPermission = false;
+    }
+    function renderContext() {
+      const roleSelect = document.getElementById('demo-role');
+      const companySelect = document.getElementById('demo-company');
+      const config = surfaceConfig[surface];
+      if (!config.roles.some(item => item.id === roleId)) roleId = config.roles[0].id;
+      roleSelect.innerHTML = config.roles.map(item => `<option value="${item.id}">${escapeHtml(item.label)}</option>`).join('');
+      roleSelect.value = roleId;
+      const visible = visibleCompanies();
+      const permitsAll = surface === 'provider' && roleId === 'owner';
+      if (!(permitsAll && companyId === 'all') && !visible.some(item => item.id === companyId)) companyId = visible[0]?.id ?? companies[0].id;
+      const options = surface === 'provider' && roleId === 'owner' ? [{ id: 'all', name: 'Todas las empresas de muestra' }, ...visible] : visible;
+      companySelect.innerHTML = options.map(item => `<option value="${item.id}">${escapeHtml(item.name)}${surface === 'provider' && roleId === 'operator' ? ' · asignada (demo)' : ''}</option>`).join('');
+      companySelect.value = companyId;
+      document.getElementById('context-surface').textContent = config.label;
+      document.getElementById('context-scope').textContent = roleId === 'operator' ? `${currentRole().scope} · ${visible.length} empresa(s) en esta muestra` : currentRole().scope;
+    }
+    function renderNavigation({ focusHeading = false } = {}) {
+      const config = surfaceConfig[surface];
+      if (!config.nav.some(([id]) => id === view)) view = 'summary';
+      document.getElementById('navigation').innerHTML = `<h2>${escapeHtml(config.label)}</h2>${config.nav.map(([id, label]) => `<button type="button" data-view="${id}" ${view === id ? 'aria-current="page"' : ''}>${escapeHtml(label)}</button>`).join('')}`;
+      document.getElementById('main').innerHTML = pageContent();
+      attachFilterValues();
+      updateResultCounts();
+      if (focusHeading) document.getElementById('view-heading')?.focus({ preventScroll: false });
+    }
+    function attachFilterValues() {
+      document.querySelectorAll('[data-filter]').forEach(control => {
+        const key = control.dataset.filter;
+        const name = control.dataset.filterName;
+        if (viewFilters[key] && Object.hasOwn(viewFilters[key], name)) control.value = viewFilters[key][name];
+      });
+    }
+    function filteredCount(key) {
+      if (key === 'companies') return data.provider.companies.filter(item => !viewFilters.companies.search || `${item.name} ${item.slug} ${item.plan}`.toLowerCase().includes(viewFilters.companies.search.toLowerCase())).length;
+      if (key === 'inventory') return inventoryRows().length;
+      if (key === 'operations') return operationRows().length;
+      if (key === 'audit') return auditRows().length;
+      return 0;
+    }
+    function updateResultCounts() {
+      for (const key of ['companies', 'inventory', 'operations', 'audit']) {
+        const node = document.getElementById(`count-${key}`);
+        if (node) node.textContent = `${filteredCount(key)} resultado(s) ficticio(s)`;
+      }
+    }
+    function resetAndRender(message, focusHeading = false) {
+      renderContext();
+      renderNavigation({ focusHeading });
+      document.getElementById('announcement').textContent = message;
+    }
+    function csvCell(value) { return `"${String(value ?? '').replaceAll('"', '""')}"`; }
+    function downloadDemoCsv(kind) {
+      if (!exportPermission) return;
+      if (kind === 'reports') {
+        const quota = surface === 'company' ? (companyId === 'beta' ? 'No disponible' : companyId === 'delta' ? 'No contratado' : '34 / 50') : 'No agregado';
+        const rows = [
+          ['cupo_comercial_endpoints', quota, 'endpoints', 'quota_counters (demo)', 'Consulta ficticia'],
+          ['bytes_transmitidos', 'No medido', 'bytes', 'Sin fuente instrumentada', 'No disponible'],
+          ['tasa_latencia', 'No medido', 'bytes/s; ms', 'Sin fuente instrumentada', 'No disponible'],
+          ['soporte_backup', 'No disponible', 'No aplica', 'Sin fuente operativa', 'No disponible']
+        ];
+        const csv = [
+          '# DEMOSTRACIÓN F09 — SOLO DATOS FICTICIOS; NO ES EXPORTACIÓN AUTORIZADA DE NEXO',
+          ['indicador', 'valor', 'unidad', 'fuente', 'periodo'].map(csvCell).join(','),
+          ...rows.map(row => row.map(csvCell).join(','))
+        ].join('\r\n');
+        triggerDemoDownload(csv, `nexo-f09-demo-reportes-${companyId}.csv`);
+        return;
+      }
+      const rows = kind === 'audit' ? auditRows() : operationRows();
+      const source = kind === 'audit' ? data[surface].audit : data[surface].operations;
+      const filteredIds = new Set([...document.querySelectorAll(`button[data-detail="${kind === 'audit' ? 'audit' : 'operations'}"]`)].map(button => button.dataset.id));
+      const filtered = source.filter(item => filteredIds.has(item.id));
+      const headers = kind === 'audit' ? ['id', 'action', 'resource', 'actor', 'outcome', 'created_at_utc'] : ['id', 'target', 'type', 'status', 'revision', 'attempts', 'expires_at_utc', 'observed_at_utc', 'received_at_utc'];
+      const columns = kind === 'audit'
+        ? ['id', 'action', 'resource', 'actor', 'outcome', 'at']
+        : ['id', 'target', 'type', 'status', 'revision', 'attempts', 'expires', 'observed', 'received'];
+      const csv = [
+        '# DEMOSTRACIÓN F09 — SOLO DATOS FICTICIOS; NO ES EXPORTACIÓN AUTORIZADA DE NEXO',
+        headers.map(csvCell).join(','),
+        ...filtered.map(item => columns.map(column => csvCell(item[column])).join(','))
+      ].join('\r\n');
+      triggerDemoDownload(csv, `nexo-f09-demo-${kind}-${companyId}.csv`);
+    }
+    function triggerDemoDownload(csv, filename) {
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      document.getElementById('announcement').textContent = 'CSV de demostración descargado. Contiene únicamente datos ficticios; no acredita permiso real.';
+    }
+    function escapeForDetail(button) {
+      const id = button.dataset.id;
+      if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+      const wasFocused = document.activeElement === button;
+      renderNavigation();
+      const nextButton = [...document.querySelectorAll('[data-detail]')].find(item => item.dataset.id === id);
+      if (wasFocused) nextButton?.focus();
+      nextButton?.setAttribute('aria-expanded', String(expanded.has(id)));
+      document.getElementById('announcement').textContent = `${expanded.has(id) ? 'Detalle abierto' : 'Detalle cerrado'} para ${id}.`;
+    }
+    document.querySelectorAll('[data-surface]').forEach(button => button.addEventListener('click', () => {
+      surface = button.dataset.surface;
+      roleId = surfaceConfig[surface].roles[0].id;
+      companyId = surface === 'provider' ? 'all' : 'alfa';
+      view = 'summary';
+      clearTenantState();
+      resetAndRender(`Superficie cambiada a ${surfaceConfig[surface].label}. Contexto y filtros reiniciados.`, true);
+    }));
+    document.getElementById('demo-role').addEventListener('change', event => {
+      roleId = event.target.value;
+      clearTenantState();
+      resetAndRender(`Rol simulado cambiado a ${currentRole().label}. Filtros, detalles y permiso demo reiniciados.`);
+    });
+    document.getElementById('demo-company').addEventListener('change', event => {
+      companyId = event.target.value;
+      clearTenantState();
+      resetAndRender(`Empresa de demostración cambiada a ${activeCompany().name}. Selecciones, filtros y permiso demo limpiados.`);
+    });
+    document.getElementById('demo-export-permission').addEventListener('change', event => {
+      exportPermission = event.target.checked;
+      renderNavigation();
+      document.getElementById('announcement').textContent = `Permiso CSV simulado ${exportPermission ? 'activado' : 'desactivado'}. No equivale a autorización real.`;
+    });
+    document.getElementById('navigation').addEventListener('click', event => {
+      const button = event.target.closest('[data-view]');
+      if (!button) return;
+      view = button.dataset.view;
+      renderNavigation({ focusHeading: true });
+      document.getElementById('announcement').textContent = `Vista: ${button.textContent}. ${activeCompany().name}.`;
+    });
+    document.getElementById('main').addEventListener('input', event => {
+      const target = event.target.closest('[data-filter]');
+      if (!target) return;
+      const key = target.dataset.filter;
+      viewFilters[key][target.dataset.filterName] = target.value;
+      const focusId = target.id;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      renderNavigation();
+      const replacement = document.getElementById(focusId);
+      replacement?.focus();
+      if (replacement?.setSelectionRange && start !== null) replacement.setSelectionRange(start, end);
+      updateResultCounts();
+      document.getElementById('announcement').textContent = `${filteredCount(key)} resultados de muestra.`;
+    });
+    document.getElementById('main').addEventListener('change', event => {
+      const stateControl = event.target.closest('[data-state-key]');
+      const filter = event.target.closest('[data-filter]');
+      if (stateControl) {
+        overrides[stateControl.dataset.stateKey] = stateControl.value;
+        const id = stateControl.id;
+        renderNavigation();
+        document.getElementById(id)?.focus();
+        document.getElementById('announcement').textContent = `Estado simulado del bloque: ${stateNames[stateControl.value]}.`;
+      } else if (filter) {
+        viewFilters[filter.dataset.filter][filter.dataset.filterName] = filter.value;
+        const id = filter.id;
+        renderNavigation();
+        document.getElementById(id)?.focus();
+        updateResultCounts();
+        document.getElementById('announcement').textContent = `${filteredCount(filter.dataset.filter)} resultados de muestra.`;
+      }
+    });
+    document.getElementById('main').addEventListener('click', event => {
+      const detail = event.target.closest('[data-detail]');
+      if (detail) { escapeForDetail(detail); return; }
+      const retry = event.target.closest('[data-state-retry]');
+      if (retry) {
+        const key = retry.dataset.stateRetry;
+        overrides[key] = 'sample';
+        renderNavigation();
+        document.getElementById(`state-${key}`)?.focus();
+        document.getElementById('announcement').textContent = 'Bloque restaurado a la vista de datos ficticios.';
+        return;
+      }
+      const exportButton = event.target.closest('[data-export]');
+      if (exportButton) downloadDemoCsv(exportButton.dataset.export);
+    });
+    renderContext();
+    renderNavigation();
+  </script>
+</body>
+</html>

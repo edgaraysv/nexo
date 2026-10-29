@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-service-request"
+description = "Permite a la ventana principal enviar solicitudes versionadas al servicio NEXO local."
+commands.allow = ["service_request"]

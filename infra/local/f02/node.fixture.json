@@ -1,0 +1,8 @@
+{
+  "scope": "F02_SYNTHETIC_ONLY",
+  "node": "fixture-node-local",
+  "revision": 1,
+  "vpnEnabled": false,
+  "remoteSupportEnabled": false,
+  "commercialBackupEnabled": false
+}

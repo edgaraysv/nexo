@@ -1,0 +1,1 @@
+{"main":{"identifier":"main","description":"Ventana principal sin acceso remoto ni plugins del sistema","local":true,"windows":["main"],"permissions":["core:default","allow-service-request"],"platforms":["windows"]}}

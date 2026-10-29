@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:17.6-bookworm@sha256:f3bd19c606e442c3d7bdfa8002e03fe260a1023351e0ea4598032022b68dd6e3
+    environment:
+      POSTGRES_PASSWORD: public-f01-fixture-only
+    volumes:
+      - data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    networks: [lab]
+  typescript:
+    build:
+      context: ../..
+      dockerfile: spikes/api/typescript/Dockerfile
+    environment:
+      DATABASE_URL: postgres://f01_app:public-f01-app-only@db/f01_typescript
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["127.0.0.1::8080"]
+    networks: [lab]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  php:
+    build:
+      context: ../..
+      dockerfile: spikes/api/php/Dockerfile
+    environment:
+      CI_ENVIRONMENT: production
+      database_default_hostname: db
+      database_default_database: f01_php
+      database_default_username: f01_app
+      database_default_password: public-f01-app-only
+      database_default_DBDriver: Postgre
+      database_default_charset: UTF8
+      database_default_schema: public
+      database_default_port: 5432
+      database_default_DBDebug: "false"
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["127.0.0.1::8080"]
+    networks: [lab]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  go:
+    build:
+      context: ../..
+      dockerfile: spikes/api/go/Dockerfile
+    environment:
+      DATABASE_URL: postgres://f01_app:public-f01-app-only@db/f01_go
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["127.0.0.1::8080"]
+    networks: [lab]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+volumes:
+  data:
+networks:
+  lab:

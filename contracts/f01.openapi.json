@@ -1,0 +1,72 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nexo F01 — contrato experimental comparativo",
+    "version": "0.1.0",
+    "description": "SOLO laboratorio sintético. Bearer fixtures, ACK simulado, sin identidad ni invitaciones productivas. No es el contrato final del producto."
+  },
+  "servers": [{ "url": "http://127.0.0.1", "description": "Puerto efímero asignado por el runner" }],
+  "security": [{ "fixtureBearer": [] }],
+  "paths": {
+    "/health": { "get": {
+      "operationId": "labHealth", "security": [],
+      "responses": { "200": { "description": "Proceso y consulta de laboratorio disponibles" } }
+    } },
+    "/v1/enrollments": { "post": {
+      "operationId": "labEnroll",
+      "description": "Corte simplificado: técnico fixture reserva endpoint y operación; NO emite una invitación productiva ni habilita red.",
+      "parameters": [{ "in": "header", "name": "Idempotency-Key", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+      "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Enrollment" } } } },
+      "responses": {
+        "202": { "description": "Aceptada o replay, no conectividad", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Operation" } } } },
+        "400": { "$ref": "#/components/responses/Error" },
+        "401": { "$ref": "#/components/responses/Error" },
+        "403": { "$ref": "#/components/responses/Error" },
+        "409": { "$ref": "#/components/responses/Error" },
+        "413": { "$ref": "#/components/responses/Error" },
+        "415": { "$ref": "#/components/responses/Error" },
+        "422": { "$ref": "#/components/responses/Error" },
+        "500": { "$ref": "#/components/responses/Error" }
+      }
+    } },
+    "/v1/operations/{operationId}": {
+      "parameters": [{ "$ref": "#/components/parameters/OperationId" }],
+      "get": { "operationId": "labGetOperation", "responses": {
+        "200": { "description": "Estado del tenant autenticado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Operation" } } } },
+        "401": { "$ref": "#/components/responses/Error" }, "404": { "$ref": "#/components/responses/Error" }, "500": { "$ref": "#/components/responses/Error" }
+      } }
+    },
+    "/v1/operations/{operationId}/ack": {
+      "parameters": [{ "$ref": "#/components/parameters/OperationId" }],
+      "post": {
+        "operationId": "labAckOperation", "description": "ACK fixture de nodo, no prueba de motor, entrega real ni red.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ack" } } } },
+        "responses": {
+          "200": { "description": "Aplicada en el simulador", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Operation" } } } },
+          "401": { "$ref": "#/components/responses/Error" }, "403": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" }, "409": { "$ref": "#/components/responses/Error" },
+          "413": { "$ref": "#/components/responses/Error" }, "415": { "$ref": "#/components/responses/Error" }, "422": { "$ref": "#/components/responses/Error" }, "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "fixtureBearer": { "type": "http", "scheme": "bearer", "description": "Token público SOLO de fixtures F01; no login productivo" } },
+    "parameters": { "OperationId": { "in": "path", "name": "operationId", "required": true, "schema": { "type": "string", "format": "uuid" } } },
+    "responses": { "Error": { "description": "Error sin detalles de BD ni secretos", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } } },
+    "schemas": {
+      "Enrollment": { "type": "object", "additionalProperties": false, "required": ["endpoint_key"], "properties": {
+        "endpoint_key": { "type": "string", "minLength": 16, "maxLength": 120, "pattern": "^[A-Za-z0-9_-]{16,120}$" }
+      } },
+      "Ack": { "type": "object", "additionalProperties": false, "required": ["revision", "status"], "properties": {
+        "revision": { "type": "integer", "const": 1 }, "status": { "type": "string", "const": "applied" }
+      } },
+      "Operation": { "type": "object", "additionalProperties": false, "required": ["operation_id", "status", "revision", "observed_at"], "properties": {
+        "endpoint_id": { "type": "string", "format": "uuid" }, "operation_id": { "type": "string", "format": "uuid" },
+        "status": { "type": "string", "enum": ["requested", "applied"] }, "revision": { "type": "integer", "minimum": 1 },
+        "observed_at": { "type": "null", "description": "Siempre null en F01: no se ha probado conectividad" }
+      } },
+      "Error": { "type": "object", "additionalProperties": false, "required": ["error"], "properties": { "error": { "type": "string" } } }
+    }
+  }
+}

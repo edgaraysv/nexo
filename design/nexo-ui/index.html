@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="es" data-theme="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexo UI — Design System</title>
+<link rel="stylesheet" href="nexo-tokens.css">
+<link rel="stylesheet" href="nexo-ui.css">
+<style>
+/* Galería overrides — solo para este catálogo */
+.gallery-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--sys-space-8);
+}
+@media (max-width: 768px) { .gallery-shell { padding: 0 var(--sys-space-4); } }
+
+.gallery-nav {
+  display: flex;
+  gap: var(--sys-space-1);
+  padding: var(--sys-space-3) var(--sys-space-8);
+  border-bottom: 1px solid var(--nx-border);
+  overflow-x: auto;
+  background: var(--nx-topbar-bg);
+  position: sticky;
+  top: 58px;
+  z-index: 50;
+}
+.gallery-nav a {
+  font-size: .8125rem;
+  font-weight: 600;
+  font-family: var(--sys-font-primary);
+  color: var(--nx-text-secondary);
+  text-decoration: none;
+  padding: .35rem .7rem;
+  border-radius: var(--sys-radius-sm);
+  white-space: nowrap;
+}
+.gallery-nav a:hover { background: var(--nx-surface-2); color: var(--nx-text); }
+
+.gs { padding: var(--sys-space-12) 0 var(--sys-space-8); }
+.gs + .gs { border-top: 1px solid var(--nx-border); }
+.gs__title {
+  font-family: var(--sys-font-primary);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--nx-text-muted);
+  margin-bottom: var(--sys-space-6);
+  padding-bottom: var(--sys-space-3);
+  border-bottom: 1px solid var(--nx-border);
+}
+.preview {
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--sys-radius-lg);
+  padding: var(--sys-space-8);
+  margin-bottom: var(--sys-space-3);
+}
+.preview--dark {
+  background: var(--sys-brand-navy);
+  border-color: rgba(255,255,255,.1);
+}
+.preview--tinted { background: var(--nx-bg); }
+.item-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--nx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: var(--sys-space-2);
+  font-family: var(--sys-font-primary);
+}
+.gs__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: var(--sys-space-4); }
+.gs__row  { display: flex; gap: var(--sys-space-3); flex-wrap: wrap; align-items: center; }
+
+/* Color swatches */
+.swatch { border-radius: var(--sys-radius-md); overflow: hidden; border: 1px solid var(--nx-border); }
+.swatch__color { height: 64px; }
+.swatch__info  { padding: .5rem .75rem; background: var(--nx-surface); }
+.swatch__name  { font-size: .78rem; font-weight: 600; color: var(--nx-text); }
+.swatch__hex   { font-size: .72rem; font-family: var(--sys-font-mono); color: var(--nx-text-muted); }
+
+/* Admin shell demo */
+.demo-shell {
+  border: 1px solid var(--nx-border);
+  border-radius: var(--sys-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--sys-shadow-md);
+  height: 520px;
+  display: flex;
+  flex-direction: column;
+}
+.demo-shell .nx-shell {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+.demo-shell .nx-topbar { position: static; }
+.demo-shell .nx-sidebar { height: 100%; position: static; }
+.demo-shell .nx-main { overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<a class="nx-skip" href="#main">Saltar al contenido</a>
+<div aria-live="polite" aria-atomic="true" class="nx-sr" id="nx-announce"></div>
+
+<!-- TOPBAR DE LA GALERÍA -->
+<header style="background:var(--nx-topbar-bg);border-bottom:1px solid var(--nx-border);position:sticky;top:0;z-index:100;box-shadow:var(--sys-shadow-sm);">
+  <div style="max-width:1200px;margin:auto;padding:0 var(--sys-space-8);display:flex;align-items:center;justify-content:space-between;height:58px;gap:var(--sys-space-4);">
+    <div class="nx-brand">
+      <div class="nx-brand__mark" aria-label="[LOGO PLACEHOLDER]">NX</div>
+      <div>
+        <span class="nx-brand__name">Nexo UI</span>
+        <span class="nx-brand__sub">Design System · SYSMedia</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:var(--sys-space-2);align-items:center;">
+      <span class="nx-badge nx-badge--info" style="font-size:.68rem;">v0.1.0-draft</span>
+      <button class="nx-btn nx-btn--ghost nx-btn--sm nx-btn--icon" id="nx-theme-toggle" aria-label="Cambiar tema" title="Modo oscuro / claro">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- SUBNAV -->
+<nav class="gallery-nav" aria-label="Secciones de la galería">
+  <a href="#foundations">Foundations</a>
+  <a href="#typography">Tipografía</a>
+  <a href="#buttons">Botones</a>
+  <a href="#inputs">Inputs</a>
+  <a href="#cards">Cards</a>
+  <a href="#badges">Badges</a>
+  <a href="#feedback">Feedback</a>
+  <a href="#tables">Tablas</a>
+  <a href="#admin">Admin shell</a>
+  <a href="#admin-components">Componentes admin</a>
+</nav>
+
+<main id="main" tabindex="-1">
+<div class="gallery-shell">
+
+  <!-- Hero -->
+  <div style="padding:var(--sys-space-12) 0 var(--sys-space-8);">
+    <p class="nx-eyebrow">SYSMedia · Nexo</p>
+    <h1 class="nx-h1" style="margin-top:.3rem;max-width:18ch;">Design System de componentes Nexo UI</h1>
+    <p class="nx-body nx-text-secondary" style="margin-top:var(--sys-space-4);max-width:56ch;">Capa 1 (SYSMedia §8) + Capa 2 (admin dashboard). Vanilla CSS + JS — sin React, sin bundler. Tokens del documento SYSMedia UX/UI Guidelines v1.0.0.</p>
+    <div class="nx-row" style="margin-top:var(--sys-space-6);">
+      <div class="nx-badge nx-badge--navy">Paleta SYSMedia</div>
+      <div class="nx-badge nx-badge--info">Manrope / Inter (propuestas)</div>
+      <div class="nx-badge nx-badge--neutral">WCAG 2.2 AA objetivo</div>
+      <div class="nx-badge nx-badge--neutral">Dark mode</div>
+    </div>
+    <div class="nx-hint" style="margin-top:var(--sys-space-6);max-width:60ch;">
+      Logo: <strong>[PLACEHOLDER]</strong> — pendiente de recurso vectorial maestro aprobado. No redibujar con CSS per AGENTS.md.
+    </div>
+  </div>
+
+  <!-- FOUNDATIONS -->
+  <section class="gs" id="foundations">
+    <div class="gs__title">Foundations — Paleta SYSMedia</div>
+
+    <div class="item-label">Marca principal</div>
+    <div class="gs__grid" style="margin-bottom:var(--sys-space-6);">
+      <div class="swatch"><div class="swatch__color" style="background:#003B6F;"></div><div class="swatch__info"><span class="swatch__name">Deep Navy</span><span class="swatch__hex">--sys-brand-navy · #003B6F</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#00AEDA;"></div><div class="swatch__info"><span class="swatch__name">Tech Cyan</span><span class="swatch__hex">--sys-brand-cyan · #00AEDA</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#D8EAF4;border:1px solid #c5d8e8;"></div><div class="swatch__info"><span class="swatch__name">Ice Blue</span><span class="swatch__hex">--sys-brand-ice · #D8EAF4</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#FFFFFF;border:1px solid #e0e8f0;"></div><div class="swatch__info"><span class="swatch__name">White</span><span class="swatch__hex">--sys-brand-white · #FFFFFF</span></div></div>
+    </div>
+
+    <div class="item-label">Acciones y texto</div>
+    <div class="gs__grid" style="margin-bottom:var(--sys-space-6);">
+      <div class="swatch"><div class="swatch__color" style="background:#0069CE;"></div><div class="swatch__info"><span class="swatch__name">Action Primary</span><span class="swatch__hex">--sys-action-primary</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#004F9D;"></div><div class="swatch__info"><span class="swatch__name">Action Hover</span><span class="swatch__hex">--sys-action-hover</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#082B53;"></div><div class="swatch__info"><span class="swatch__name">Text Primary</span><span class="swatch__hex">--sys-text-primary</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#52677C;"></div><div class="swatch__info"><span class="swatch__name">Text Secondary</span><span class="swatch__hex">--sys-text-secondary</span></div></div>
+    </div>
+
+    <div class="item-label">Semántico</div>
+    <div class="gs__grid">
+      <div class="swatch"><div class="swatch__color" style="background:#18794E;"></div><div class="swatch__info"><span class="swatch__name">Success</span><span class="swatch__hex">--sys-success · #18794E</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#9A5B00;"></div><div class="swatch__info"><span class="swatch__name">Warning</span><span class="swatch__hex">--sys-warning · #9A5B00</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#B42332;"></div><div class="swatch__info"><span class="swatch__name">Danger</span><span class="swatch__hex">--sys-danger · #B42332</span></div></div>
+      <div class="swatch"><div class="swatch__color" style="background:#0069CE;"></div><div class="swatch__info"><span class="swatch__name">Info</span><span class="swatch__hex">--sys-info · #0069CE</span></div></div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section class="gs" id="typography">
+    <div class="gs__title">Tipografía — Manrope (primary) · Inter (secondary) · propuestas</div>
+    <div class="preview">
+      <p class="nx-eyebrow">SYSMedia · Nexo UI</p>
+      <p class="nx-h1" style="margin-top:.25rem;">Display · Heading 1</p>
+      <p class="nx-h2" style="margin-top:.5rem;">Heading 2 — Paneles y reportes</p>
+      <p class="nx-h3" style="margin-top:.4rem;">Heading 3 — Resumen ejecutivo</p>
+      <p class="nx-h4" style="margin-top:.4rem;">Heading 4 — Operaciones activas</p>
+      <hr class="nx-divider">
+      <p class="nx-body" style="max-width:60ch;">Cuerpo de texto — La señal de un nodo no demuestra que el recurso privado responda. Configuración aplicada ≠ conectividad comprobada.</p>
+      <p class="nx-small nx-text-secondary" style="margin-top:var(--sys-space-2);">Texto pequeño — fuente: <code>audit_events</code> · ventana: 30 min · cobertura: 3/4</p>
+      <p class="nx-caption nx-text-muted" style="margin-top:var(--sys-space-2);">Caption / nota — created_at del servidor · UTC · solo eventos autorizados</p>
+    </div>
+  </section>
+
+  <!-- BUTTONS -->
+  <section class="gs" id="buttons">
+    <div class="gs__title">Botones</div>
+    <div class="preview">
+      <div class="item-label">Variantes</div>
+      <div class="gs__row" style="margin-bottom:var(--sys-space-6);">
+        <button class="nx-btn nx-btn--primary">Primary</button>
+        <button class="nx-btn nx-btn--secondary">Secondary</button>
+        <button class="nx-btn nx-btn--ghost">Ghost</button>
+        <button class="nx-btn nx-btn--destructive">Destructive</button>
+        <button class="nx-btn nx-btn--ghost" disabled>Disabled</button>
+      </div>
+      <div class="item-label">Tamaños</div>
+      <div class="gs__row" style="margin-bottom:var(--sys-space-6);">
+        <button class="nx-btn nx-btn--primary nx-btn--sm">Small 36px</button>
+        <button class="nx-btn nx-btn--primary">Medium 44px</button>
+        <button class="nx-btn nx-btn--primary nx-btn--lg">Large 52px</button>
+      </div>
+      <div class="item-label">Con icono + loading</div>
+      <div class="gs__row">
+        <button class="nx-btn nx-btn--primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          Exportar CSV
+        </button>
+        <button class="nx-btn nx-btn--secondary">
+          <span class="nx-btn-spinner" aria-hidden="true"></span>
+          Cargando…
+        </button>
+        <button class="nx-btn nx-btn--ghost nx-btn--icon" aria-label="Configuración">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- INPUTS -->
+  <section class="gs" id="inputs">
+    <div class="gs__title">Inputs y formularios</div>
+    <div class="preview">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--sys-space-6);">
+        <div class="nx-field">
+          <label class="nx-label" for="ex-name">Nombre completo</label>
+          <input class="nx-input" type="text" id="ex-name" placeholder="Edgar Garay">
+        </div>
+        <div class="nx-field">
+          <label class="nx-label" for="ex-email">Correo electrónico</label>
+          <input class="nx-input" type="email" id="ex-email" placeholder="edgar@empresa.com">
+          <span class="nx-input-hint">Solo se usa para notificaciones del sistema.</span>
+        </div>
+        <div class="nx-field">
+          <label class="nx-label" for="ex-role">Rol</label>
+          <select class="nx-select" id="ex-role">
+            <option>Administrador</option>
+            <option>Técnico</option>
+            <option>Auditor</option>
+          </select>
+        </div>
+        <div class="nx-field">
+          <label class="nx-label" for="ex-search">Buscar empresa</label>
+          <div class="nx-search-wrap">
+            <input class="nx-input" type="search" id="ex-search" placeholder="Nombre o tenant ID">
+          </div>
+        </div>
+        <div class="nx-field">
+          <label class="nx-label" for="ex-err">Campo con error</label>
+          <input class="nx-input" type="text" id="ex-err" value="valor-invalido" aria-invalid="true" aria-describedby="ex-err-msg">
+          <span class="nx-input-error" id="ex-err-msg">El valor no es un CIDR válido.</span>
+        </div>
+        <div class="nx-field">
+          <label class="nx-label" for="ex-dis">Campo deshabilitado</label>
+          <input class="nx-input" type="text" id="ex-dis" value="Solo lectura" disabled>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARDS -->
+  <section class="gs" id="cards">
+    <div class="gs__title">Cards</div>
+    <div class="preview">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--sys-space-4);">
+        <div class="nx-card">
+          <div class="nx-card-header"><strong>Card base</strong></div>
+          <div class="nx-card-body"><p class="nx-small nx-text-secondary">Contenido de ejemplo. La señal de un nodo no demuestra conectividad del recurso privado.</p></div>
+          <div class="nx-card-footer nx-row" style="justify-content:flex-end;"><button class="nx-btn nx-btn--ghost nx-btn--sm">Cancelar</button><button class="nx-btn nx-btn--primary nx-btn--sm">Confirmar</button></div>
+        </div>
+        <div class="nx-card nx-card--elevated">
+          <div class="nx-card-body">
+            <p class="nx-eyebrow">Destacada</p>
+            <p class="nx-h4" style="margin-top:.3rem;">Card elevada</p>
+            <p class="nx-small nx-text-secondary" style="margin-top:.5rem;">Box-shadow --sys-shadow-md. Para paneles de acción principal.</p>
+          </div>
+        </div>
+        <div class="nx-card nx-card--flat" style="border:2px solid var(--sys-brand-cyan);">
+          <div class="nx-card-body">
+            <p class="nx-h4">Card con acento Cyan</p>
+            <p class="nx-small nx-text-secondary" style="margin-top:.5rem;">Border color --sys-brand-cyan para ítem activo o seleccionado.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BADGES -->
+  <section class="gs" id="badges">
+    <div class="gs__title">Badges</div>
+    <div class="preview">
+      <div class="gs__row">
+        <span class="nx-badge nx-badge--success">Completada</span>
+        <span class="nx-badge nx-badge--warning">Requiere atención</span>
+        <span class="nx-badge nx-badge--danger">Error crítico</span>
+        <span class="nx-badge nx-badge--info">Información</span>
+        <span class="nx-badge nx-badge--neutral">Sin datos</span>
+        <span class="nx-badge nx-badge--navy">Proveedor</span>
+        <span class="nx-badge nx-badge--cyan">Empresa</span>
+      </div>
+      <hr class="nx-divider" style="margin:var(--sys-space-6) 0;">
+      <div class="item-label">Freshness chips (admin)</div>
+      <div class="gs__row">
+        <span class="nx-fresh nx-fresh--good">Vigente</span>
+        <span class="nx-fresh nx-fresh--warn">Antigua</span>
+        <span class="nx-fresh nx-fresh--none">Sin datos</span>
+        <span class="nx-fresh nx-fresh--none">No comprobada</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section class="gs" id="feedback">
+    <div class="gs__title">Feedback — Alerts, Hints, Skeleton, Spinner, Empty state</div>
+    <div class="preview nx-stack nx-stack-4">
+      <div class="nx-alert nx-alert--success">Operación completada. La configuración fue aplicada correctamente al nodo.</div>
+      <div class="nx-alert nx-alert--info">Verificación en curso. La conectividad del recurso aún no ha sido comprobada.</div>
+      <div class="nx-alert nx-alert--warning">Señal antigua. El heartbeat más reciente supera la ventana de 30 minutos.</div>
+      <div class="nx-alert nx-alert--danger">Error. La operación fue rechazada: cuota de endpoints excedida.</div>
+      <div class="nx-hint">Configuración aplicada ≠ conectividad comprobada. No presentar gateway, SNAT ni DNS como operativos sin prueba real.</div>
+    </div>
+    <div class="preview preview--tinted" style="margin-top:var(--sys-space-4);">
+      <div class="item-label" style="margin-bottom:var(--sys-space-4);">Skeleton</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sys-space-3);margin-bottom:var(--sys-space-6);">
+        <div class="nx-skeleton" style="height:80px;border-radius:var(--sys-radius-lg);"></div>
+        <div class="nx-skeleton" style="height:80px;border-radius:var(--sys-radius-lg);"></div>
+        <div class="nx-skeleton" style="height:80px;border-radius:var(--sys-radius-lg);"></div>
+        <div class="nx-skeleton" style="height:80px;border-radius:var(--sys-radius-lg);"></div>
+      </div>
+      <div class="nx-skeleton" style="height:16px;border-radius:4px;max-width:60%;margin-bottom:8px;"></div>
+      <div class="nx-skeleton" style="height:12px;border-radius:4px;max-width:40%;"></div>
+    </div>
+    <div class="preview" style="margin-top:var(--sys-space-4);">
+      <div class="item-label">Spinner · Empty state</div>
+      <div class="gs__row" style="margin-bottom:var(--sys-space-6);">
+        <span class="nx-spinner nx-spinner--sm"></span>
+        <span class="nx-spinner"></span>
+        <span class="nx-spinner nx-spinner--lg"></span>
+      </div>
+      <div class="nx-empty" style="border:1px dashed var(--nx-border);border-radius:var(--sys-radius-lg);">
+        <svg class="nx-empty__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="24" cy="24" r="20"/><path d="M24 16v8M24 32h.01"/></svg>
+        <p class="nx-empty__title">Sin resultados</p>
+        <p class="nx-empty__body">No se encontraron eventos de auditoría en el rango seleccionado.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABLES -->
+  <section class="gs" id="tables">
+    <div class="gs__title">Tablas de datos</div>
+    <div class="nx-table-wrap">
+      <table class="nx-table">
+        <thead><tr>
+          <th>Nodo</th><th>Estado</th><th>Señal</th><th>Observado</th><th>Recibido</th><th>Frescura</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><strong>Nodo N-014</strong></td><td>Aprobado</td><td>Recibida</td><td><small>09:38 UTC</small></td><td><small>09:40 UTC</small></td><td><span class="nx-fresh nx-fresh--good">Vigente</span></td></tr>
+          <tr><td><strong>Nodo N-018</strong></td><td>Aprobado</td><td>Recibida</td><td><small>08:53 UTC</small></td><td><small>08:54 UTC</small></td><td><span class="nx-fresh nx-fresh--warn">Antigua</span></td></tr>
+          <tr><td><strong>Nodo N-021</strong></td><td>Pendiente de aprobación</td><td>—</td><td><small>—</small></td><td><small>—</small></td><td><span class="nx-fresh nx-fresh--none">Sin datos</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:var(--sys-space-6);">
+      <div class="nx-table-wrap">
+        <table class="nx-table">
+          <thead><tr><th>Evento</th><th>Recurso</th><th>Actor</th><th>Hora (UTC)</th><th>Resultado</th></tr></thead>
+          <tbody>
+            <tr><td><code>company.created</code></td><td>Empresa Alfa</td><td>owner</td><td><small>2026-10-28 09:12</small></td><td><span class="nx-badge nx-badge--success">ok</span></td></tr>
+            <tr><td><code>node.approved</code></td><td>Nodo N-014</td><td>owner</td><td><small>2026-10-28 08:54</small></td><td><span class="nx-badge nx-badge--success">ok</span></td></tr>
+            <tr><td><code>vpn_environment.state_changed</code></td><td>Empresa Beta · rev 7</td><td>owner</td><td><small>2026-10-27 16:08</small></td><td><span class="nx-badge nx-badge--warning">quota_exceeded</span></td></tr>
+          </tbody>
+        </table>
+        <div class="nx-pagination"><span>3 de 47 eventos</span><div class="gs__row" style="gap:var(--sys-space-1);"><button class="nx-btn nx-btn--ghost nx-btn--sm" disabled>Anterior</button><button class="nx-btn nx-btn--ghost nx-btn--sm">Siguiente</button></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN SHELL DEMO -->
+  <section class="gs" id="admin">
+    <div class="gs__title">Admin Shell — nx-shell, nx-topbar, nx-sidebar, nx-scope-bar</div>
+    <div class="demo-shell">
+      <div class="nx-shell" id="demo-shell-inner">
+
+        <!-- Topbar -->
+        <header class="nx-topbar">
+          <div class="nx-brand">
+            <div class="nx-brand__mark" aria-hidden="true">NX</div>
+            <div>
+              <span class="nx-brand__name">Nexo</span>
+              <span class="nx-brand__sub">Paneles y reportes</span>
+            </div>
+          </div>
+          <div class="nx-row">
+            <span class="nx-role-badge">Rol: <strong>Propietario</strong></span>
+            <div class="nx-surface-switch" role="group" aria-label="Superficie">
+              <button type="button" class="nx-surface-switch__btn" data-nx-surface="provider" aria-pressed="true">Proveedor</button>
+              <button type="button" class="nx-surface-switch__btn" data-nx-surface="company" aria-pressed="false">Empresa</button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Scope bar -->
+        <div class="nx-scope-bar">
+          <div class="nx-scope-bar__left">
+            <span class="nx-scope-bar__label">Ámbito: <strong>Global · todas las empresas</strong></span>
+            <div>
+              <label for="demo-co" class="nx-sr">Empresa</label>
+              <select class="nx-select" id="demo-co" style="font-size:.8rem;height:32px;padding:.3rem .55rem;">
+                <option>Global · todas</option>
+                <option>Empresa Alfa</option>
+              </select>
+            </div>
+          </div>
+          <span class="nx-scope-bar__right">Proveedor · propietario</span>
+        </div>
+
+        <!-- Sidebar -->
+        <nav class="nx-sidebar" id="demo-sidebar" aria-label="Navegación">
+          <span class="nx-sidebar__label">Proveedor</span>
+          <button class="nx-sidebar__item is-active" data-nx-view="summary" aria-current="page">Resumen</button>
+          <button class="nx-sidebar__item" data-nx-view="companies">Empresas</button>
+          <button class="nx-sidebar__item" data-nx-view="nodes">Nodos y entornos</button>
+          <hr class="nx-sidebar__divider">
+          <button class="nx-sidebar__item" data-nx-view="operations">Operaciones</button>
+          <button class="nx-sidebar__item" data-nx-view="audit">Auditoría</button>
+          <button class="nx-sidebar__item" data-nx-view="reports">Reportes</button>
+        </nav>
+
+        <!-- Main -->
+        <main class="nx-main" tabindex="-1">
+          <div class="nx-page-header">
+            <div>
+              <p class="nx-eyebrow">Vista ejecutiva</p>
+              <h1>Resumen</h1>
+              <p>Prioriza incidencias. La señal de un nodo no demuestra que el recurso responda.</p>
+            </div>
+            <span class="nx-badge nx-badge--info">Proveedor</span>
+          </div>
+
+          <!-- Metric grid -->
+          <div class="nx-grid-4" style="margin-bottom:var(--sys-space-4);">
+            <div class="nx-metric">
+              <div class="nx-metric__label">Nodos en ámbito</div>
+              <div class="nx-metric__value">8</div>
+              <div class="nx-metric__sub">Inventario · consulta actual</div>
+            </div>
+            <div class="nx-metric">
+              <div class="nx-metric__label">Señal reciente</div>
+              <div class="nx-metric__value">2 <span style="font-size:1.1rem;font-weight:400;color:var(--nx-text-muted);">/ 3</span></div>
+              <div class="nx-metric__sub">Heartbeats · ventana 30 min</div>
+              <div class="nx-provenance">
+                <span class="nx-provenance__item">Fuente: <code>node_heartbeats</code></span>
+                <span class="nx-provenance__item">09:38 UTC</span>
+                <span class="nx-provenance__item"><span class="nx-fresh nx-fresh--warn">Antigua · 1/3</span></span>
+              </div>
+            </div>
+            <div class="nx-metric">
+              <div class="nx-metric__label">Ops con atención</div>
+              <div class="nx-metric__value" style="color:var(--sys-warning);">2</div>
+              <div class="nx-metric__sub">Cola visible</div>
+              <div class="nx-provenance">
+                <span class="nx-provenance__item">Fuente: <code>node_operations</code></span>
+                <span class="nx-provenance__item"><span class="nx-fresh nx-fresh--good">Vigente</span></span>
+              </div>
+            </div>
+            <div class="nx-metric">
+              <div class="nx-metric__label">Cuotas globales</div>
+              <div class="nx-metric__value nx-text-muted">—</div>
+              <div class="nx-metric__sub">No aplica en vista global</div>
+            </div>
+          </div>
+
+          <div class="nx-hint">Admin shell demo. En producción la navegación lateral actualiza el contenido del main. Ver sección "Componentes admin" para más patrones.</div>
+        </main>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN COMPONENTS -->
+  <section class="gs" id="admin-components">
+    <div class="gs__title">Componentes admin — Metric card, Block states, Ops row</div>
+
+    <div class="item-label">Block states</div>
+    <div class="preview nx-stack nx-stack-4" style="margin-bottom:var(--sys-space-6);">
+      <div class="nx-bstate nx-bstate--warn">
+        <span class="nx-bstate__title">Señal antigua</span>
+        <p>El heartbeat del nodo N-018 supera la ventana de 30 minutos. La señal no confirma disponibilidad actual.</p>
+      </div>
+      <div class="nx-bstate nx-bstate--error">
+        <span class="nx-bstate__title">Cuota excedida</span>
+        <p>La operación fue rechazada: el tenant superó el límite de 50 endpoints. Código: <code>quota_exceeded</code> (saneado).</p>
+      </div>
+      <div class="nx-bstate nx-bstate--info">
+        <span class="nx-bstate__title">Sin observación activa</span>
+        <p>No hay observaciones de conectividad dentro de la ventana para este entorno. Una revisión aplicada no implica que el recurso responda.</p>
+      </div>
+      <div class="nx-bstate">
+        <span class="nx-bstate__title">Estado neutro</span>
+        <p>Usado para contexto o información adicional sin urgencia.</p>
+      </div>
+    </div>
+
+    <div class="item-label">Operaciones con intentos y vencimiento</div>
+    <div class="nx-panel">
+      <div class="nx-panel__header">
+        <h2 class="nx-panel__title" style="margin:0;">Operaciones</h2>
+        <span class="nx-badge nx-badge--warning">2 requieren atención</span>
+      </div>
+      <div class="nx-filters">
+        <label class="nx-sr" for="op-filter">Estado</label>
+        <select class="nx-select" id="op-filter" disabled style="width:auto;">
+          <option>Todos los estados</option>
+        </select>
+        <span class="nx-filter-note">(Filtros activos en implementación)</span>
+      </div>
+      <div class="nx-table-wrap">
+        <table class="nx-table">
+          <thead><tr><th>ID</th><th>Alcance / rev</th><th>Estado</th><th>Intentos</th><th>Vencimiento</th><th>Observado</th><th>Recibido</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>OP-2041</code></td>
+              <td>Empresa Alfa · Rev 18</td>
+              <td><span class="nx-badge nx-badge--warning">Aplicación parcial</span></td>
+              <td>1</td>
+              <td><small>2026-10-29 09:00 UTC</small></td>
+              <td><small>09:36 UTC</small></td>
+              <td><small>09:40 UTC</small></td>
+            </tr>
+            <tr>
+              <td><code>OP-2038</code></td>
+              <td>Empresa Beta · Rev 7</td>
+              <td><span class="nx-badge nx-badge--danger">Fallida</span></td>
+              <td>3</td>
+              <td><small style="color:var(--sys-danger);">Vencida · 2026-10-27</small></td>
+              <td><small>09:21 UTC</small></td>
+              <td><small>09:21 UTC</small></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nx-provenance" style="margin-top:var(--sys-space-4);">
+        <span class="nx-provenance__item">Fuente: <code>node_operations</code></span>
+        <span class="nx-provenance__item">observed_at del resultado</span>
+        <span class="nx-provenance__item">Sin reintentos desde esta vista (F09)</span>
+      </div>
+    </div>
+
+    <div class="item-label" style="margin-top:var(--sys-space-6);">Export row con nota de permiso</div>
+    <div class="nx-export-row">
+      <button class="nx-btn nx-btn--ghost nx-btn--sm" disabled aria-describedby="expnote">Exportar CSV (en implementación)</button>
+      <small id="expnote">Requiere <code>company.report.export</code> + permiso de lectura del dataset. Sin grants automáticos.</small>
+    </div>
+
+    <div class="item-label" style="margin-top:var(--sys-space-6);">Demo banner (prototipo / no operativo)</div>
+    <div class="nx-demo-banner">
+      <strong>PROTOTIPO LOCAL · NO OPERATIVO</strong>
+      <span>Datos ficticios. No conecta con Nexo ni acredita salud, consumo o conectividad reales.</span>
+    </div>
+
+  </section>
+
+  <div style="padding:var(--sys-space-16) 0 var(--sys-space-8);text-align:center;">
+    <p class="nx-caption nx-text-muted">Nexo UI v0.1.0-draft · SYSMedia · Fuentes Manrope/Inter propuestas pendientes de aprobación · Logo pendiente de vectorial maestro</p>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+import { initAll, initSidebarNav } from './nexo-ui.js';
+initAll({ sidebarId: 'demo-sidebar' });
+</script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+/* =============================================================
+   nexo-tokens.css
+   Capa 1 — SYSMedia §15 (prefijo --sys-*)
+   Capa 2 — Nexo producto (prefijo --nx-*)
+   Fuentes Manrope/Inter: propuestas pendientes de aprobación;
+   fallback a system-ui mientras no estén autorizadas.
+   ============================================================= */
+
+:root {
+  /* --- SYSMedia §15: Brand --- */
+  --sys-brand-navy:  #003B6F;
+  --sys-brand-cyan:  #00AEDA;
+  --sys-brand-ice:   #D8EAF4;
+  --sys-brand-white: #FFFFFF;
+
+  /* --- SYSMedia §15: Actions --- */
+  --sys-action-primary: #0069CE;
+  --sys-action-hover:   #004F9D;
+
+  /* --- SYSMedia §15: Text --- */
+  --sys-text-primary:   #082B53;
+  --sys-text-secondary: #52677C;
+
+  /* --- SYSMedia §15: Borders --- */
+  --sys-border-default: #D6E3EF;
+
+  /* --- SYSMedia §15: Semantic --- */
+  --sys-success: #18794E;
+  --sys-warning: #9A5B00;
+  --sys-danger:  #B42332;
+  --sys-info:    #0069CE;
+
+  /* --- SYSMedia §15: Radius --- */
+  --sys-radius-sm:   8px;
+  --sys-radius-md:   12px;
+  --sys-radius-lg:   16px;
+  --sys-radius-xl:   20px;
+  --sys-radius-full: 9999px;
+
+  /* --- SYSMedia §15: Spacing --- */
+  --sys-space-1:  4px;
+  --sys-space-2:  8px;
+  --sys-space-3:  12px;
+  --sys-space-4:  16px;
+  --sys-space-6:  24px;
+  --sys-space-8:  32px;
+  --sys-space-12: 48px;
+  --sys-space-16: 64px;
+  --sys-space-24: 96px;
+
+  /* --- SYSMedia §15: Typography --- */
+  --sys-font-primary:   "Manrope", system-ui, sans-serif;
+  --sys-font-secondary: "Inter",   system-ui, sans-serif;
+  --sys-font-mono:      ui-monospace, "Cascadia Code", "Consolas", monospace;
+
+  /* --- SYSMedia §15: Shadows --- */
+  --sys-shadow-sm: 0 2px 8px  rgba(0,59,111,.06);
+  --sys-shadow-md: 0 8px 24px rgba(0,59,111,.08);
+  --sys-shadow-lg: 0 16px 40px rgba(0,59,111,.12);
+
+  /* --- SYSMedia §15: Motion --- */
+  --sys-transition-fast:   150ms ease;
+  --sys-transition-normal: 200ms ease;
+  --sys-transition-slow:   250ms ease;
+
+  /* ============================================================
+     Nexo product tokens (--nx-*)
+     Mapeos semánticos y valores admin-específicos
+     ============================================================ */
+
+  /* Superficies */
+  --nx-bg:        #F0F5FA;
+  --nx-surface:   #FFFFFF;
+  --nx-surface-2: #EAF1F7;
+  --nx-border:    var(--sys-border-default);
+  --nx-ring:      rgba(0,105,206,.35);
+
+  /* Texto */
+  --nx-text:           var(--sys-text-primary);
+  --nx-text-secondary: var(--sys-text-secondary);
+  --nx-text-muted:     #7E97AD;
+
+  /* Sidebar admin (Deep Navy) */
+  --nx-sidebar-bg:          var(--sys-brand-navy);
+  --nx-sidebar-text:        rgba(255,255,255,.82);
+  --nx-sidebar-text-muted:  rgba(255,255,255,.45);
+  --nx-sidebar-active-bg:   rgba(0,174,218,.18);
+  --nx-sidebar-active-text: var(--sys-brand-cyan);
+  --nx-sidebar-hover-bg:    rgba(255,255,255,.07);
+  --nx-sidebar-border:      rgba(255,255,255,.09);
+  --nx-sidebar-width:       232px;
+
+  /* Topbar */
+  --nx-topbar-bg:     #FFFFFF;
+  --nx-topbar-border: var(--sys-border-default);
+
+  /* Scope bar */
+  --nx-scopebar-bg: #F6FAFD;
+
+  /* Freshness chips */
+  --nx-fresh-good-bg:   #D4EFE3;
+  --nx-fresh-good-text: #0E5E38;
+  --nx-fresh-warn-bg:   #FEF0D5;
+  --nx-fresh-warn-text: #7A4500;
+  --nx-fresh-none-bg:   #EDF2F7;
+  --nx-fresh-none-text: #52677C;
+
+  /* Block states */
+  --nx-bstate-warn-bg:    #FFF9EE;
+  --nx-bstate-warn-border:#F0D48B;
+  --nx-bstate-error-bg:   #FEF1F0;
+  --nx-bstate-error-border:#F1C0BC;
+  --nx-bstate-info-bg:    #EBF5FB;
+  --nx-bstate-info-border:#B5D8ED;
+
+  /* Hint callout */
+  --nx-hint-border: #D4AD5A;
+  --nx-hint-bg:     #FFFAEE;
+  --nx-hint-text:   #5C4112;
+}
+
+/* --- Dark mode --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --nx-bg:        #060F1C;
+    --nx-surface:   #0C1B30;
+    --nx-surface-2: #112240;
+    --nx-border:    #1A3252;
+    --nx-ring:      rgba(0,174,218,.4);
+
+    --nx-text:           #DCE9F5;
+    --nx-text-secondary: #7A9BBF;
+    --nx-text-muted:     #4D6E8F;
+
+    --nx-sidebar-bg:          #020A16;
+    --nx-sidebar-text:        rgba(255,255,255,.78);
+    --nx-sidebar-text-muted:  rgba(255,255,255,.35);
+    --nx-sidebar-active-bg:   rgba(0,174,218,.2);
+    --nx-sidebar-active-text: var(--sys-brand-cyan);
+    --nx-sidebar-hover-bg:    rgba(255,255,255,.05);
+    --nx-sidebar-border:      rgba(255,255,255,.07);
+
+    --nx-topbar-bg:     #0C1B30;
+    --nx-topbar-border: #1A3252;
+
+    --nx-scopebar-bg: #0A1828;
+
+    --nx-fresh-good-bg:   rgba(24,121,78,.2);
+    --nx-fresh-good-text: #5ECFA0;
+    --nx-fresh-warn-bg:   rgba(154,91,0,.2);
+    --nx-fresh-warn-text: #F0B96A;
+    --nx-fresh-none-bg:   rgba(82,103,124,.15);
+    --nx-fresh-none-text: #7A9BBF;
+
+    --nx-bstate-warn-bg:    rgba(154,91,0,.12);
+    --nx-bstate-warn-border:rgba(240,180,100,.25);
+    --nx-bstate-error-bg:   rgba(180,35,50,.12);
+    --nx-bstate-error-border:rgba(240,130,120,.2);
+    --nx-bstate-info-bg:    rgba(0,105,206,.12);
+    --nx-bstate-info-border:rgba(0,174,218,.2);
+
+    --nx-hint-border: #8C6A20;
+    --nx-hint-bg:     rgba(220,160,60,.1);
+    --nx-hint-text:   #D4A84B;
+
+    --sys-shadow-sm: 0 2px 8px  rgba(0,0,0,.25);
+    --sys-shadow-md: 0 8px 24px rgba(0,0,0,.35);
+    --sys-shadow-lg: 0 16px 40px rgba(0,0,0,.45);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --nx-bg:        #060F1C;
+  --nx-surface:   #0C1B30;
+  --nx-surface-2: #112240;
+  --nx-border:    #1A3252;
+  --nx-ring:      rgba(0,174,218,.4);
+  --nx-text:           #DCE9F5;
+  --nx-text-secondary: #7A9BBF;
+  --nx-text-muted:     #4D6E8F;
+  --nx-sidebar-bg:          #020A16;
+  --nx-sidebar-text:        rgba(255,255,255,.78);
+  --nx-sidebar-text-muted:  rgba(255,255,255,.35);
+  --nx-sidebar-active-bg:   rgba(0,174,218,.2);
+  --nx-sidebar-active-text: var(--sys-brand-cyan);
+  --nx-sidebar-hover-bg:    rgba(255,255,255,.05);
+  --nx-sidebar-border:      rgba(255,255,255,.07);
+  --nx-topbar-bg:     #0C1B30;
+  --nx-topbar-border: #1A3252;
+  --nx-scopebar-bg: #0A1828;
+  --nx-fresh-good-bg:   rgba(24,121,78,.2);
+  --nx-fresh-good-text: #5ECFA0;
+  --nx-fresh-warn-bg:   rgba(154,91,0,.2);
+  --nx-fresh-warn-text: #F0B96A;
+  --nx-fresh-none-bg:   rgba(82,103,124,.15);
+  --nx-fresh-none-text: #7A9BBF;
+  --nx-bstate-warn-bg:    rgba(154,91,0,.12);
+  --nx-bstate-warn-border:rgba(240,180,100,.25);
+  --nx-bstate-error-bg:   rgba(180,35,50,.12);
+  --nx-bstate-error-border:rgba(240,130,120,.2);
+  --nx-bstate-info-bg:    rgba(0,105,206,.12);
+  --nx-bstate-info-border:rgba(0,174,218,.2);
+  --nx-hint-border: #8C6A20;
+  --nx-hint-bg:     rgba(220,160,60,.1);
+  --nx-hint-text:   #D4A84B;
+  --sys-shadow-sm: 0 2px 8px  rgba(0,0,0,.25);
+  --sys-shadow-md: 0 8px 24px rgba(0,0,0,.35);
+  --sys-shadow-lg: 0 16px 40px rgba(0,0,0,.45);
+  color-scheme: dark;
+}

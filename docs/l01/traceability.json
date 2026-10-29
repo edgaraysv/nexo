@@ -1,0 +1,22 @@
+{
+  "scope": "L01_BASELINE_NOT_PRODUCT_ACCEPTANCE",
+  "source": "docs/f01/traceability.json",
+  "catalogue": {
+    "total": 114,
+    "assigned_local_or_future": 107,
+    "excluded": 7,
+    "ids": "exact-set-from-source-catalogue"
+  },
+  "requirements": {
+    "RF": { "total": 11, "status": "classified" },
+    "PV": { "total": 21, "status": "classified" },
+    "UX": { "total": 16, "status": "classified" }
+  },
+  "classification": {
+    "local": ["RF01", "RF02", "RF03", "RF04", "RF06", "RF08", "PV01", "PV03", "PV08", "PV09", "PV10", "PV12", "PV13", "UX01", "UX02", "UX03", "UX10", "UX11", "UX12", "UX13", "UX14", "UX15"],
+    "posterior": ["RF05", "RF07", "RF09", "RF10", "RF11", "PV02", "PV04", "PV05", "PV06", "PV07", "PV11", "PV14", "PV15", "PV16", "PV17", "PV18", "PV19", "PV20", "PV21", "UX04", "UX05", "UX06", "UX07", "UX08", "UX09", "UX16"],
+    "outside_or_prohibited": []
+  },
+  "catalogue_exclusions": ["VPN15", "VPN16", "NET14", "DNS08", "ACL10", "SUP10", "BAK11"],
+  "product_evidence": "NOT RUN"
+}

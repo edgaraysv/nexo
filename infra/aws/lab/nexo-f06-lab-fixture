@@ -1,0 +1,153 @@
+#!/bin/bash
+set -euo pipefail
+
+action=${1:-}
+run_id=${2:-}
+case "$action" in prepare|cleanup|status) ;; *) echo unsupported_action >&2; exit 2;; esac
+case "$run_id" in f06-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;; *) echo invalid_run_id >&2; exit 2;; esac
+
+suffix=${run_id#f06-}
+root=/var/lib/nexo-f06-fixtures/runs/$run_id
+state=$root/state.env
+journal=$root/journal.log
+
+record() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$1" >> "$journal"; }
+unit_name() { printf 'nexo-vpn-%s.service' "$(printf '%s' "$1" | tr -d '-' | cut -c1-12)"; }
+
+cleanup() {
+  local failed=0
+  if [ ! -f "$state" ]; then echo CLEANUP:NO_STATE; return 0; fi
+  # shellcheck disable=SC1090
+  source "$state"
+  case "$CLIENT_A:$CLIENT_B:$DEST_A:$DEST_B" in "f06ca-$suffix:f06cb-$suffix:f06da-$suffix:f06db-$suffix") ;; *) echo state_identity_mismatch >&2; return 1;; esac
+  systemctl stop "nexo-f06-$suffix-client-a.service" "nexo-f06-$suffix-client-b.service" "nexo-f06-$suffix-dest-a.service" "nexo-f06-$suffix-dest-b.service" >/dev/null 2>&1 || true
+  for unit in client-a client-b dest-a dest-b; do rm -f "/run/systemd/system/nexo-f06-$suffix-$unit.service" || failed=1; done
+  systemctl daemon-reload || failed=1
+  for ns in "$CLIENT_A" "$CLIENT_B" "$DEST_A" "$DEST_B"; do ip netns delete "$ns" >/dev/null 2>&1 || true; done
+  for slot in A B; do
+    eval env_id=\$ENV_$slot; eval env_ns=\$ENV_NS_$slot
+    env_dir=/var/lib/nexo-node/environments/$env_id
+    if [ -f "$env_dir/openvpn.conf.f06-$suffix" ]; then mv "$env_dir/openvpn.conf.f06-$suffix" "$env_dir/openvpn.conf" || failed=1; fi
+    if ip netns list | awk '{print $1}' | grep -Fxq "$env_ns"; then
+      ip netns exec "$env_ns" nft delete table inet nexo_env >/dev/null 2>&1 || true
+      ip netns exec "$env_ns" nft -f "$env_dir/namespace.nft" || failed=1
+      systemctl restart "$(unit_name "$env_id")" || failed=1
+    fi
+  done
+  systemctl start nexo-node-agent.service || failed=1
+  record CLEANUP_FINISHED
+  if [ "$failed" != 0 ]; then echo FAIL_CLEANUP; return 1; fi
+  touch "$root/cleaned"
+  echo CLEANUP:PASS
+}
+
+if [ "$action" = cleanup ]; then cleanup; exit; fi
+if [ "$action" = status ]; then
+  test -f "$state" || { echo STATUS:ABSENT; exit; }
+  test -f "$root/cleaned" && echo STATUS:CLEANED || echo STATUS:PREPARED
+  exit
+fi
+
+test ! -e "$state" || { echo run_id_exists >&2; exit 1; }
+install -d -m 0700 "$root"
+touch "$journal"; chmod 0600 "$journal"
+
+read -r ENV_A ENV_NS_A < <(runuser -u postgres -- psql -X -A -t -F' ' -d nexo -c "SELECT id,namespace_name FROM vpn_environments WHERE listener_port=21194 AND observed_state='active'")
+read -r ENV_B ENV_NS_B < <(runuser -u postgres -- psql -X -A -t -F' ' -d nexo -c "SELECT id,namespace_name FROM vpn_environments WHERE listener_port=21195 AND observed_state='active'")
+test -n "$ENV_A" -a -n "$ENV_B"
+CLIENT_A=f06ca-$suffix; CLIENT_B=f06cb-$suffix; DEST_A=f06da-$suffix; DEST_B=f06db-$suffix
+cat > "$state" <<EOF
+RUN_ID=$run_id
+ENV_A=$ENV_A
+ENV_B=$ENV_B
+ENV_NS_A=$ENV_NS_A
+ENV_NS_B=$ENV_NS_B
+CLIENT_A=$CLIENT_A
+CLIENT_B=$CLIENT_B
+DEST_A=$DEST_A
+DEST_B=$DEST_B
+EOF
+chmod 0600 "$state"
+trap 'cleanup || true' ERR INT TERM
+record BASELINE_CAPTURED
+systemctl stop nexo-node-agent.service
+record AGENT_STOPPED
+
+prepare_slot() {
+  local slot=$1 env_id=$2 env_ns=$3 port=$4 client_ns=$5 dest_ns=$6 underlay=$7 marker=$8
+  local lower=${slot,,} env_dir=/var/lib/nexo-node/environments/$env_id
+  local srv_if=f6s${lower}${suffix:0:8} dst_if=f6d${lower}${suffix:0:8} host_if=f6h${lower}${suffix:0:8} cli_if=f6c${lower}${suffix:0:8}
+  cp "$env_dir/openvpn.conf" "$env_dir/openvpn.conf.f06-$suffix"
+  printf 'push "route 10.77.0.0 255.255.255.0"\n' >> "$env_dir/openvpn.conf"
+  ip netns add "$dest_ns"
+  ip link add "$srv_if" type veth peer name "$dst_if"
+  ip link set "$srv_if" netns "$env_ns"; ip link set "$dst_if" netns "$dest_ns"
+  ip -n "$env_ns" addr add 10.77.0.1/24 dev "$srv_if"; ip -n "$env_ns" link set "$srv_if" up
+  ip -n "$dest_ns" addr add 10.77.0.10/24 dev "$dst_if"; ip -n "$dest_ns" link set lo up; ip -n "$dest_ns" link set "$dst_if" up
+  ip -n "$dest_ns" route add default via 10.77.0.1
+  ip netns exec "$env_ns" nft add rule inet nexo_env forward iifname tun0 oifname "$srv_if" ip daddr 10.77.0.10 tcp dport 18080 accept
+  ip netns exec "$env_ns" nft add rule inet nexo_env forward iifname "$srv_if" oifname tun0 ip saddr 10.77.0.10 tcp sport 18080 ct state established accept
+  install -d -m 0700 "$root/dest-$lower" "$root/client-$lower"
+  printf '%s\n' "$marker" > "$root/dest-$lower/index.html"
+  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$root/client-$lower/client.key" >/dev/null 2>&1
+  openssl req -new -key "$root/client-$lower/client.key" -subj "/CN=NEXO-F06-$run_id-$slot" -out "$root/client-$lower/client.csr" >/dev/null 2>&1
+  printf 'extendedKeyUsage=clientAuth\n' > "$root/client-$lower/client.ext"
+  openssl x509 -req -in "$root/client-$lower/client.csr" -CA "$env_dir/pki/ca.crt" -CAkey "$env_dir/pki/ca.key" -set_serial "0x$(openssl rand -hex 16)" -days 1 -sha256 -extfile "$root/client-$lower/client.ext" -out "$root/client-$lower/client.crt" >/dev/null 2>&1
+  cp "$env_dir/pki/ca.crt" "$env_dir/pki/tls-crypt.key" "$root/client-$lower/"
+  ip netns add "$client_ns"
+  ip link add "$host_if" type veth peer name "$cli_if"
+  ip link set "$cli_if" netns "$client_ns"
+  ip addr add "$underlay.1/30" dev "$host_if"; ip link set "$host_if" up
+  ip -n "$client_ns" addr add "$underlay.2/30" dev "$cli_if"; ip -n "$client_ns" link set lo up; ip -n "$client_ns" link set "$cli_if" up
+  ip -n "$client_ns" route add default via "$underlay.1"
+  cat > "$root/client-$lower/client.conf" <<EOF
+client
+dev tun
+proto udp
+remote $underlay.1 $port
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+tls-version-min 1.2
+data-ciphers AES-256-GCM:AES-128-GCM
+auth SHA256
+pull-filter ignore redirect-gateway
+verb 3
+ca $root/client-$lower/ca.crt
+cert $root/client-$lower/client.crt
+key $root/client-$lower/client.key
+tls-crypt $root/client-$lower/tls-crypt.key
+EOF
+  cat > "/run/systemd/system/nexo-f06-$suffix-dest-$lower.service" <<EOF
+[Service]
+Type=simple
+NetworkNamespacePath=/run/netns/$dest_ns
+ExecStart=/usr/bin/python3 -m http.server 18080 --bind 10.77.0.10 --directory $root/dest-$lower
+EOF
+  cat > "/run/systemd/system/nexo-f06-$suffix-client-$lower.service" <<EOF
+[Service]
+Type=simple
+NetworkNamespacePath=/run/netns/$client_ns
+ExecStart=/usr/sbin/openvpn --config $root/client-$lower/client.conf
+Restart=on-failure
+EOF
+  systemctl daemon-reload
+  systemctl start "nexo-f06-$suffix-dest-$lower.service"
+  systemctl restart "$(unit_name "$env_id")"
+  systemctl start "nexo-f06-$suffix-client-$lower.service"
+  record SLOT_${slot}_PREPARED
+}
+
+prepare_slot A "$ENV_A" "$ENV_NS_A" 21194 "$CLIENT_A" "$DEST_A" 198.18.11 NEXO-F06-A
+prepare_slot B "$ENV_B" "$ENV_NS_B" 21195 "$CLIENT_B" "$DEST_B" 198.18.12 NEXO-F06-B
+for attempt in $(seq 1 40); do
+  a=$(ip netns exec "$CLIENT_A" curl --silent --max-time 1 http://10.77.0.10:18080/ || true)
+  b=$(ip netns exec "$CLIENT_B" curl --silent --max-time 1 http://10.77.0.10:18080/ || true)
+  [ "$a" = NEXO-F06-A -a "$b" = NEXO-F06-B ] && break
+  sleep 1
+done
+[ "$a" = NEXO-F06-A -a "$b" = NEXO-F06-B ]
+record CONNECTIVITY_READY
+trap - ERR INT TERM
+echo PREPARE:PASS

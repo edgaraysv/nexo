@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Ventana principal sin acceso remoto ni plugins del sistema",
+  "windows": ["main"],
+  "platforms": ["windows"],
+  "permissions": ["core:default", "allow-service-request"]
+}

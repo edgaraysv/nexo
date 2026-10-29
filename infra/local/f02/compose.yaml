@@ -1,0 +1,43 @@
+# SOLO fixtures públicas F02. Sin puertos de host, perfiles AWS ni datos reales.
+x-database: &database
+  image: postgres:17.6-bookworm@sha256:f3bd19c606e442c3d7bdfa8002e03fe260a1023351e0ea4598032022b68dd6e3
+  command: [postgres, -c, hba_file=/fixture/pg_hba.conf]
+  environment:
+    POSTGRES_DB: nexo_f02_fixture
+    POSTGRES_PASSWORD: public-f02-postgres-fixture-only
+    POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+  healthcheck:
+    test: [CMD-SHELL, "pg_isready -U postgres -d nexo_f02_fixture"]
+    interval: 2s
+    timeout: 3s
+    retries: 60
+  security_opt: [no-new-privileges:true]
+
+services:
+  source:
+    <<: *database
+    volumes:
+      - source-data:/var/lib/postgresql/data
+      - ./roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./node.fixture.json:/fixture/node.json:ro
+      - ./pg_hba.conf:/fixture/pg_hba.conf:ro
+    networks: [source-private]
+  restore:
+    <<: *database
+    volumes:
+      - restore-data:/var/lib/postgresql/data
+      - restore-config:/restore-config
+      - ./roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+      - ./pg_hba.conf:/fixture/pg_hba.conf:ro
+    networks: [restore-private]
+
+volumes:
+  source-data:
+  restore-data:
+  restore-config:
+networks:
+  source-private:
+    internal: true
+  restore-private:
+    internal: true
