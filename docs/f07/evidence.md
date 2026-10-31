@@ -261,3 +261,19 @@ Antes de aplicar la migración 012 se exige: suite F07 completa, regresión gene
 - F07 permanece **abierto**. F08 no se inició. Sin commit ni push.
 
 > **Estado vigente:** la campaña básica Windows↔AWS del **2026-10-28 UTC**, documentada arriba, sustituye este estado histórico: resultado básico **PASS** y F07 cerrado según el criterio revisado. Las pruebas posteriores indicadas allí permanecen **NOT RUN**.
+
+### Revalidación local — 2026-10-31 UTC
+
+Alcance: pruebas locales con datos sintéticos. **No se contactó AWS ni se ejecutaron acciones remotas.** Esta revalidación no vuelve a comprobar la instancia ni el cliente Windows real.
+
+- Entorno: Node.js `v22.17.0`; Docker Engine `29.5.2`; imagen PostgreSQL `17.6-bookworm`.
+- Comparación del fixture con `infra/aws/lab/nexo-runtime.sql`: las 57 tablas referenciadas por grants tienen una migración creadora. `f08-local` omitía únicamente `support_consent` y `support_sessions`, ambas creadas por 020. Se añadió el perfil local, autónomo y desechable `f07-local` (`001–016 + 017 + 019 + 020`); no incluye 018 ni altera el perfil de laboratorio. La documentación de perfiles se actualizó.
+- `node --test tests/migration-runner.test.mjs`: **PASS, 9/9**.
+- `npm run test:f07-postgres`: **PASS**. Build TypeScript y 19 migraciones con checksum verificado; endpoint RLS, aislamiento tenant, entitlement, catálogo activo, CSR/operación, revocación y reemisión tras revocación: **PASS**.
+- `npm run verify:f07`: **PASS**. Typecheck; pruebas TypeScript/API **4/4**; fixture PostgreSQL; build de cliente Windows; suites Go; builds Linux y Windows del agente.
+- Defecto de serial: **PASS local**. `sameCredentialSerial` compara el valor numérico; las pruebas Go cubren nibble hexadecimal inicial cero y conexión administrada con ese serial.
+- `credential_conflict` después de revocación: **PASS local** con 016 aplicada. PostgreSQL permite emitir una fila nueva tras el estado `revoked`, y conserva el conflicto para otra CSR mientras la credencial nueva está activa. El esquema/migraciones desplegados en AWS no se revalidaron.
+- Observación de perfil no registrada: **PASS local**. `TestServiceRunOnceRegistersPrivateNetworkObservation` comprueba que `service.runOnce` obtiene el perfil, verifica la ruta sintética y publica el estado observado; también pasa la prueba de observación activa/error.
+- **NOT RUN en esta revalidación:** reconexión automática del OpenVPN Windows real; aceptación de segundo tenant/dispositivo en el entorno real; rechazo real de certificado revocado por OpenVPN/CRL; recorrido Windows↔AWS. El marcador local `crl_revocation: PASS` del script no sustituye la prueba de rechazo real por CRL. F08 permanece fuera de alcance.
+
+**Decisión de fase:** no declarar F07 cerrada con esta evidencia solamente. Los tres defectos de implementación indicados pasan pruebas locales actuales, pero los gates reales de reconexión, aceptación multitenant, CRL y despliegue siguen sin revalidar.

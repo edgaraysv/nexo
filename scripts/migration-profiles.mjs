@@ -18,16 +18,17 @@ const migrations001To015 = Object.freeze([
 
 const f09Base = Object.freeze([...migrations001To015, '017_f09_reporting_permissions.sql']);
 const f09 = Object.freeze([...f09Base, '019_f03_resource_grants.sql']);
+const f08 = Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', ...f09.slice(migrations001To015.length)]);
+const f07 = Object.freeze([...f08, '020_f10_support_consent.sql']);
 
 export const migrationProfiles = Object.freeze({
+  // Standalone disposable integration fixture: F07 rotation plus every table referenced by runtime grants.
+  'f07-local': Object.freeze({ migrations: f07, target: 'local' }),
   // The local profile adds F03 resource grants; the lab profile remains unchanged.
   'f09-local': Object.freeze({ migrations: f09, target: 'local' }),
   'f09-lab': Object.freeze({ migrations: f09Base, target: 'lab' }),
   // 016 is exercised only against disposable local PostgreSQL instances.
-  'f08-local': Object.freeze({
-    migrations: Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', '017_f09_reporting_permissions.sql', '019_f03_resource_grants.sql']),
-    target: 'local',
-  }),
+  'f08-local': Object.freeze({ migrations: f08, target: 'local' }),
   // GA-01 is local-only, applies 018 after F09 and then the F03 resource-grant closure.
   'ga01-local': Object.freeze({
     migrations: Object.freeze([...f09Base, '018_ga01_assignment_permissions.sql', '019_f03_resource_grants.sql']),

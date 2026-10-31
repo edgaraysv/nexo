@@ -25,7 +25,7 @@ try {
   let ready = false;
   for (let attempt = 0; attempt < 40; attempt += 1) { if (spawnSync('docker', ['exec', container, 'psql', '-X', '-U', 'postgres', '-d', 'nexo', '-c', 'SELECT 1']).status === 0) { ready = true; break; } Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250); }
   if (!ready) throw new Error('PostgreSQL did not become ready');
-  runMigrationProfile(container, 'f08-local', 'f07-fixture-password');
+  runMigrationProfile(container, 'f07-local', 'f07-fixture-password');
   psql(`
 INSERT INTO tenants(id,slug,display_name) VALUES('${TENANT_A}','f07-a','F07 A'),('${TENANT_B}','f07-b','F07 B');
 INSERT INTO users(id,email,password_hash) VALUES('${OWNER}','f07-owner@example.test','fixture');

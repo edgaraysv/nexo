@@ -21,11 +21,19 @@ test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes
   assert.ok(!ga01.some(file => file.startsWith('016_')));
 });
 
-test('016 is available only in the disposable F08 local profile', () => {
+test('F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile', () => {
+  const f07 = migrationProfiles['f07-local'];
+  assert.equal(f07.target, 'local');
+  assert.deepEqual(f07.migrations, [...migrationProfiles['f08-local'].migrations, '020_f10_support_consent.sql']);
+  assert.ok(!f07.migrations.includes('018_ga01_assignment_permissions.sql'));
+});
+
+test('016 is available only in disposable F07/F08 local profiles', () => {
   const profilesWith016 = Object.entries(migrationProfiles)
     .filter(([, profile]) => profile.migrations.some(file => file.startsWith('016_')))
-    .map(([name]) => name);
-  assert.deepEqual(profilesWith016, ['f08-local']);
+    .map(([name]) => name).sort();
+  assert.deepEqual(profilesWith016, ['f07-local', 'f08-local']);
+  assert.equal(migrationProfiles['f07-local'].target, 'local');
   assert.equal(migrationProfiles['f08-local'].target, 'local');
 });
 

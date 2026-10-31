@@ -142,6 +142,68 @@ func TestPrivateNetworkObservationReportsOnlyVerifiedState(t *testing.T) {
 	}
 }
 
+func TestServiceRunOnceRegistersPrivateNetworkObservation(t *testing.T) {
+	desired := networkDesired()
+	reports := []privateNetworkReport{}
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		response.Header().Set("content-type", "application/json")
+		switch request.URL.Path {
+		case "/v1/device-auth/challenge":
+			json.NewEncoder(response).Encode(map[string]string{"challenge": "challenge"})
+		case "/v1/device-auth/verify":
+			json.NewEncoder(response).Encode(map[string]string{"token": "device-token"})
+		case "/v1/device/heartbeat":
+			json.NewEncoder(response).Encode(map[string]any{})
+		case "/v1/device/operations/next":
+			json.NewEncoder(response).Encode(map[string]any{"operation": nil})
+		case "/v1/device/vpn/reconcile":
+			json.NewEncoder(response).Encode(clientVPNCatalog{ModuleState: "disabled", Items: []clientVPNEnvironment{}})
+		case "/v1/device/private-network/reconcile":
+			if request.Header.Get("authorization") != "Bearer device-token" {
+				t.Error("private network reconcile was not authenticated")
+			}
+			json.NewEncoder(response).Encode(desired)
+		case "/v1/device/private-network/" + networkProfileID + "/report":
+			var report privateNetworkReport
+			if err := json.NewDecoder(request.Body).Decode(&report); err != nil {
+				t.Errorf("invalid observation report: %v", err)
+			}
+			reports = append(reports, report)
+			response.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected endpoint in service run: %s", request.URL.Path)
+			response.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &serviceRuntime{
+		base: server.URL,
+		dir:  dir,
+		key:  key,
+		routeCheck: func(address netip.Addr) (bool, error) {
+			return address == netip.MustParseAddr("10.20.0.8"), nil
+		},
+	}
+	if err = writeState(dir, state{DeviceID: "device-id", Audience: "endpoint", Serial: "serial", CertificatePEM: "certificate"}); err != nil {
+		t.Fatal(err)
+	}
+	if err = service.runOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(reports) != 1 || reports[0].ObservedState != "active" || reports[0].Revision != 7 || len(reports[0].ConfigDigest) != 64 {
+		t.Fatalf("service run did not register the verified profile observation: %#v", reports)
+	}
+	if status := service.readPersisted(); status.LastError != "" {
+		t.Fatalf("service run recorded an unexpected error: %#v", status)
+	}
+}
+
 func TestPrivateNetworkObservationRejectsUnsupportedResourcesWithoutActive(t *testing.T) {
 	host := &observedNetworkHost{hasRoute: func(netip.Addr) (bool, error) { return true, nil }}
 	plan := networkruntime.ProfilePlan{Profile: networkruntime.Profile{PathMode: "direct", ReturnMode: "routed", DNSMode: "local"}, Resources: []networkruntime.Resource{{Kind: "hostname", Address: "erp.example.test"}}}
