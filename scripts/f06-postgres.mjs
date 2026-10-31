@@ -28,7 +28,14 @@ const migrations = [
   '008_f04_commercial_capabilities.sql',
   '009_f05_operation_reliability.sql',
   '010_f06_vpn_environments.sql',
+  '011_f07_endpoint_vpn_catalog.sql',
+  '012_f07_vpn_client_credentials.sql',
+  '013_f08_private_networks.sql',
+  '014_f07_tls_crypt_envelope.sql',
+  '015_f07_revision_assigner.sql',
+  '017_f09_reporting_permissions.sql',
   '019_f03_resource_grants.sql',
+  '020_f10_support_consent.sql',
 ];
 
 function run(command, args, options = {}) {
