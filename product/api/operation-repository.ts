@@ -14,7 +14,7 @@ export interface OperationView {
 }
 
 export interface OperationPage { items: OperationView[]; total: number }
-export interface OperationListOptions { limit: number; offset: number; status?: string; targetDeviceId?: string; from?: string; until?: string }
+export interface OperationListOptions { limit: number; offset: number; status?: string; targetDeviceId?: string; targetDeviceIds?: string[]; from?: string; until?: string }
 export interface HeartbeatRecord { deviceId: string; observedAt: string; receivedAt: string; agentVersion: string }
 export interface HeartbeatPage { items: HeartbeatRecord[]; total: number }
 
@@ -26,7 +26,7 @@ export interface OperationRepository {
   next(deviceId: string): Promise<OperationView | undefined>;
   complete(deviceId: string, id: string, input: { status: 'succeeded' | 'failed'; result: Record<string, unknown>; observedAt: string; revision?: number }): Promise<boolean>;
   heartbeat(deviceId: string, input: { observedAt: string; agentVersion: string }): Promise<boolean>;
-  heartbeats(tenantId: string, options: { limit: number; offset: number }): Promise<HeartbeatPage>;
+  heartbeats(tenantId: string, options: { limit: number; offset: number; deviceIds?: string[] }): Promise<HeartbeatPage>;
 }
 
 export class MemoryOperationRepository implements OperationRepository {
@@ -54,7 +54,7 @@ export class MemoryOperationRepository implements OperationRepository {
   }
 
   async list(tenantId: string, options: OperationListOptions): Promise<OperationPage> {
-    const filtered=this.items.filter(item=>this.tenants.get(item.id)===tenantId&&(!options.status||item.status===options.status)&&(!options.targetDeviceId||item.targetDeviceId===options.targetDeviceId)&&(!options.from||Date.parse(item.createdAt??item.expiresAt)>=Date.parse(options.from))&&(!options.until||Date.parse(item.createdAt??item.expiresAt)<Date.parse(options.until))).sort((a,b)=>(b.createdAt??b.expiresAt).localeCompare(a.createdAt??a.expiresAt)||b.id.localeCompare(a.id));
+    const filtered=this.items.filter(item=>this.tenants.get(item.id)===tenantId&&(!options.status||item.status===options.status)&&(!options.targetDeviceId||item.targetDeviceId===options.targetDeviceId)&&(!options.targetDeviceIds||options.targetDeviceIds.includes(item.targetDeviceId))&&(!options.from||Date.parse(item.createdAt??item.expiresAt)>=Date.parse(options.from))&&(!options.until||Date.parse(item.createdAt??item.expiresAt)<Date.parse(options.until))).sort((a,b)=>(b.createdAt??b.expiresAt).localeCompare(a.createdAt??a.expiresAt)||b.id.localeCompare(a.id));
     return{items:filtered.slice(options.offset,options.offset+options.limit),total:filtered.length};
   }
   async dispatch(_worker: string, limit: number): Promise<number> {
@@ -91,8 +91,8 @@ export class MemoryOperationRepository implements OperationRepository {
     this.beats.set(deviceId, { ...input, receivedAt: new Date().toISOString() });
     return true;
   }
-  async heartbeats(tenantId: string, options: { limit: number; offset: number }) {
-    const filtered=[...this.beats].filter(([id])=>this.items.some(item=>item.targetDeviceId===id&&this.tenants.get(item.id)===tenantId)).map(([deviceId,value])=>({deviceId,...value})).sort((a,b)=>b.receivedAt.localeCompare(a.receivedAt)||a.deviceId.localeCompare(b.deviceId));
+  async heartbeats(tenantId: string, options: { limit: number; offset: number; deviceIds?: string[] }) {
+    const permitted=options.deviceIds===undefined?undefined:new Set(options.deviceIds),filtered=[...this.beats].filter(([id])=>(!permitted||permitted.has(id))&&this.items.some(item=>item.targetDeviceId===id&&this.tenants.get(item.id)===tenantId)).map(([deviceId,value])=>({deviceId,...value})).sort((a,b)=>b.receivedAt.localeCompare(a.receivedAt)||a.deviceId.localeCompare(b.deviceId));
     return{items:filtered.slice(options.offset,options.offset+options.limit),total:filtered.length};
   }
 }

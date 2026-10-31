@@ -95,6 +95,7 @@ try {
 
   const enrolled = await ipc('enroll', { token: invitation.json().token, name: 'Windows IPC' });
   assert.equal(enrolled.enrollment, 'pending_approval');
+  for (const permission of ['company.agent.approve','company.operation.create','company.operation.read']) await company.createResourceGrant(TENANT,{userId:ADMIN,resourceType:'device_identity',resourceId:enrolled.device_id,permission},ADMIN);
   const approval = await app.inject({ method: 'POST', url: `/v1/company/agents/${enrolled.device_id}/approve`, headers });
   assert.equal(approval.statusCode, 204);
   await new Promise((resolve) => setTimeout(resolve, 2100));

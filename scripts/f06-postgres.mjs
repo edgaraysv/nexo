@@ -28,6 +28,7 @@ const migrations = [
   '008_f04_commercial_capabilities.sql',
   '009_f05_operation_reliability.sql',
   '010_f06_vpn_environments.sql',
+  '019_f03_resource_grants.sql',
 ];
 
 function run(command, args, options = {}) {

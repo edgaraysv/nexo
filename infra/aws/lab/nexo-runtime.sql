@@ -44,7 +44,7 @@ GRANT SELECT ON TABLE
   node_operation_outbox, node_operation_results, node_operations, node_sessions,
   manual_payments, operation_outbox, operation_results, operations, plans,
   provider_audit_events, provider_company_assignments, provider_node_invitations, provider_nodes,
-  permissions, provider_settings, provider_users, quota_counters, quota_exceptions,
+  permissions, provider_settings, provider_users, quota_counters, quota_exceptions, resource_grants,
   quota_reservations, recovery_tokens, role_permissions, roles, sessions, site_networks,
   sites, subscription_modules, subscriptions, tenants, users,
   vpn_client_credentials, vpn_environment_revisions, vpn_environments,
@@ -60,7 +60,7 @@ GRANT INSERT ON TABLE
   manual_payments, operation_results, operations, plans, provider_audit_events,
   provider_company_assignments, provider_node_invitations, provider_nodes,
   provider_settings, quota_counters, quota_exceptions, quota_reservations,
-  recovery_tokens, roles, sessions, site_networks, sites, subscription_modules,
+  recovery_tokens, resource_grants, roles, sessions, site_networks, sites, subscription_modules,
   subscriptions, tenants, vpn_client_credentials, vpn_environment_revisions, vpn_environments,
   private_network_profiles, private_network_profile_revisions, private_network_device_observations, private_resources, private_network_policies
 TO nexo_runtime;
@@ -68,7 +68,7 @@ TO nexo_runtime;
 GRANT UPDATE ON TABLE
   access_policies, company_invitations, device_challenges, device_credentials,
   device_heartbeats, device_identities, device_invitations, device_sessions,
-  membership_roles, memberships, node_challenges, node_credentials, node_heartbeats,
+  membership_roles, memberships, node_challenges, node_credentials, node_heartbeats, resource_grants,
   node_heartbeats, node_operation_outbox, node_operations, node_sessions, operation_outbox,
   operations, provider_node_invitations, provider_nodes, provider_settings,
   quota_counters, quota_exceptions, recovery_tokens, roles, sessions,

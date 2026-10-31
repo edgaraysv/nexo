@@ -9,7 +9,7 @@ import { PostgresOperationRepository } from '../dist/product/postgres-operation-
 
 const container=`nexo-f05-${randomUUID().slice(0,8)}`,image=process.env.F05_POSTGRES_IMAGE??'postgres:17.6-bookworm';
 const TENANT='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5',USER='11111111-1111-4111-8111-111111111115',DEVICE='22222222-2222-4222-8222-222222222225',INVITATION='33333333-3333-4333-8333-333333333335',NODE_INVITATION='44444444-4444-4444-8444-444444444445',NODE='55555555-5555-4555-8555-555555555555';
-const migrations=['001_l02_identity.sql','002_l03_provider.sql','003_l04_company_portal.sql','004_l05_device_identity.sql','005_l06_operations.sql','006_l06_node_restore.sql','007_f03_company_authorization.sql','008_f04_commercial_capabilities.sql','009_f05_operation_reliability.sql','010_f06_vpn_environments.sql'];
+const migrations=['001_l02_identity.sql','002_l03_provider.sql','003_l04_company_portal.sql','004_l05_device_identity.sql','005_l06_operations.sql','006_l06_node_restore.sql','007_f03_company_authorization.sql','008_f04_commercial_capabilities.sql','009_f05_operation_reliability.sql','010_f06_vpn_environments.sql','019_f03_resource_grants.sql'];
 function run(command,args,options={}){const result=spawnSync(command,args,{encoding:'utf8',...options});if(result.status!==0)throw new Error(`${command} failed: ${result.stderr||result.stdout}`);return result.stdout;}
 function psql(input){return run('docker',['exec','-i',container,'psql','-X','-v','ON_ERROR_STOP=1','-U','postgres','-d','nexo'],{input});}
 function repositories(port){const pool=new Pool({connectionString:`postgres://nexo_runtime:runtime-fixture-password@127.0.0.1:${port}/nexo`,max:6});return{pool,operations:new PostgresOperationRepository(pool),nodes:new PostgresNodeRepository(pool)};}

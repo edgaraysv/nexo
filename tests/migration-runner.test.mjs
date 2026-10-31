@@ -3,18 +3,21 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { migrationProfiles, stripMigrationTransaction } from '../scripts/migration-profiles.mjs';
 
-test('F09 lab profile fixes the sequence and excludes 016 and 018', () => {
+test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 migrations', () => {
   const expected = [...Array.from({ length: 15 }, (_, index) => `${String(index + 1).padStart(3, '0')}_`), '017_'];
   assert.equal(migrationProfiles['f09-lab'].migrations.length, 16);
   assert.deepEqual(migrationProfiles['f09-lab'].migrations.map(file => file.slice(0, 4)), expected);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations, migrationProfiles['f09-lab'].migrations);
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -1), migrationProfiles['f09-lab'].migrations);
+  assert.equal(migrationProfiles['f09-local'].migrations.at(-1), '019_f03_resource_grants.sql');
+  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_')));
 });
 
-test('GA-01 is local-only, adds 018 after F09, and still excludes 016', () => {
+test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes 016', () => {
   const ga01 = migrationProfiles['ga01-local'].migrations;
   assert.equal(migrationProfiles['ga01-local'].target, 'local');
-  assert.deepEqual(ga01.slice(0, -1), migrationProfiles['f09-local'].migrations);
-  assert.equal(ga01.at(-1), '018_ga01_assignment_permissions.sql');
+  assert.deepEqual(ga01.slice(0, -2), migrationProfiles['f09-lab'].migrations);
+  assert.equal(ga01.at(-2), '018_ga01_assignment_permissions.sql');
+  assert.equal(ga01.at(-1), '019_f03_resource_grants.sql');
   assert.ok(!ga01.some(file => file.startsWith('016_')));
 });
 
@@ -32,6 +35,20 @@ test('migration transaction wrapper is removed while inner SQL blocks remain int
   assert.match(body, /DO \$\$[\s\S]*?BEGIN[\s\S]*?END \$\$/);
   assert.doesNotMatch(body, /^BEGIN\s*;/i);
   assert.doesNotMatch(body, /COMMIT\s*;\s*$/i);
+});
+
+test('F03 resource-grant migration is atomic and encodes tenant/resource constraints', async () => {
+  const sql = await readFile(new URL('../db/migrations/019_f03_resource_grants.sql', import.meta.url), 'utf8');
+  const body = stripMigrationTransaction(sql, '019_f03_resource_grants.sql');
+  assert.match(body, /CREATE TABLE resource_grants/u);
+  assert.match(body, /FOREIGN KEY\(tenant_id,user_id\) REFERENCES memberships\(tenant_id,user_id\)/u);
+  assert.match(body, /FOREIGN KEY\(tenant_id,declared_device_id\) REFERENCES declared_devices\(tenant_id,id\)/u);
+  assert.match(body, /FOREIGN KEY\(tenant_id,device_identity_id\) REFERENCES device_identities\(tenant_id,id\)/u);
+  assert.match(body, /declared_device_id IS NOT NULL AND declared_device_id=resource_id/u);
+  assert.match(body, /device_identity_id IS NOT NULL AND device_identity_id=resource_id/u);
+  assert.match(body, /ENABLE ROW LEVEL SECURITY;\s*ALTER TABLE resource_grants FORCE ROW LEVEL SECURITY/u);
+  assert.match(body, /valid_until IS NULL OR valid_until>valid_from/u);
+  assert.match(body, /WHERE revoked_at IS NULL/u);
 });
 
 test('runner rejects migration files without atomic wrapper boundaries', () => {

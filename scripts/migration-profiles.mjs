@@ -16,20 +16,21 @@ const migrations001To015 = Object.freeze([
   '015_f07_revision_assigner.sql',
 ]);
 
-const f09 = Object.freeze([...migrations001To015, '017_f09_reporting_permissions.sql']);
+const f09Base = Object.freeze([...migrations001To015, '017_f09_reporting_permissions.sql']);
+const f09 = Object.freeze([...f09Base, '019_f03_resource_grants.sql']);
 
 export const migrationProfiles = Object.freeze({
-  // This profile is intentionally the lab's F09 sequence. 016 and 018 are not included.
+  // The local profile adds F03 resource grants; the lab profile remains unchanged.
   'f09-local': Object.freeze({ migrations: f09, target: 'local' }),
-  'f09-lab': Object.freeze({ migrations: f09, target: 'lab' }),
+  'f09-lab': Object.freeze({ migrations: f09Base, target: 'lab' }),
   // 016 is exercised only against disposable local PostgreSQL instances.
   'f08-local': Object.freeze({
-    migrations: Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', '017_f09_reporting_permissions.sql']),
+    migrations: Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', '017_f09_reporting_permissions.sql', '019_f03_resource_grants.sql']),
     target: 'local',
   }),
-  // GA-01 is a local-only profile and adds 018 after the F09 baseline; it never includes 016.
+  // GA-01 is local-only, applies 018 after F09 and then the F03 resource-grant closure.
   'ga01-local': Object.freeze({
-    migrations: Object.freeze([...f09, '018_ga01_assignment_permissions.sql']),
+    migrations: Object.freeze([...f09Base, '018_ga01_assignment_permissions.sql', '019_f03_resource_grants.sql']),
     target: 'local',
   }),
 });

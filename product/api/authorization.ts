@@ -7,6 +7,7 @@ export const COMPANY_PERMISSIONS = [
   'company.user.read',
   'company.user.invite',
   'company.user.roles.manage',
+  'company.resource_grant.manage',
   'company.policy.read',
   'company.policy.manage',
   'company.agent.read',
@@ -23,6 +24,25 @@ export const COMPANY_PERMISSIONS = [
 ] as const;
 
 export type CompanyPermission = typeof COMPANY_PERMISSIONS[number];
+
+export type CompanyResourceType = 'declared_device' | 'device_identity';
+
+export const RESOURCE_GRANT_PERMISSIONS = {
+  declared_device: ['company.device.read'],
+  device_identity: [
+    'company.agent.read',
+    'company.agent.approve',
+    'company.agent.revoke',
+    'company.operation.read',
+    'company.operation.create',
+    'company.network.manage',
+    'company.network.diagnose'
+  ]
+} as const satisfies Record<CompanyResourceType, readonly CompanyPermission[]>;
+
+export function isResourceGrantPermission(resourceType: CompanyResourceType, permission: string): permission is CompanyPermission {
+  return (RESOURCE_GRANT_PERMISSIONS[resourceType] as readonly string[]).includes(permission);
+}
 
 const READ_PERMISSIONS: readonly CompanyPermission[] = [
   'company.summary.read',
