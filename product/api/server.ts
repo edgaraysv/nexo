@@ -14,6 +14,7 @@ import { PostgresIdentityRepository } from './postgres-repository.js';
 import { PostgresVpnEnvironmentRepository } from './postgres-vpn-environment-repository.js';
 import { PostgresVpnCredentialRepository } from './postgres-vpn-credential-repository.js';
 import { PostgresPrivateNetworkRepository } from './postgres-private-network-repository.js';
+import { PostgresSupportRepository } from './postgres-support-repository.js';
 
 export interface ServerConfig {
   host: '127.0.0.1' | '::1';
@@ -81,7 +82,8 @@ export async function startServer(config: ServerConfig): Promise<void> {
     new PostgresVpnEnvironmentRepository(pool),
     new PostgresVpnCredentialRepository(pool),
     new PostgresPrivateNetworkRepository(pool),
-    { privateNetworksEnabled: config.privateNetworksEnabled }
+    { privateNetworksEnabled: config.privateNetworksEnabled },
+    new PostgresSupportRepository(pool)
   );
   let stopping = false;
   const stop = async (): Promise<void> => {

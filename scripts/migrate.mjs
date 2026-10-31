@@ -6,6 +6,7 @@ import { migrationProfiles, stripMigrationTransaction } from './migration-profil
 
 const usage = `Uso:
   npm run db:migrate -- --profile f09-local --initialize
+  npm run db:migrate -- --profile f10-local --initialize
   npm run db:migrate -- --profile ga01-local
   npm run db:migrate -- --profile f08-local --initialize
   NEXO_MIGRATION_TARGET=lab npm run db:migrate -- --profile f09-lab --initialize --confirm-lab

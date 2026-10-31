@@ -13,6 +13,11 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
     '020_f10_support_consent.sql',
   ]);
   assert.equal(migrationProfiles['f09-local'].target, 'local');
+  assert.deepEqual(migrationProfiles['f09-local'].migrations, [
+    ...migrationProfiles['f09-lab'].migrations,
+    '019_f03_resource_grants.sql',
+    '020_f10_support_consent.sql',
+  ]);
   assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_')));
 });
 
@@ -23,6 +28,16 @@ test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes
   assert.equal(ga01.at(-2), '018_ga01_assignment_permissions.sql');
   assert.equal(ga01.at(-1), '019_f03_resource_grants.sql');
   assert.ok(!ga01.some(file => file.startsWith('016_')));
+});
+
+test('F10 support consent is local-only and follows the verified F03 grant migration', () => {
+  const f10 = migrationProfiles['f10-local'];
+  assert.equal(f10.target, 'local');
+  assert.equal(f10.migrations.at(-3), '019_f03_resource_grants.sql');
+  assert.equal(f10.migrations.at(-2), '020_f10_support_consent.sql');
+  assert.equal(f10.migrations.at(-1), '021_f10_support_lifecycle.sql');
+  assert.ok(!migrationProfiles['f09-lab'].migrations.includes('020_f10_support_consent.sql'));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.includes('021_f10_support_lifecycle.sql'));
 });
 
 test('F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile', () => {
@@ -73,6 +88,34 @@ test('F03 resource-grant migration is atomic and encodes tenant/resource constra
   assert.match(body, /ENABLE ROW LEVEL SECURITY;\s*ALTER TABLE resource_grants FORCE ROW LEVEL SECURITY/u);
   assert.match(body, /valid_until IS NULL OR valid_until>valid_from/u);
   assert.match(body, /WHERE revoked_at IS NULL/u);
+});
+
+test('F10 migration persists consent with tenant/device RLS and limits contracted mode to assisted support', async () => {
+  const sql = await readFile(new URL('../db/migrations/020_f10_support_consent.sql', import.meta.url), 'utf8');
+  const body = stripMigrationTransaction(sql, '020_f10_support_consent.sql');
+  assert.match(body, /CREATE TABLE support_sessions/u);
+  assert.match(body, /CREATE TABLE support_consent/u);
+  assert.match(body, /CHECK\(mode='assisted'\)/u);
+  assert.match(body, /company\.support\.start/u);
+  assert.match(body, /FOREIGN KEY\(tenant_id,support_session_id,device_identity_id\)/u);
+  assert.match(body, /ALTER TABLE support_consent FORCE ROW LEVEL SECURITY/u);
+  assert.match(body, /device_identity_id::text=current_setting\('app\.device_id',true\)/u);
+});
+
+test('F10 lifecycle migration records hashed one-use consent, engine attempts and transactional termination outbox', async () => {
+  const sql = await readFile(new URL('../db/migrations/021_f10_support_lifecycle.sql', import.meta.url), 'utf8');
+  const body = stripMigrationTransaction(sql, '021_f10_support_lifecycle.sql');
+  assert.match(body, /RENAME COLUMN support_session_id TO session_id/u);
+  assert.match(body, /ADD COLUMN operator_id uuid/u);
+  assert.match(body, /RENAME COLUMN device_identity_id TO device_id/u);
+  assert.match(body, /ADD COLUMN accepted_at timestamptz/u);
+  assert.match(body, /ADD COLUMN decision_origin text/u);
+  assert.match(body, /ADD COLUMN nonce_hash bytea/u);
+  assert.ok(body.includes("WHEN 'expired' THEN 'timeout'"));
+  assert.match(body, /CREATE TABLE support_session_attempts/u);
+  assert.match(body, /CREATE TABLE support_session_outbox/u);
+  assert.match(body, /ALTER TABLE support_session_outbox FORCE ROW LEVEL SECURITY/u);
+  assert.match(body, /engine_session_id/u);
 });
 
 test('runner rejects migration files without atomic wrapper boundaries', () => {

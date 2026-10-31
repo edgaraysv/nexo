@@ -4,21 +4,26 @@ import { pathToFileURL } from 'node:url';
 import { Pool } from 'pg';
 import type { NodeRepository } from './node-repository.js';
 import type { OperationRepository } from './operation-repository.js';
+import type { SupportRepository } from './support-repository.js';
 import { PostgresNodeRepository } from './postgres-node-repository.js';
 import { PostgresOperationRepository } from './postgres-operation-repository.js';
+import { PostgresSupportRepository } from './postgres-support-repository.js';
 
 export interface WorkerCycleResult {
   endpoint: { dispatched: number; expired: number; repaired: number };
   node: { dispatched: number; expired: number; repaired: number };
+  support?: { terminationDispatched: number };
 }
 
-export async function runWorkerCycle(operations: OperationRepository, nodes: NodeRepository, workerId: string, batchSize: number): Promise<WorkerCycleResult> {
+export async function runWorkerCycle(operations: OperationRepository, nodes: NodeRepository, workerId: string, batchSize: number, support?: SupportRepository): Promise<WorkerCycleResult> {
   const [endpointReconciliation, nodeReconciliation] = await Promise.all([operations.reconcile(batchSize), nodes.reconcile(batchSize)]);
   const [endpointDispatched, nodeDispatched] = await Promise.all([operations.dispatch(workerId, batchSize), nodes.dispatch(workerId, batchSize)]);
-  return {
+  const result: WorkerCycleResult = {
     endpoint: { dispatched: endpointDispatched, ...endpointReconciliation },
     node: { dispatched: nodeDispatched, ...nodeReconciliation }
   };
+  if (support) result.support = { terminationDispatched: await support.dispatchTerminationOutbox(workerId, batchSize) };
+  return result;
 }
 
 function integer(value: string | undefined, fallback: number, minimum: number, maximum: number, name: string): number {
@@ -39,6 +44,7 @@ export async function startOperationWorker(env: NodeJS.ProcessEnv): Promise<void
   const pool = new Pool({ host, port: integer(env.PGPORT, 5432, 1, 65_535, 'pg_port'), database, user, max: 4, application_name: 'nexo-operation-worker', idleTimeoutMillis: 30_000, connectionTimeoutMillis: 5_000 });
   const operations = new PostgresOperationRepository(pool);
   const nodes = new PostgresNodeRepository(pool);
+  const support = new PostgresSupportRepository(pool);
   let stopping = false;
   let backoff = intervalMs;
   const stop = (): void => { stopping = true; };
@@ -48,7 +54,7 @@ export async function startOperationWorker(env: NodeJS.ProcessEnv): Promise<void
     await pool.query('SELECT 1');
     while (!stopping) {
       try {
-        await runWorkerCycle(operations, nodes, workerId, batchSize);
+        await runWorkerCycle(operations, nodes, workerId, batchSize, support);
         backoff = intervalMs;
       } catch {
         process.stderr.write('nexo_operation_worker_cycle_failed\n');

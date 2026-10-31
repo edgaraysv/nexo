@@ -18,6 +18,7 @@ export const COMPANY_PERMISSIONS = [
   'company.operation.create',
   'company.audit.read',
   'company.report.export',
+  'company.support.start',
   'company.network.read',
   'company.network.manage',
   'company.network.diagnose'
@@ -35,6 +36,7 @@ export const RESOURCE_GRANT_PERMISSIONS = {
     'company.agent.revoke',
     'company.operation.read',
     'company.operation.create',
+    'company.support.start',
     'company.network.manage',
     'company.network.diagnose'
   ]
@@ -69,6 +71,7 @@ const TECHNICIAN_PERMISSIONS: readonly CompanyPermission[] = [
   'company.agent.revoke',
   'company.operation.read',
   'company.operation.create',
+  'company.support.start',
   'company.network.read',
   'company.network.manage',
   'company.network.diagnose'
