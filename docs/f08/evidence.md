@@ -167,3 +167,16 @@ Nota local: `/tmp/opencode/f08-build/nexo-agent.exe` (owner root) no se pudo bor
 El dataplane sintético F08 quedó demostrado: 18443 permitido con respuesta identificable y 18444 realmente descartado en el namespace VPN, con el listener denegado activo y contadores/capturas concordantes. La retirada dejó el nodo y AWS sin el entorno, las rutas, los listeners, las reglas temporales ni los artefactos S3 del ensayo, y el endpoint sin OpenVPN ni credencial VPN válida.
 
 Quedan residuales de limpieza que requieren elevación en Windows: `client.key`/`client.csr` presentes con credencial revocada, las rutas DCO obsoletas y el servicio endpoint instalado. El P1 local corrigió y probó la reemisión, el reporte de observación y el reintento de cleanup, pero **no están desplegados**: la base conserva el unique antiguo, el binario instalado sigue siendo `AADE…` y no se ejecutó una observación Windows real. El restore no se validó y F07 sigue `NOT RUN`. No hubo commit ni push.
+
+## Revalidación local — 2026-10-31 UTC
+
+Alcance: datos sintéticos, PostgreSQL efímero y pruebas locales. **No se contactó AWS ni se repitió el trayecto Windows↔AWS.** La evidencia de campaña del 2026-10-28 sigue siendo histórica y no se revalidó.
+
+- Comparación de `f08-local` con `f10-local`: ambas secuencias contienen `001–015 + 017 + 019 + 020`; F08 conserva además `016_f07_vpn_credential_rotation.sql` entre 015 y 017. Las 57 tablas a las que se refiere el SQL runtime tienen migración creadora dentro de la secuencia F08.
+- `node --test tests/migration-runner.test.mjs`: **PASS, 10/10**.
+- `npm run test:f08-postgres`: **PASS**, PostgreSQL `17.6-bookworm`, 19 migraciones con checksums verificados. RLS tenant, default deny, reglas node-scoped, múltiples entornos/tenants, fail-closed para reglas device-scoped, normalización de solapamientos, precedencia de deny y reconciliación gateway: **PASS**.
+- `npm run verify:f08`: **PASS**, typecheck y pruebas API **3/3** (default deny, seguridad de rutas y aislamiento tenant).
+- `npm run test:runtime-grants`: **PASS**, 20 migraciones, 58 tablas, ownership, least privilege, grants, RLS y perfiles F04/F06/F07/F08/F10.
+- **NOT RUN:** conectividad de diagnóstico (el resultado sigue `NOT_TESTED`); aceptación de dataplane Windows↔AWS; restore; runtime de gateway, SNAT y split-DNS. El corte directo IPv4 del 28 de octubre no se repitió.
+
+**Decisión de esta revalidación:** gates locales de control y PostgreSQL **PASS**; no declarar una aceptación end-to-end nueva de F08 con conectividad y runtime aún no probados en esta ronda.

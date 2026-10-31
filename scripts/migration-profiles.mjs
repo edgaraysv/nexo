@@ -18,8 +18,8 @@ const migrations001To015 = Object.freeze([
 
 const f09Base = Object.freeze([...migrations001To015, '017_f09_reporting_permissions.sql']);
 const f09 = Object.freeze([...f09Base, '019_f03_resource_grants.sql']);
-const f08 = Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', ...f09.slice(migrations001To015.length)]);
-const f07 = Object.freeze([...f08, '020_f10_support_consent.sql']);
+const f08 = Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', ...f09.slice(migrations001To015.length), '020_f10_support_consent.sql']);
+const f07 = Object.freeze([...f08]);
 
 export const migrationProfiles = Object.freeze({
   // Standalone disposable integration fixture: F07 rotation plus every table referenced by runtime grants.

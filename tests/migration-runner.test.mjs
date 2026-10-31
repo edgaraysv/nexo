@@ -24,8 +24,20 @@ test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes
 test('F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile', () => {
   const f07 = migrationProfiles['f07-local'];
   assert.equal(f07.target, 'local');
-  assert.deepEqual(f07.migrations, [...migrationProfiles['f08-local'].migrations, '020_f10_support_consent.sql']);
+  assert.deepEqual(f07.migrations, migrationProfiles['f08-local'].migrations);
   assert.ok(!f07.migrations.includes('018_ga01_assignment_permissions.sql'));
+});
+
+test('F08 local profile includes the runtime closure and retains credential rotation 016', () => {
+  const f08 = migrationProfiles['f08-local'];
+  const f09 = migrationProfiles['f09-local'].migrations;
+  assert.equal(f08.target, 'local');
+  assert.deepEqual(f08.migrations, [
+    ...f09.slice(0, 15),
+    '016_f07_vpn_credential_rotation.sql',
+    ...f09.slice(15),
+    '020_f10_support_consent.sql',
+  ]);
 });
 
 test('016 is available only in disposable F07/F08 local profiles', () => {
