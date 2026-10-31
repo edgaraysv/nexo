@@ -7,7 +7,7 @@
 | Perfil | Secuencia | Destino permitido |
 | --- | --- | --- |
 | `f07-local` | `001–016 + 017 + 019 + 020` | Host loopback; base desechable exclusiva de la integración F07 |
-| `f09-local` | `001–015 + 017 + 019` | Host loopback únicamente; solo pruebas desechables |
+| `f09-local` | `001–015 + 017 + 019 + 020` | Host loopback únicamente; base efímera/local desechable |
 | `f09-lab` | `001–015 + 017` | Requiere `NEXO_MIGRATION_TARGET=lab` y `--confirm-lab` |
 | `f08-local` | `001–016 + 017 + 019 + 020` | Host loopback únicamente; base efímera/local desechable |
 | `ga01-local` | `001–015 + 017 + 018 + 019` | Host loopback únicamente; solo pruebas desechables |
@@ -16,7 +16,9 @@
 
 `f07-local` es un perfil de integración dedicado y autónomo para el fixture PostgreSQL F07: combina la rotación de credenciales 016 con 020, porque el SQL de grants runtime referencia las tablas de soporte. Se inicializa en una base desechable propia y no se aplica a AWS.
 
-`f08-local` conserva 016 después de 015 y añade 020 tras la secuencia F09 para cubrir las tablas citadas por los grants runtime. Su secuencia equivale a la base local F09 más 016 y 020; debe inicializarse en una base desechable independiente.
+`f09-local` incluye 020 en su fixture desechable porque la versión del SQL de grants runtime usada durante esta revalidación referencia `support_consent` y `support_sessions`. Este cierre es solo local: no amplía el alcance ni el despliegue F09. `f09-lab` permanece en `001–015 + 017` y excluye 019/020.
+
+`f08-local` conserva 016 después de 015. Con el cierre 020 incluido en `f09-local`, su secuencia resulta de insertar 016 después de 015 en esa secuencia; debe inicializarse en una base desechable independiente.
 
 ## Uso local
 
@@ -33,6 +35,6 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/nexo_f09 \
   npm run db:migrate -- --profile f09-local
 ```
 
-`ga01-local` puede agregarse a esa base local F09 para ejercitar `018`. `f08-local` y `f07-local` se inicializan en bases independientes, porque ambas incluyen `016` y `020` y no se mezclan con el perfil F09. CI verifica historial, reejecución, checksums y rechazo de mezcla de perfiles en PostgreSQL efímero.
+`ga01-local` debe inicializarse en una base independiente para ejercitar `018`: aplica esa migración antes de `019` y excluye `020`, por lo que no se agrega sobre `f09-local`. `f08-local` y `f07-local` también se inicializan en bases independientes porque ambas incluyen `016`, ausente de F09, además de `020`. CI verifica historial, reejecución, checksums y rechazo de mezcla de perfiles en PostgreSQL efímero.
 
 Para inspeccionar sin conexión: `npm run db:migrate -- --profile f09-local --dry-run`. El runner no infiere URLs ni perfiles y nunca ejecuta `apply` de Terraform.

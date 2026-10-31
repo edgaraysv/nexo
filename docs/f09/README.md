@@ -108,7 +108,7 @@ Todos los emisores listados escriben dentro de la misma transacción que el camb
 | Reflow 320–1440 px | **PASS** | Siete viewports indicados en la tabla de verificación. |
 | Zoom real 200 % / lector de pantalla | **PENDIENTES ACEPTADOS — NOT RUN** | No bloquean el cierre local; Chromium headless disponible y no se encontró lector de pantalla. No son PASS ni implican declaración WCAG. |
 | API: autorización, aislamiento, filtros, paginación y CSV | **PASS local** | `tests/f09-reporting.test.mjs` usa fixtures no vacíos y cubre acceso directo, 403/404, filtros/límites, páginas, CSV permitido, neutralización de fórmulas, conjunto de 501 filas rechazado y revocación. Regresión dirigida: 33/33 pruebas en ocho suites, sin P2. |
-| PostgreSQL desechable y RLS | **PASS local** | `node scripts/f09-postgres.mjs`: migraciones 001–015 + 017; omite 016; comprueba scopes, grant/revocación, atomicidad, actores tipados y no duplicados. No aplica migraciones reales. |
+| PostgreSQL desechable y RLS | **PASS local** | `node scripts/f09-postgres.mjs`: migraciones 001–015 + 017 + 019 + 020; omite 016. 020 se incluye solo porque el SQL completo de grants runtime referencia tablas de soporte. Comprueba scopes, grant/revocación, atomicidad, actores tipados y no duplicados. No modifica bases persistentes. |
 | UI administrativa conectada a las APIs | **PASS local** | Recorrido Chromium headless contra servidor real con fixtures: autenticación/MFA, proveedor y empresa, tablas no vacías, metadatos, grant/revocación, consola sin errores y alcance de empresa. Evidencia: `/tmp/opencode/f09-ui-integrated-results.json` y capturas `f09-*-integrated.png`. |
 | Teclado/foco y reflow de UI integrada | **PASS local limitado** | Skip link primero en tabulación, controles nativos y foco visible. Sin overflow del documento a 320, 360, 390, 768, 1024, 1280 y 1440 px. No equivale a lector de pantalla ni zoom gráfico real. |
 | Cobertura de auditoría del alcance F09 | **PASS local** | Matriz anterior y ensayo PostgreSQL comprueban emisores de endpoint, nodo y VPN, escritura atómica, actor explícito y deduplicación en reintentos idénticos. |
@@ -149,3 +149,19 @@ El despliegue y los smoke checks anteriores solo acreditan el laboratorio; **no 
 - **AWS:** **PASS limitado** para el despliegue/smoke del laboratorio; no equivale a preparación productiva.
 
 La migración `016` permanece **NOT APPLIED**; P2 no se reabrió ni se repitieron sus pruebas.
+
+## Revalidación local — 31 de octubre de 2026 UTC
+
+Se comparó el perfil desechable `f09-local` con `f10-local`: ambos usan `001–015 + 017 + 019 + 020`. La 020 es necesaria únicamente para que el fixture pueda aplicar íntegro `infra/aws/lab/nexo-runtime.sql`, que referencia `support_consent` y `support_sessions`; no amplía el alcance funcional F09 ni se aplica a AWS. `f09-lab` permanece sin cambios en `001–015 + 017`, y 016 continúa omitida.
+
+La revalidación usó el SQL runtime y el gate de grants del workspace, que incluyen cambios F10 todavía locales. Esos hunks F10 no forman parte del commit F09.
+
+- **PASS** — `npm run build`.
+- **PASS** — `node --test tests/migration-runner.test.mjs`, 10/10; verifica que F09 local coincide con F10 local y que el perfil lab excluye 019/020.
+- **PASS** — `node --test tests/f09-reporting.test.mjs`, 4/4.
+- **PASS** — `node scripts/f09-postgres.mjs`: PostgreSQL `17.6-bookworm`, 18 migraciones y checksums; autorización owner/operator/auditor, aislamiento tenant, grants de exportación, atomicidad, deduplicación, actores tipados y compatibilidad de rollback.
+- **PASS** — `npm run test:runtime-grants` con los cambios F10 locales: 20 migraciones, 58 tablas, ownership, least privilege, grants y RLS. El código/harness F10 sigue fuera de este commit.
+- El paquete no define el alias `test:f09-postgres` que menciona el README raíz; se ejecutó directamente el script documentado.
+- **NOT RUN:** AWS y endpoints/laboratorio remoto, smoke de despliegue, restauración y rollback real; zoom gráfico al 200 % y lector de pantalla. No se realizaron acciones remotas ni se reabrió P2.
+
+Esta revalidación acredita gates locales con datos sintéticos; no constituye una nueva aceptación end-to-end ni preparación productiva. La evidencia histórica de despliegue F09 en AWS no se revalidó en esta ronda.

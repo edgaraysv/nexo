@@ -118,7 +118,7 @@ try{
   assert.equal(legacyActor.trim(),`user|${OWNER}`);
 
   await pool.end();
-  console.log(JSON.stringify({phase:'F09 PostgreSQL scope and audit',migrations:'001-015 + 017 + 019 (016 omitted)',runtimeAuditSelectGrants:'PASS',providerOwnerGlobal:'PASS',providerOperatorAssignedTenantOnly:'PASS',providerAuditorAssignedTenantOnly:'PASS',companyTenantRls:'PASS',exportGrantLifecycle:'PASS',atomicAudit:'PASS',idempotentEmitterDeduplication:'PASS',typedActors:'PASS',legacyReleaseRollbackCompatibility:'PASS',implicitExportGrants:0}));
+  console.log(JSON.stringify({phase:'F09 PostgreSQL scope and audit',migrations:'001-015 + 017 + 019 + 020 (016 omitted; 020 closes local runtime grants)',runtimeAuditSelectGrants:'PASS',providerOwnerGlobal:'PASS',providerOperatorAssignedTenantOnly:'PASS',providerAuditorAssignedTenantOnly:'PASS',companyTenantRls:'PASS',exportGrantLifecycle:'PASS',atomicAudit:'PASS',idempotentEmitterDeduplication:'PASS',typedActors:'PASS',legacyReleaseRollbackCompatibility:'PASS',implicitExportGrants:0}));
 }finally{
   spawnSync('docker',['rm','-f',container],{stdio:'ignore'});
 }

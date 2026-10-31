@@ -7,9 +7,13 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
   const expected = [...Array.from({ length: 15 }, (_, index) => `${String(index + 1).padStart(3, '0')}_`), '017_'];
   assert.equal(migrationProfiles['f09-lab'].migrations.length, 16);
   assert.deepEqual(migrationProfiles['f09-lab'].migrations.map(file => file.slice(0, 4)), expected);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -1), migrationProfiles['f09-lab'].migrations);
-  assert.equal(migrationProfiles['f09-local'].migrations.at(-1), '019_f03_resource_grants.sql');
-  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_')));
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -2), migrationProfiles['f09-lab'].migrations);
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(-2), [
+    '019_f03_resource_grants.sql',
+    '020_f10_support_consent.sql',
+  ]);
+  assert.equal(migrationProfiles['f09-local'].target, 'local');
+  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_')));
 });
 
 test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes 016', () => {
@@ -30,7 +34,7 @@ test('F07 PostgreSQL fixture combines credential rotation with runtime grants in
 
 test('F08 local profile includes the runtime closure and retains credential rotation 016', () => {
   const f08 = migrationProfiles['f08-local'];
-  const f09 = migrationProfiles['f09-local'].migrations;
+  const f09 = migrationProfiles['f09-local'].migrations.slice(0, -1);
   assert.equal(f08.target, 'local');
   assert.deepEqual(f08.migrations, [
     ...f09.slice(0, 15),
