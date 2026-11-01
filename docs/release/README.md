@@ -6,4 +6,4 @@ El manifiesto vincula cada artefacto al commit etiquetado y guarda su tamaño y 
 
 El SBOM enumera componentes detectables en los archivos de lock/build; no es una revisión legal de licencias ni una certificación de seguridad. La baseline y sus artefactos siguen siendo de laboratorio: el plan maestro mantiene bloqueado el uso con clientes/datos reales hasta cerrar sus gates.
 
-No se ha hecho push. Las attestations solo existirán cuando el workflow se ejecute en GitHub sobre un tag publicado y bajo una configuración que permita attestations.
+El commit `9665e03` de `master` se publicó en `origin/master`; ese push no publicó un tag `v*` ni generó attestations de release. Estas solo existirán cuando el workflow se ejecute en GitHub sobre un tag publicado y bajo una configuración que permita attestations.
