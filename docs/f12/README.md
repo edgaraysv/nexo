@@ -1,6 +1,6 @@
 # F12 — firma de releases, actualización y recuperación por pérdida de host
 
-**Estado:** implementación local en revisión. No habilita producción ni autoriza clientes/datos reales. La firma contra una clave KMS configurada, la aplicación en Windows/SCM, la protección monotónica TPM y el restore AWS por pérdida total de host continúan **NOT RUN/BLOCKED**; la presencia TPM sí fue comprobada, ver [evidencia](evidence.md).
+**Estado:** implementación local en revisión. La integración real KMS Ed25519 en AWS lab y la aceptación del manifiesto de prueba por Go dieron **PASS** el 1 de noviembre de 2026. Esto no habilita producción ni autoriza clientes/datos reales. La aplicación en Windows/SCM, la protección monotónica TPM y el restore AWS por pérdida total de host continúan **NOT RUN/BLOCKED**; la presencia TPM sí fue comprobada, ver [evidencia](evidence.md).
 
 ## Alcance aprobado
 
@@ -14,9 +14,9 @@
 
 `scripts/sign-agent-release.mjs` firma el manifiesto `nexo.agent-update.v2`, no el EXE mediante Authenticode. El contenido del paquete queda vinculado por SHA-256 dentro del manifiesto. El signer invoca AWS KMS `Sign` con `ECC_NIST_EDWARDS25519`, `ED25519_SHA_512` y `MessageType=RAW`; verifica inmediatamente la firma con la clave pública que el agente lleva embebida antes de publicar el feed.
 
-La interoperabilidad documental está comprobada contra la referencia oficial de [KMS key specs](https://docs.aws.amazon.com/kms/latest/developerguide/symm-asymm-choose-key-spec.html): `ED25519_SHA_512` requiere `RAW`; la firma Ed25519 resultante es la forma estándar de 64 bytes aceptada por `crypto/ed25519` de Go. Las pruebas locales comprueban el contrato de bytes y la forma de la clave, pero **no sustituyen una operación `Sign` real contra una clave KMS del entorno**.
+El 1 de noviembre de 2026 se firmó con la clave KMS real del lab usando `RAW`/`ED25519_SHA_512`; KMS devolvió una firma de 64 bytes, `KMS Verify` indicó `SignatureValid=true` y `VerifySecureManifest` de Go aceptó el manifiesto sintético. La clave pública raw tiene 32 bytes. Los ARN, restricciones, fixture y límites están en [evidencia](evidence.md). Esto demuestra interoperabilidad criptográfica en lab, no un release, feed ni actualización Windows desplegados.
 
-El keyring de confianza es JSON de IDs estables a claves Ed25519 públicas raw Base64, codificado en Base64 y embebido al compilar (`NEXO_AGENT_UPDATE_TRUST_KEYS_B64`). La clave privada permanece en KMS. La rotación requiere solapamiento: incluir clave nueva y antigua en un build confiable, distribuirlo, firmar con la nueva, y retirar la anterior solo después de verificar cobertura de clientes. La aprobación de alta/rotación debe quedar en ticket con dos de tres custodios internos; el repositorio no implementa una raíz TUF ni un mecanismo criptográfico threshold 2-de-3. No se debe describir este formato como TUF.
+El keyring de confianza es JSON de IDs estables a claves Ed25519 públicas raw Base64, codificado en Base64 y embebido al compilar (`NEXO_AGENT_UPDATE_TRUST_KEYS_B64`). La clave privada permanece en KMS. El ensayo de un solo operador en lab no requirió ticket ni aprobación 2-de-3; esos controles aplican a F13/producción. La trust key de lab aún no está configurada en builds tagged. La rotación de producción requiere solapamiento: incluir clave nueva y antigua en un build confiable, distribuirlo, firmar con la nueva, y retirar la anterior solo después de verificar cobertura de clientes. El repositorio no implementa una raíz TUF ni un mecanismo criptográfico threshold 2-de-3. No se debe describir este formato como TUF.
 
 Procedimiento del operador de releases, trust keyring, permisos mínimos y configuración pendiente: [custodia y release](runbooks/signing-and-release.md).
 
@@ -28,7 +28,7 @@ Procedimiento del operador de releases, trust keyring, permisos mínimos y confi
 - El helper `nexo-agent-updater.exe` es un proceso separado del servicio, instalado bajo ACL de `SYSTEM`/administradores. Copia el candidato al mismo volumen/directorio de instalación y usa reemplazo Windows `MoveFileEx(REPLACE_EXISTING|WRITE_THROUGH)`, espera SCM y named-pipe IPC, y persiste los nuevos high-water marks después del health check.
 - El estado persistente se cifra/autentica con DPAPI machine-scope y reside bajo `%ProgramData%\NEXO\Endpoint`, protegido por ACL. La ausencia/corrupción del estado bloquea el servicio; el runtime no reinicializa silenciosamente el high-water mark. Bloquea una instalación inferior a la última registrada; **no resiste** restaurar una imagen completa del disco ni a un administrador local. Esa garantía requiere el nivel TPM opcional.
 - Un candidato que inicia tras interrupción debe coincidir por versión y SHA-256 con su manifiesto y paquete firmado en staging; el helper puede reanudar la verificación sin descargar otra release. Un fallo del nuevo servicio retorna al binario previo solo si la versión previa sigue dentro de `minimum_allowed_version` y no aparece en `blocked_rollback_versions`. De lo contrario, el servicio permanece detenido para recuperación manual; no se fuerza un downgrade inseguro.
-- Los builds sin trust keyring embebido deshabilitan las actualizaciones y no deben distribuirse como releases operables. El workflow de tags exige la variable pública del keyring, pero la clave KMS/rol de firma y el feed aún deben configurarse fuera del repositorio.
+- Los builds sin trust keyring embebido deshabilitan las actualizaciones y no deben distribuirse como releases operables. El workflow de tags exige la variable pública del keyring. La clave y el rol existen solo en AWS lab; todavía no se configuró la trust key del lab en el workflow ni un feed de publicación.
 
 La especificación del formato y del helper queda en el código de `product/agent/internal/updater/secure.go`, `product/agent/internal/updater/apply_windows.go`, `product/agent/cmd/nexo-agent/update_runtime.go` y `product/api/agent-update-feed.ts`.
 
@@ -43,7 +43,7 @@ La disponibilidad sí pudo comprobarse sin elevar privilegios: `tpmtool getdevic
 
 El runbook [total-host-loss](runbooks/total-host-loss.md) reconstruye un destino aislado desde respaldos consistentes, restaura configuración/identidades de control y material de emisión autorizado, reaplica revocaciones/checkpoint, mantiene cuarentena y mide el resultado. Los objetivos aprobados son RPO ≤24 h y RTO ≤4 h, con inicio y fin definidos para que puedan medirse con `scripts/f12-recovery-metrics.mjs`.
 
-El respaldo diario de EBS/EC2 configurado en `infra/aws/lab/backup.tf` no demuestra consistencia de PostgreSQL, recuperación de PKI/secretos ni restore. No se ejecutó ninguna operación AWS en este cambio. El restore productivo y PV12 permanecen abiertos hasta que exista evidencia de un ejercicio real aislado.
+El respaldo diario de EBS/EC2 configurado en `infra/aws/lab/backup.tf` no demuestra consistencia de PostgreSQL, recuperación de PKI/secretos ni restore. En AWS lab solo se crearon la clave, el rol y el alias de firma F12 descritos en la evidencia; no se ejecutó un restore. El restore productivo y PV12 permanecen abiertos hasta que exista evidencia de un ejercicio real aislado.
 
 ## Verificación
 
@@ -54,4 +54,4 @@ node --test tests/f12-*.test.mjs tests/l07-client.test.mjs
 docker run --rm -v "$PWD/product/agent:/src" -w /src golang:1.27.3-bookworm go test ./...
 ```
 
-El build cruzado `windows/amd64`, las pruebas nativas Windows/DPAPI, una llamada KMS real, un rollout/rollback del SCM, el restore AWS y PV12 son evidencias separadas; no inferir PASS desde la suite local.
+El build cruzado `windows/amd64`, las pruebas nativas Windows/DPAPI, el rollout/rollback del SCM, el restore AWS y PV12 son evidencias separadas; no inferir PASS desde la suite local ni desde el ensayo KMS del lab.

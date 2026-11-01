@@ -5,7 +5,7 @@ La segunda lectura es una revisión interna acotada del diff y de evidencia loca
 ## Checklist
 
 - [x] El material privado de firma no aparece en código/configuración/artefactos F12; no se configuró ni exportó clave privada KMS.
-- [x] KMS usa `ED25519_SHA_512` con `RAW`; Go recibe clave raw de 32 bytes y firma de 64 bytes; el contrato de bytes coincide entre signer y verificador (vector cruzado local, no KMS real).
+- [x] KMS usa `ED25519_SHA_512` con `RAW`; Go recibe clave raw de 32 bytes y firma de 64 bytes. La revisión del 31-10 comprobó el vector cruzado local; el ensayo KMS live posterior (01-11) y el resultado Go constan en [evidencia F12](evidence.md).
 - [x] El release verifica la firma KMS con keyring embebido y rechaza distintos bytes bajo el mismo semver; valida también firma/monotonicidad del manifiesto previo.
 - [x] El agente autentica el feed, limita bytes, rechaza redirecciones y no acepta ruta/comando de UI; el paquete se transmite en stream acotado.
 - [x] Firma, hash, OS/arquitectura, expiración, metadata version, epoch y mínimo persistente se verifican antes de staging.

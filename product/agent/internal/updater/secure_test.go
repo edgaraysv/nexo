@@ -70,6 +70,37 @@ func TestKMSRawEd25519SignatureUsesGoEd25519Verifier(t *testing.T) {
 	}
 }
 
+func TestLiveLabKMSManifestIsAcceptedByGoVerifier(t *testing.T) {
+	const fixtureDir = "testdata/live-kms-ed25519"
+	rawManifest, err := os.ReadFile(filepath.Join(fixtureDir, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rawKeyring, err := os.ReadFile(filepath.Join(fixtureDir, "keyring.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyring, err := ParseTrustKeyringJSON(rawKeyring)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, err := InitializeSecurityState("0.1.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Freeze time at the live manifest's issuance instant. Expiry behavior is
+	// covered separately; this fixture preserves the real KMS signature vector.
+	issuedAt := time.Date(2026, time.November, 1, 22, 4, 53, 0, time.UTC)
+	manifest, err := VerifySecureManifest(rawManifest, "0.1.0", "windows", "amd64", state, keyring, issuedAt)
+	if err != nil {
+		t.Fatalf("Go rejected the manifest signed by live AWS KMS: %v", err)
+	}
+	if manifest.KeyID != "nexo-lab-f12-2026-11" || manifest.Version != "0.2.0" {
+		t.Fatalf("unexpected verified KMS manifest: key=%q version=%q", manifest.KeyID, manifest.Version)
+	}
+}
+
 func TestReleaseSignerEd25519ReferenceVectorIsAcceptedByGo(t *testing.T) {
 	public, err := base64.StdEncoding.DecodeString("A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=")
 	if err != nil {

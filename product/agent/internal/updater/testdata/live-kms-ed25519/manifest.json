@@ -1,0 +1,17 @@
+{
+  "schema": "nexo.agent-update.v2",
+  "version": "0.2.0",
+  "operating_system": "windows",
+  "architecture": "amd64",
+  "size": 50,
+  "sha256": "f5f22e0f099c4edc84979e64f949e85525d1e75b6bf43bfceb7ca06237890566",
+  "minimum_current_version": "0.1.0",
+  "minimum_allowed_version": "0.2.0",
+  "metadata_version": 1,
+  "security_epoch": 1,
+  "blocked_rollback_versions": [],
+  "key_id": "nexo-lab-f12-2026-11",
+  "issued_at": "2026-11-01T22:04:53Z",
+  "expires_at": "2026-12-01T22:04:58Z",
+  "signature": "seYZng7tHklQNtZ6xXiMEqzghDrSAk5MoqrU7hhFKgEERblJ5edpfVb1FcwPnGLDplnXXxsWdZzsFjvkJYipAQ=="
+}

@@ -4,20 +4,29 @@
 
 - Custodio de la clave KMS: administra política y disponibilidad; no exporta clave privada.
 - Operador de release: publica desde un artefacto trazable y con aprobación del cambio.
-- Dos custodios internos de tres aprueban alta/rotación de clave o elevación de época; conservar ticket, IDs de aprobadores, versión, key ID, digest del paquete y fecha.
-- El job de compilación no recibe permiso `kms:Sign`. La identidad de firma debe ser distinta y limitada al KMS key ARN autorizado; usar federación/OIDC de CI, no access keys permanentes. La política IAM exacta depende de cuenta/organización y no se crea en este cambio.
+- Para F13/producción, dos custodios internos de tres aprueban alta/rotación de clave o elevación de época; conservar ticket, IDs de aprobadores, versión, key ID, digest del paquete y fecha. Este control no se aplicó al ensayo de un operador en AWS lab F12.
+- Para producción, el job de compilación no recibe permiso `kms:Sign`; la identidad de firma debe ser distinta, limitada al KMS key ARN autorizado y federada por OIDC, sin access keys permanentes. La política de producción depende de la cuenta/organización y sigue pendiente. La policy IAM específica del rol de lab se documenta abajo y no debe promoverse a producción.
 
-## Preparación de clave (fuera de este cambio)
+## Preparación de clave para producción
 
 1. Crear una clave asimétrica KMS de `SIGN_VERIFY` con `ECC_NIST_EDWARDS25519` en una región que lo soporte. No reutilizar la clave KMS de backups, CA, VPN ni cifrado de secretos.
 2. Restringir `kms:Sign` a la identidad de publicación aprobada y registrar las llamadas en CloudTrail. La identidad que distribuye el software solo necesita la clave pública.
 3. Obtener el DER público mediante el procedimiento KMS aprobado y convertirlo a raw Base64: `node scripts/kms-ed25519-public-key.mjs <public-key.der>`.
 4. Añadir el ID estable y la clave raw al keyring JSON, codificar el JSON completo a Base64 y establecer el valor de repositorio `NEXO_AGENT_UPDATE_TRUST_KEYS_B64`. El keyring es público; proteger su integridad de cambios no aprobados.
-5. Validar un tag/candidato con permisos de firma de prueba antes de habilitar un release. En este sprint no se configuró una clave ni se hizo una llamada KMS.
+5. Validar un tag/candidato con permisos de firma de prueba antes de habilitar un release. La clave y el rol descritos en la sección siguiente son exclusivos del AWS lab; no constituyen la identidad OIDC ni la clave aprobada para producción.
+
+## KMS configurado para el ensayo F12 en AWS lab
+
+- Clave: `arn:aws:kms:us-east-1:423597267645:key/3f3b6523-8b33-4921-bbbb-e25140e9b4c7`; spec `ECC_NIST_EDWARDS25519`, uso `SIGN_VERIFY`, estado `Enabled`, alias `alias/nexo-lab-423597267645-us-east-1-agent-release-signing`.
+- Rol de firma: `arn:aws:iam::423597267645:role/nexo-lab-signer`; trust restringido al operador IAM `nexo-lab-admin` para asumir este rol en el ensayo.
+- La key policy concede `kms:Sign` y `kms:Verify` únicamente al rol, con `kms:SigningAlgorithm=ED25519_SHA_512`. La policy inline IAM del rol repite esa restricción y limita el recurso al ARN anterior. No concede `kms:CreateKey`, `kms:DeleteKey` ni `kms:ScheduleKeyDeletion`.
+- El principal root de la cuenta conserva administración/lectura/recuperación y gestión del alias, incluida `kms:PutKeyPolicy`; su declaración no contiene `kms:Sign` ni `kms:Verify`. Es una capacidad administrativa de recuperación, no permiso criptográfico ordinario.
+- Prueba real del 2026-11-01: se asumió el rol, KMS firmó el manifiesto sintético de 431 bytes con `RAW`/`ED25519_SHA_512`, la firma resultó de 64 bytes, `KMS Verify` devolvió `true`, y el verificador Go `VerifySecureManifest` aceptó el manifiesto usando la clave pública raw de 32 bytes. Vector persistente y detalle: [evidencia F12](../evidence.md).
+- El ensayo no usó ticket ni aprobación 2-de-3; esos controles se reservan a F13/producción. No se configuró CloudTrail como evidencia de auditoría, GitHub Actions, el feed ni una release Windows. No copiar esta clave/rol de lab a producción.
 
 ## Firma de manifiesto
 
-Requisitos: agente Windows `nexo-agent.exe` construido con el keyring vigente, `aws` CLI autenticado con una sesión aprobada, región del KMS, el ARN/ID de la clave y aprobación del release.
+Requisitos para publicar: agente Windows `nexo-agent.exe` construido con el keyring aprobado, `aws` CLI autenticado con la sesión aprobada (rol de publicación, no identidad de build), región del KMS, ARN/ID de la clave y aprobación del release. El rol interactivo de lab anterior es solo para el ensayo documentado.
 
 ```bash
 export NEXO_AGENT_UPDATE_KMS_KEY_ID='arn:aws:kms:<region>:<account>:key/<id>'
