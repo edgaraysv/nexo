@@ -19,6 +19,7 @@
     "icon": ["icons/icon.ico"],
     "resources": {
       "../../agent/bin/nexo-agent.exe": "resources/nexo-agent.exe",
+      "../../agent/bin/nexo-agent-updater.exe": "resources/nexo-agent-updater.exe",
       "../../../scripts/install-l07-service.ps1": "resources/install-l07-service.ps1",
       "../../../scripts/uninstall-l07-service.ps1": "resources/uninstall-l07-service.ps1"
     },

@@ -83,7 +83,7 @@ Evidencia generada en `artifacts/f01/` (ignorada por Git): resultados por candid
 
 ## Límites
 
-El código incluye identidad/MFA, permisos multiempresa, operaciones, UI administrativa, cliente Tauri/Windows y flujos VPN de laboratorio. No implica una operación productiva: siguen pendientes, entre otros, F12, restauración/PV12, F10/F11, notificaciones reales, carga, endurecimiento operativo y revisión independiente. Invitaciones y recuperación de cuenta no tienen un canal real configurado. F06 y los ensayos AWS son evidencia del laboratorio, no disponibilidad, alta disponibilidad ni prueba de producción. No usar cuentas ni datos reales.
+El código incluye identidad/MFA, permisos multiempresa, operaciones, UI administrativa, cliente Tauri/Windows y flujos VPN de laboratorio. La implementación local F12 está en revisión; la firma KMS real, el ensayo Windows de actualización y el restore AWS por pérdida total/PV12 siguen pendientes, así que no habilita producción. También siguen pendientes F10/F11, notificaciones reales, carga, endurecimiento operativo y revisión del checklist F12 ([estado](docs/f12/README.md)). Invitaciones y recuperación de cuenta no tienen un canal real configurado. F06 y los ensayos AWS son evidencia del laboratorio, no disponibilidad, alta disponibilidad ni prueba de producción. No usar cuentas ni datos reales.
 
 La API TypeScript usa NestJS `12.2.0`, `FastifyAdapter` y Fastify `5.12.7`; los contratos de F01 son experimentales. Consultar la evidencia por fase para distinguir pruebas unitarias, PostgreSQL, laboratorio AWS y criterios aún `NOT RUN`.
 

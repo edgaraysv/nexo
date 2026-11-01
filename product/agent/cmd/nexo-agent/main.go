@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"nexo.local/agent/internal/keystore"
 	"nexo.local/agent/internal/labfixture"
+	"nexo.local/agent/internal/updater"
 	"nexo.local/agent/internal/vpnruntime"
 	"os"
 	"os/signal"
@@ -37,6 +38,12 @@ type sig struct{ R, S *big.Int }
 
 func fail(err error) { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
 func main() {
+	if len(os.Args) == 3 && os.Args[1] == "initialize-update-state" {
+		if _, err := updater.LoadOrInitializeSecurityState(filepath.Join(os.Args[2], "update-security-state.bin"), agentVersion); err != nil {
+			fail(fmt.Errorf("update security state initialization failed"))
+		}
+		return
+	}
 	if len(os.Args) == 4 && os.Args[1] == "lab-fixture" {
 		if err := labfixture.Run(os.Args[2], os.Args[3]); err != nil {
 			fail(err)

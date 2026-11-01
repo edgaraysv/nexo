@@ -31,6 +31,8 @@
     "verify:l08": "npm run build && node scripts/l08.mjs",
     "test:l08-recovery": "npm run build && node scripts/l08-recovery.mjs",
     "verify": "node scripts/verify.mjs",
+    "sign:agent-release": "node scripts/sign-agent-release.mjs",
+    "verify:f12": "npm run build && node --test tests/f12-*.test.mjs tests/l07-client.test.mjs",
     "verify:f02": "node scripts/f02.mjs",
     "test:f02-local": "node scripts/f02-local.mjs",
     "verify:f03": "npm run build && node scripts/f03.mjs",

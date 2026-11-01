@@ -52,6 +52,15 @@ func LoadOrCreate(path string) (*ecdsa.PrivateKey, error) {
 	}
 	return key, nil
 }
+
+// ProtectMachine stores local integrity-sensitive state using the platform
+// machine protection mechanism. On Windows this is DPAPI machine scope; the
+// non-Windows implementation is development-only and provides no encryption.
+func ProtectMachine(value []byte) ([]byte, error) { return protect(value) }
+
+// UnprotectMachine reverses ProtectMachine on the same machine.
+func UnprotectMachine(value []byte) ([]byte, error) { return unprotect(value) }
+
 func PublicPEM(key *ecdsa.PrivateKey) (string, error) {
 	der, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
 	if err != nil {

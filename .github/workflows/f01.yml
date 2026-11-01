@@ -128,9 +128,21 @@ jobs:
       - run: go test ./...
         working-directory: product/agent
       - name: Build the endpoint agent resource
+        env:
+          NEXO_AGENT_UPDATE_TRUST_KEYS_B64: ${{ vars.NEXO_AGENT_UPDATE_TRUST_KEYS_B64 }}
         run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*' -and -not $env:NEXO_AGENT_UPDATE_TRUST_KEYS_B64) { throw 'Configure NEXO_AGENT_UPDATE_TRUST_KEYS_B64 before creating a tagged Windows release.' }
+          $releaseVersion = '0.1.0'
+          if ($env:GITHUB_REF -like 'refs/tags/v*') { $releaseVersion = $env:GITHUB_REF_NAME.Substring(1) }
+          if ($releaseVersion -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Windows release requires a canonical vX.Y.Z tag.' }
           New-Item -ItemType Directory -Force bin | Out-Null
-          go build -trimpath -ldflags='-buildid=' -o bin/nexo-agent.exe ./cmd/nexo-agent
+          $trustFlags = @('-buildid=')
+          if ($env:NEXO_AGENT_UPDATE_TRUST_KEYS_B64) { $trustFlags += "-X=nexo.local/agent/internal/updater.EmbeddedTrustKeysB64=$env:NEXO_AGENT_UPDATE_TRUST_KEYS_B64" }
+          $agentFlags = $trustFlags + "-X=main.agentVersion=$releaseVersion"
+          $agentLdflags = $agentFlags -join ' '
+          $helperLdflags = $trustFlags -join ' '
+          go build -trimpath "-ldflags=$agentLdflags" -o bin/nexo-agent.exe ./cmd/nexo-agent
+          go build -trimpath "-ldflags=$helperLdflags" -o bin/nexo-agent-updater.exe ./cmd/nexo-agent-updater
         working-directory: product/agent
       - name: Build the Windows NSIS installer
         run: npm run tauri -- build
@@ -140,6 +152,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force release/windows | Out-Null
           Copy-Item product/agent/bin/nexo-agent.exe release/windows/nexo-agent.exe
+          Copy-Item product/agent/bin/nexo-agent-updater.exe release/windows/nexo-agent-updater.exe
           $installer = Get-ChildItem product/client/src-tauri/target/release/bundle/nsis -Filter '*-setup.exe' | Select-Object -First 1
           if (-not $installer) { throw 'No se encontró el instalador NSIS generado.' }
           Copy-Item $installer.FullName release/windows/nexo-endpoint-installer.exe

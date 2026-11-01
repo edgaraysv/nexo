@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory = $true)][string]$AgentPath,
   [Parameter(Mandatory = $true)][string]$ApiBase,
+  [string]$AgentUpdaterPath,
   [string]$AllowedSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value,
   [string]$VpnRemoteHost
 )
@@ -11,6 +12,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
   throw 'Este instalador de desarrollo requiere una consola elevada.'
 }
 if (-not (Test-Path -LiteralPath $AgentPath -PathType Leaf)) { throw 'No se encontró el binario del agente.' }
+if (-not $AgentUpdaterPath) { $AgentUpdaterPath = Join-Path (Split-Path -Parent $AgentPath) 'nexo-agent-updater.exe' }
+if (-not (Test-Path -LiteralPath $AgentUpdaterPath -PathType Leaf)) { throw 'No se encontró el helper privilegiado de actualización.' }
 if ($AllowedSid -notmatch '^S-1-[0-9]+(?:-[0-9]+)+$') { throw 'SID no válido.' }
 $uri = [Uri]$ApiBase
 if ($uri.Scheme -ne 'https' -and -not ($uri.Scheme -eq 'http' -and $uri.Host -in @('127.0.0.1', 'localhost', '::1'))) {
@@ -24,6 +27,7 @@ $programFiles = if ($env:ProgramW6432) { $env:ProgramW6432 } else { $env:Program
 $installDir = Join-Path $programFiles 'NEXO'
 $stateDir = Join-Path $env:ProgramData 'NEXO\Endpoint'
 $target = Join-Path $installDir 'nexo-agent.exe'
+$updaterTarget = Join-Path $installDir 'nexo-agent-updater.exe'
 $openVpn = Join-Path $programFiles 'OpenVPN\bin\openvpn.exe'
 if (-not (Test-Path -LiteralPath $openVpn -PathType Leaf)) { throw 'OpenVPN Community no está instalado en la ruta administrada.' }
 $openVpnVersion = & $openVpn --version 2>&1 | Select-Object -First 1
@@ -34,6 +38,9 @@ if ($LASTEXITCODE -ne 0) { throw 'No se pudo proteger el directorio de instalaci
 & icacls.exe $stateDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo proteger el estado del servicio.' }
 Copy-Item -LiteralPath $AgentPath -Destination $target -Force
+Copy-Item -LiteralPath $AgentUpdaterPath -Destination $updaterTarget -Force
+& $target initialize-update-state $stateDir
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo inicializar el estado persistente anti-downgrade.' }
 $arguments = '"{0}" windows-service "{1}" "{2}" "{3}"' -f $target, $ApiBase, $stateDir, $AllowedSid
 if (Get-Service -Name NexoEndpoint -ErrorAction SilentlyContinue) { throw 'El servicio NexoEndpoint ya existe.' }
 New-Service -Name NexoEndpoint -BinaryPathName $arguments -DisplayName 'NEXO Endpoint' -Description 'Servicio de identidad y control del endpoint NEXO.' -StartupType Automatic | Out-Null

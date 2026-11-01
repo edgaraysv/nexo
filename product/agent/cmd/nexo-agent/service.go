@@ -17,13 +17,15 @@ import (
 	"time"
 
 	"nexo.local/agent/internal/clientipc"
+	"nexo.local/agent/internal/updater"
 	"nexo.local/agent/internal/vpnruntime"
 )
 
 type persistedServiceStatus struct {
-	LastConnection string `json:"last_connection,omitempty"`
-	LastDiagnostic string `json:"last_diagnostic,omitempty"`
-	LastError      string `json:"last_error,omitempty"`
+	LastConnection   string `json:"last_connection,omitempty"`
+	LastDiagnostic   string `json:"last_diagnostic,omitempty"`
+	LastError        string `json:"last_error,omitempty"`
+	LastUpdateStatus string `json:"last_update_status,omitempty"`
 }
 
 type clientCertificateStatus struct {
@@ -66,6 +68,7 @@ type clientStatus struct {
 	LastConnection  string                  `json:"last_connection,omitempty"`
 	LastDiagnostic  string                  `json:"last_diagnostic,omitempty"`
 	LastError       string                  `json:"last_error,omitempty"`
+	UpdateStatus    string                  `json:"update_status,omitempty"`
 	AgentVersion    string                  `json:"agent_version"`
 	OperatingSystem string                  `json:"operating_system"`
 	Architecture    string                  `json:"architecture"`
@@ -74,13 +77,14 @@ type clientStatus struct {
 }
 
 type serviceRuntime struct {
-	base         string
-	dir          string
-	key          *ecdsa.PrivateKey
-	mu           sync.Mutex
-	nextMutation time.Time
-	vpn          *managedVPNRuntime
-	routeCheck   func(netip.Addr) (bool, error)
+	base            string
+	dir             string
+	key             *ecdsa.PrivateKey
+	mu              sync.Mutex
+	nextMutation    time.Time
+	nextUpdateCheck time.Time
+	vpn             *managedVPNRuntime
+	routeCheck      func(netip.Addr) (bool, error)
 }
 
 func runService(base, dir, endpoint, allowedSID string, key *ecdsa.PrivateKey) error {
@@ -88,6 +92,19 @@ func runService(base, dir, endpoint, allowedSID string, key *ecdsa.PrivateKey) e
 }
 
 func runServiceUntil(base, dir, endpoint, allowedSID string, key *ecdsa.PrivateKey, stop <-chan struct{}) error {
+	if runtime.GOOS == "windows" {
+		state, err := updater.LoadSecurityStateForRuntime(filepath.Join(dir, "update-security-state.bin"), agentVersion)
+		if err != nil {
+			return errors.New("endpoint update security state rejected")
+		}
+		if state.InstalledVersion != agentVersion {
+			keyring, keyErr := updater.EmbeddedTrustKeyring()
+			executable, executableErr := os.Executable()
+			if keyErr != nil || executableErr != nil || len(keyring) == 0 || updater.ValidateStagedExecutable(filepath.Join(dir, "updates"), executable, agentVersion, state, keyring, time.Now()) != nil {
+				return errors.New("uncommitted endpoint update candidate rejected")
+			}
+		}
+	}
 	if current, stateError := readState(dir); stateError == nil && current.Audience != "endpoint" {
 		return errors.New("windows client service requires endpoint identity")
 	} else if stateError != nil && !errors.Is(stateError, os.ErrNotExist) {
@@ -98,7 +115,16 @@ func runServiceUntil(base, dir, endpoint, allowedSID string, key *ecdsa.PrivateK
 		return err
 	}
 	defer listener.Close()
-	service := &serviceRuntime{base: base, dir: dir, key: key}
+	service := &serviceRuntime{base: base, dir: dir, key: key, nextUpdateCheck: time.Now().Add(initialUpdateDelay)}
+	persisted := service.readPersisted()
+	if strings.HasPrefix(persisted.LastUpdateStatus, "applying_") {
+		if strings.TrimPrefix(persisted.LastUpdateStatus, "applying_") == agentVersion {
+			persisted.LastUpdateStatus = "candidate_starting"
+		} else {
+			persisted.LastUpdateStatus = "apply_failed_or_rolled_back"
+		}
+		_ = service.writePersisted(persisted)
+	}
 	if launcher, launcherError := newPlatformVPNLauncher(); launcherError == nil {
 		service.vpn, err = newManagedVPNRuntime(base, dir, launcher)
 		if err != nil {
@@ -131,6 +157,11 @@ func (service *serviceRuntime) Handle(_ context.Context, request clientipc.Reque
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	switch request.Action {
+	case "health":
+		if !emptyPayload(request.Payload) {
+			return nil, "invalid_payload"
+		}
+		return map[string]string{"service": "running", "agent_version": agentVersion}, ""
 	case "status", "diagnostics":
 		if !emptyPayload(request.Payload) {
 			return nil, "invalid_payload"
@@ -257,10 +288,18 @@ func (service *serviceRuntime) poll(stop <-chan struct{}) {
 	for {
 		service.mu.Lock()
 		state, err := readState(service.dir)
-		if err == nil && state.Serial != "" {
+		approved := err == nil && state.Serial != ""
+		if approved {
 			_ = service.runOnce()
 		}
+		checkUpdate := approved && updateCheckDue(service.nextUpdateCheck, time.Now())
+		if checkUpdate {
+			service.nextUpdateCheck = time.Now().Add(updateInterval)
+		}
 		service.mu.Unlock()
+		if checkUpdate {
+			_ = service.checkAndStartAgentUpdate()
+		}
 		if stop == nil {
 			<-ticker.C
 			continue
@@ -309,7 +348,8 @@ func (service *serviceRuntime) status() clientStatus {
 		Service: "running", Enrollment: "unregistered",
 		Certificate:    clientCertificateStatus{Status: "missing"},
 		LastConnection: persisted.LastConnection, LastDiagnostic: persisted.LastDiagnostic, LastError: persisted.LastError,
-		AgentVersion: "0.1.0", OperatingSystem: runtime.GOOS, Architecture: runtime.GOARCH,
+		UpdateStatus: persisted.LastUpdateStatus,
+		AgentVersion: agentVersion, OperatingSystem: runtime.GOOS, Architecture: runtime.GOARCH,
 		Modules: map[string]string{"control": "enabled", "vpn": "not_integrated", "support": "not_integrated", "backup": "not_integrated"},
 		VPN:     clientVPNStatus{State: "unavailable", Environments: []clientVPNEnvironment{}},
 	}
@@ -366,6 +406,17 @@ func (service *serviceRuntime) status() clientStatus {
 		}
 	}
 	return result
+}
+
+func (service *serviceRuntime) setUpdateStatus(status string) {
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	if len(status) > 80 {
+		status = "update_status_invalid"
+	}
+	persisted := service.readPersisted()
+	persisted.LastUpdateStatus = status
+	_ = service.writePersisted(persisted)
 }
 
 func (service *serviceRuntime) syncVPNCatalog() error {

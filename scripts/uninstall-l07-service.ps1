@@ -14,6 +14,7 @@ if ($service) {
 $programFiles = if ($env:ProgramW6432) { $env:ProgramW6432 } else { $env:ProgramFiles }
 $binary = Join-Path $programFiles 'NEXO\nexo-agent.exe'
 Remove-Item -LiteralPath $binary -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath (Join-Path $programFiles 'NEXO\nexo-agent-updater.exe') -Force -ErrorAction SilentlyContinue
 if ($RemoveState) {
   throw 'El estado contiene la identidad del endpoint. Revoca el dispositivo en el portal antes de eliminarlo manualmente.'
 }

@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 const go = process.env.GO_BIN ?? (spawnSync('go', ['version']).status === 0 ? 'go' : '/tmp/opencode/go-toolchain/go/bin/go');
 const temp = mkdtempSync(join(tmpdir(), 'nexo-l07-'));
 const agent = join(process.cwd(), 'product/agent/bin/nexo-agent.exe');
+const agentUpdater = join(process.cwd(), 'product/agent/bin/nexo-agent-updater.exe');
 const ipcTest = join(temp, 'clientipc.test.exe');
 mkdirSync(join(process.cwd(), 'product/agent/bin'), { recursive: true });
 
@@ -21,6 +22,7 @@ run(go, ['test', './...'], { cwd: 'product/agent' });
 run(go, ['test', './internal/clientipc', '-c', '-o', ipcTest], { cwd: 'product/agent', env: { ...process.env, GOOS: 'windows', GOARCH: 'amd64' } });
 run(ipcTest, ['-test.v']);
 run(go, ['build', '-o', agent, './cmd/nexo-agent'], { cwd: 'product/agent', env: { ...process.env, GOOS: 'windows', GOARCH: 'amd64' } });
+run(go, ['build', '-o', agentUpdater, './cmd/nexo-agent-updater'], { cwd: 'product/agent', env: { ...process.env, GOOS: 'windows', GOARCH: 'amd64' } });
 const windowsAgent = spawnSync('wslpath', ['-w', agent], { encoding: 'utf8' }).stdout.trim();
 run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'C:\\laragon\\www\\nexo\\scripts\\l07-native-ipc.ps1', '-AgentPath', windowsAgent]);
 run('npm', ['ci'], { cwd: 'product/client' });

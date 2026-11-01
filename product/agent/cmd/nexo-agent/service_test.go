@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"nexo.local/agent/internal/clientipc"
+	"nexo.local/agent/internal/updater"
 )
 
 func TestServiceStatusNeverReturnsPrivateMaterial(t *testing.T) {
@@ -67,6 +68,13 @@ func TestServiceClearsPersistedErrorAfterSuccessfulMutation(t *testing.T) {
 
 func TestWindowsClientServiceRejectsNodeIdentity(t *testing.T) {
 	dir := t.TempDir()
+	securityState, err := updater.InitializeSecurityState(agentVersion)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = updater.SaveSecurityState(filepath.Join(dir, "update-security-state.bin"), securityState); err != nil {
+		t.Fatal(err)
+	}
 	if err := writeState(dir, state{DeviceID: "node-id", Audience: "node"}); err != nil {
 		t.Fatal(err)
 	}
@@ -76,6 +84,25 @@ func TestWindowsClientServiceRejectsNodeIdentity(t *testing.T) {
 	}
 	if err = runServiceUntil("http://127.0.0.1", dir, "unused", "", key, nil); err == nil || !strings.Contains(err.Error(), "endpoint identity") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestServiceHealthActionIsSmallAndReportsExactVersion(t *testing.T) {
+	service := &serviceRuntime{dir: t.TempDir()}
+	data, code := service.Handle(context.Background(), clientipc.Request{Version: clientipc.Version, ID: "health_001", Action: "health"})
+	if code != "" {
+		t.Fatal(code)
+	}
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var health map[string]string
+	if err = json.Unmarshal(encoded, &health); err != nil || health["service"] != "running" || health["agent_version"] != agentVersion || len(encoded) > 256 {
+		t.Fatalf("unexpected health response %q err=%v", encoded, err)
+	}
+	if _, code = service.Handle(context.Background(), clientipc.Request{Version: clientipc.Version, ID: "health_002", Action: "health", Payload: json.RawMessage(`{"unexpected":true}`)}); code != "invalid_payload" {
+		t.Fatalf("health accepted unexpected payload: %q", code)
 	}
 }
 

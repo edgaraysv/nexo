@@ -36,18 +36,31 @@ test('L07 development installer isolates service state and binds the authorized 
   assert.match(script, /OpenVPN\\bin\\openvpn\.exe/);
   assert.match(script, /OpenVPN 2\\\./);
   assert.match(script, /ProgramW6432/);
+  assert.match(script, /nexo-agent-updater\.exe/);
+  assert.match(script, /initialize-update-state/);
   assert.match(uninstall, /La identidad local se conservó/);
   assert.match(uninstall, /Revoca el dispositivo/);
 });
 
 test('L07 update applies only a staged hash and checks IPC health before constrained rollback', async () => {
-  const [updater, script] = await Promise.all([
+  const [updater, script, secureUpdater, runtime, helper] = await Promise.all([
     readFile('product/agent/internal/updater/update.go', 'utf8'),
-    readFile('scripts/apply-l07-update.ps1', 'utf8')
+    readFile('scripts/apply-l07-update.ps1', 'utf8'),
+    readFile('product/agent/internal/updater/secure.go', 'utf8'),
+    readFile('product/agent/cmd/nexo-agent/update_runtime.go', 'utf8'),
+    readFile('product/agent/internal/updater/apply_windows.go', 'utf8')
   ]);
   assert.match(updater, /ed25519\.Verify/);
   assert.match(updater, /nexo-agent\.pending\.exe/);
   assert.match(script, /Get-FileHash/);
   assert.match(script, /update_health_01/);
   assert.match(script, /rollback_allowed/);
+  assert.match(secureUpdater, /nexo\.agent-update\.v2/);
+  assert.match(secureUpdater, /MetadataVersion/);
+  assert.match(secureUpdater, /MinimumAllowedVersion/);
+  assert.match(runtime, /v1\/device\/agent-updates\/current/);
+  assert.match(runtime, /nexo-agent-updater\.exe/);
+  assert.match(helper, /waitHealthy/);
+  assert.match(helper, /Action: "health"/);
+  assert.match(helper, /AgentVersion\s+string `json:"agent_version"`/);
 });
