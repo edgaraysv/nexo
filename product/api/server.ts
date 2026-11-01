@@ -12,6 +12,7 @@ import { PostgresOperationRepository } from './postgres-operation-repository.js'
 import { PostgresProviderRepository } from './postgres-provider-repository.js';
 import { PostgresIdentityRepository } from './postgres-repository.js';
 import { PostgresVpnEnvironmentRepository } from './postgres-vpn-environment-repository.js';
+import { PostgresWireGuardPeerRepository } from './postgres-wireguard-peer-repository.js';
 import { PostgresVpnCredentialRepository } from './postgres-vpn-credential-repository.js';
 import { PostgresPrivateNetworkRepository } from './postgres-private-network-repository.js';
 import { PostgresSupportRepository } from './postgres-support-repository.js';
@@ -83,7 +84,8 @@ export async function startServer(config: ServerConfig): Promise<void> {
     new PostgresVpnCredentialRepository(pool),
     new PostgresPrivateNetworkRepository(pool),
     { privateNetworksEnabled: config.privateNetworksEnabled },
-    new PostgresSupportRepository(pool)
+    new PostgresSupportRepository(pool),
+    new PostgresWireGuardPeerRepository(pool)
   );
   let stopping = false;
   const stop = async (): Promise<void> => {

@@ -92,6 +92,21 @@ BEGIN
   END IF;
 END $$;
 
+-- F11 WireGuard tables are added after the earlier F05-F10 disposable cuts.
+DO $$
+BEGIN
+  IF to_regclass('public.wireguard_environment_config') IS NOT NULL
+     AND to_regclass('public.wireguard_peers') IS NOT NULL
+     AND to_regclass('public.wireguard_peer_keys') IS NOT NULL
+     AND to_regclass('public.wireguard_change_previews') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT, INSERT ON TABLE wireguard_environment_config, wireguard_peers, wireguard_peer_keys, wireguard_change_previews TO nexo_runtime';
+    EXECUTE 'GRANT UPDATE (server_public_key, updated_at) ON wireguard_environment_config TO nexo_runtime';
+    EXECUTE 'GRANT UPDATE (state, revision, updated_at) ON wireguard_peers TO nexo_runtime';
+    EXECUTE 'GRANT UPDATE (state, activated_at, revoked_at) ON wireguard_peer_keys TO nexo_runtime';
+    EXECUTE 'GRANT UPDATE (state, confirmed_at) ON wireguard_change_previews TO nexo_runtime';
+  END IF;
+END $$;
+
 -- SECURITY DEFINER revision allocation intentionally bypasses device-scoped
 -- RLS. Keep execution limited to the application runtime, including when this
 -- role is provisioned after migrations have already run.

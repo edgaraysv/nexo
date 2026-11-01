@@ -50,6 +50,7 @@
     "test:f08-postgres": "npm run build && node scripts/f08-postgres.mjs",
     "test:ga01-postgres": "npm run build && node scripts/ga01-postgres.mjs",
     "test:f10-postgres": "npm run build && node scripts/f10-postgres.mjs",
+    "test:f11-postgres": "npm run build && node scripts/f11-postgres.mjs",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {

@@ -72,7 +72,7 @@ test('F06 creates a VPN environment with openvpn/udp and namespace pattern', asy
   } finally { await app.close(); }
 });
 
-test('F06 rejects invalid engine, protocol and CIDR', async () => {
+test('F06 validates protocols and CIDR while F11 adds WireGuard', async () => {
   const vpnRepo = new MemoryVpnEnvironmentRepository(new Set([TENANT]));
   const { app, headers } = await setup(vpnRepo);
   try {
@@ -82,7 +82,9 @@ test('F06 rejects invalid engine, protocol and CIDR', async () => {
     assert.equal((await app.inject({ method: 'POST', url: '/v1/provider/vpn-environments', headers, payload: { ...base, tunnel_ipv4_cidr: '0.0.0.0/0' } })).statusCode, 422);
     assert.equal((await app.inject({ method: 'POST', url: '/v1/provider/vpn-environments', headers, payload: { ...base, tunnel_ipv4_cidr: '10.0.0.0/15' } })).statusCode, 422);
     assert.equal((await app.inject({ method: 'POST', url: '/v1/provider/vpn-environments', headers, payload: { ...base, tunnel_ipv4_cidr: '10.8.0.0/31' } })).statusCode, 422);
-    assert.equal((await app.inject({ method: 'POST', url: '/v1/provider/vpn-environments', headers, payload: { ...base, tunnel_ipv4_cidr: '10.8.0.0/24', engine: 'wireguard' } })).statusCode, 422);
+    const wireguard = await app.inject({ method: 'POST', url: '/v1/provider/vpn-environments', headers, payload: { ...base, tunnel_ipv4_cidr: '10.8.0.0/24', engine: 'wireguard', listener_port: 1195 } });
+    assert.equal(wireguard.statusCode, 201);
+    assert.equal(wireguard.json().engine, 'wireguard');
     assert.equal((await app.inject({ method: 'POST', url: '/v1/provider/vpn-environments', headers, payload: { ...base, tunnel_ipv4_cidr: '10.8.0.0/24', protocol: 'tcp' } })).statusCode, 422);
     assert.equal((await app.inject({ method: 'POST', url: '/v1/provider/vpn-environments', headers, payload: { ...base, tunnel_ipv4_cidr: '10.8.0.0/24', listener_port: 80 } })).statusCode, 422);
     // Campo extra rechazado

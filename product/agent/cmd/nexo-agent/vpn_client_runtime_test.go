@@ -34,6 +34,16 @@ type fakeVPNLaunch struct {
 	starts  int
 }
 
+type fakeVPNLaunchWithCleaner struct {
+	fakeVPNLaunch
+	cleaned []string
+}
+
+func (launcher *fakeVPNLaunchWithCleaner) StopEnvironment(environmentID string) error {
+	launcher.cleaned = append(launcher.cleaned, environmentID)
+	return nil
+}
+
 func (launcher *fakeVPNLaunch) Start(config string, onLine func(string), onExit func(error)) (vpnProcess, error) {
 	launcher.starts++
 	launcher.config = config
@@ -101,6 +111,37 @@ func TestManagedVPNConnectDisconnectAndSanitizedState(t *testing.T) {
 	}
 	if !launcher.process.stopped || runtime.connection(environment.ID).State != vpnDisconnected {
 		t.Fatal("vpn process was not disconnected")
+	}
+}
+
+func TestManagedVPNStartupAndDisconnectCleanNativeWireGuardService(t *testing.T) {
+	directory := t.TempDir()
+	launcher := &fakeVPNLaunchWithCleaner{}
+	if err := os.MkdirAll(filepath.Join(directory, "vpn", clientRuntimeEnvironmentID, "runtime"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	configName := "nexo-" + strings.ReplaceAll(clientRuntimeEnvironmentID, "-", "") + ".conf"
+	if err := os.WriteFile(filepath.Join(directory, "vpn", clientRuntimeEnvironmentID, "runtime", configName), []byte("private-key-config"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "vpn-connections.json"), []byte(`{"`+clientRuntimeEnvironmentID+`":{"environment_id":"`+clientRuntimeEnvironmentID+`","engine":"wireguard","desired":true,"state":"configured"}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	runtime, err := newManagedVPNRuntime("https://control.example.invalid", directory, launcher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(launcher.cleaned) < 1 || launcher.cleaned[0] != clientRuntimeEnvironmentID {
+		t.Fatalf("startup did not stop the stale native service: %#v", launcher.cleaned)
+	}
+	if _, err = os.Stat(filepath.Join(directory, "vpn", clientRuntimeEnvironmentID, "runtime", configName)); !os.IsNotExist(err) {
+		t.Fatal("stale transient WireGuard config was not removed")
+	}
+	if err = runtime.disconnect(clientRuntimeEnvironmentID); err != nil {
+		t.Fatal(err)
+	}
+	if len(launcher.cleaned) < 2 {
+		t.Fatal("disconnect after restart did not clean the native WireGuard service")
 	}
 }
 

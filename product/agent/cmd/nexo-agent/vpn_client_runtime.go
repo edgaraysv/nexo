@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -29,19 +31,25 @@ const (
 	vpnDisconnected vpnConnectionState = "disconnected"
 	vpnConnecting   vpnConnectionState = "connecting"
 	vpnConnected    vpnConnectionState = "connected"
+	vpnConfigured   vpnConnectionState = "configured"
 	vpnError        vpnConnectionState = "error"
 )
 
 type vpnConnectionRecord struct {
-	EnvironmentID string             `json:"environment_id"`
-	Desired       bool               `json:"desired"`
-	State         vpnConnectionState `json:"state"`
-	LastError     string             `json:"last_error,omitempty"`
+	EnvironmentID     string             `json:"environment_id"`
+	Engine            string             `json:"engine,omitempty"`
+	Desired           bool               `json:"desired"`
+	State             vpnConnectionState `json:"state"`
+	LastError         string             `json:"last_error,omitempty"`
+	ConfigFingerprint string             `json:"config_fingerprint,omitempty"`
 }
 
 type vpnProcess interface{ Stop() error }
 type vpnLauncher interface {
 	Start(configPath string, onLine func(string), onExit func(error)) (vpnProcess, error)
+}
+type vpnEnvironmentCleaner interface {
+	StopEnvironment(environmentID string) error
 }
 
 type managedVPNRuntime struct {
@@ -73,20 +81,36 @@ func newManagedVPNRuntime(base, dir string, launcher vpnLauncher) (*managedVPNRu
 		remoteHost = override
 	}
 	runtime := &managedVPNRuntime{base: base, remoteHost: remoteHost, dir: dir, launcher: launcher, records: map[string]vpnConnectionRecord{}, processes: map[string]vpnProcess{}, generation: map[string]uint64{}, retryAt: map[string]time.Time{}}
+	raw, err := os.ReadFile(runtime.statePath())
+	if errors.Is(err, os.ErrNotExist) {
+		err = nil
+	} else if err != nil || json.Unmarshal(raw, &runtime.records) != nil || runtime.records == nil {
+		return nil, errors.New("vpn runtime state unavailable")
+	}
+	if runtime.records == nil {
+		runtime.records = map[string]vpnConnectionRecord{}
+	}
+	for id, record := range runtime.records {
+		if !vpnruntime.ValidEnvironmentID(id) || record.EnvironmentID != id || record.Engine != "" && record.Engine != "openvpn" && record.Engine != "wireguard" || !map[vpnConnectionState]bool{vpnDisconnected: true, vpnConnecting: true, vpnConnected: true, vpnConfigured: true, vpnError: true}[record.State] {
+			return nil, errors.New("invalid vpn runtime state")
+		}
+		if record.Engine == "wireguard" {
+			cleaner, ok := launcher.(vpnEnvironmentCleaner)
+			if !ok {
+				return nil, errors.New("vpn service cleanup unavailable")
+			}
+			if err := cleaner.StopEnvironment(id); err != nil {
+				return nil, errors.New("vpn service cleanup failed")
+			}
+		}
+	}
 	if err := runtime.cleanupStaleTransient(); err != nil {
 		return nil, errors.New("vpn transient cleanup failed")
 	}
-	raw, err := os.ReadFile(runtime.statePath())
-	if errors.Is(err, os.ErrNotExist) {
+	if len(runtime.records) == 0 {
 		return runtime, nil
 	}
-	if err != nil || json.Unmarshal(raw, &runtime.records) != nil || runtime.records == nil {
-		return nil, errors.New("vpn runtime state unavailable")
-	}
 	for id, record := range runtime.records {
-		if record.EnvironmentID != id || !map[vpnConnectionState]bool{vpnDisconnected: true, vpnConnecting: true, vpnConnected: true, vpnError: true}[record.State] {
-			return nil, errors.New("invalid vpn runtime state")
-		}
 		record.State = vpnDisconnected
 		record.LastError = ""
 		runtime.records[id] = record
@@ -135,7 +159,7 @@ func (runtime *managedVPNRuntime) connect(environment clientVPNEnvironment) erro
 		}
 	}
 	record := runtime.records[environment.ID]
-	record.EnvironmentID, record.Desired, record.State, record.LastError = environment.ID, true, vpnConnecting, ""
+	record.EnvironmentID, record.Engine, record.Desired, record.State, record.LastError = environment.ID, environment.Engine, true, vpnConnecting, ""
 	runtime.records[environment.ID] = record
 	if err := runtime.persistLocked(); err != nil {
 		return err
@@ -165,16 +189,19 @@ func (runtime *managedVPNRuntime) reconcile(catalog clientVPNCatalog, credential
 	for id := range runtime.records {
 		credential := credentials(id)
 		_, offered := allowed[id]
-		usable := credential.State == "issued" && credential.NotAfter != "" && !time.Now().After(parseTime(credential.NotAfter))
-		if offered && usable {
+		usable := offered && usableVPNEnvironment(allowed[id], credential)
+		if usable {
 			continue
 		}
 		// Explicit revocation cancels the connection intent and the credential
 		// material is removed by the control-plane sync. A transient catalog
 		// absence (or control failure) only fails closed: the process stops but
 		// the credential and the intent survive so the connection can resume.
-		revoked := credential.State == "revoked" || credential.State == "revocation_pending"
+		revoked := allowed[id].Engine == "openvpn" && (credential.State == "revoked" || credential.State == "revocation_pending")
 		code := "credential_unavailable"
+		if offered && allowed[id].Engine == "wireguard" {
+			code = "wireguard_peer_unavailable"
+		}
 		if !offered && !revoked {
 			code = "environment_unavailable"
 		}
@@ -182,10 +209,20 @@ func (runtime *managedVPNRuntime) reconcile(catalog clientVPNCatalog, credential
 	}
 	for id, environment := range allowed {
 		record := runtime.records[id]
-		if !record.Desired || runtime.processes[id] != nil || time.Now().Before(runtime.retryAt[id]) {
+		if !record.Desired {
 			continue
 		}
-		if credentials(id).State != "issued" {
+		if !usableVPNEnvironment(environment, credentials(id)) {
+			continue
+		}
+		if runtime.processes[id] != nil && record.ConfigFingerprint != vpnConfigFingerprint(environment) {
+			if err := runtime.stopLocked(id, true, ""); err != nil {
+				runtime.retryAt[id] = time.Now().Add(30 * time.Second)
+				continue
+			}
+			record = runtime.records[id]
+		}
+		if runtime.processes[id] != nil || time.Now().Before(runtime.retryAt[id]) {
 			continue
 		}
 		if err := runtime.startLocked(environment); err != nil {
@@ -246,12 +283,41 @@ func (runtime *managedVPNRuntime) startLocked(environment clientVPNEnvironment) 
 	}
 	runtime.processes[environment.ID] = process
 	record := runtime.records[environment.ID]
-	record.EnvironmentID, record.Desired, record.State, record.LastError = environment.ID, true, vpnConnecting, ""
+	state := vpnConnecting
+	if environment.Engine == "wireguard" {
+		// Installation of the native tunnel service proves configuration was
+		// accepted; it does not prove a handshake or application reachability.
+		state = vpnConfigured
+	}
+	record.EnvironmentID, record.Engine, record.Desired, record.State, record.LastError = environment.ID, environment.Engine, true, state, ""
+	record.ConfigFingerprint = vpnConfigFingerprint(environment)
 	runtime.records[environment.ID] = record
 	return runtime.persistLocked()
 }
 
 func (runtime *managedVPNRuntime) prepare(environment clientVPNEnvironment) (string, error) {
+	if environment.Engine == "wireguard" {
+		if !validClientWireGuardPeer(environment) {
+			return "", errors.New("wireguard peer unavailable")
+		}
+		key, err := wireGuardClientKeyForPeer(runtime.dir, environment.ID, environment.WireGuardPeer.ClientPublicKey)
+		if err != nil {
+			return "", err
+		}
+		config, err := renderManagedWireGuard(environment, runtime.remoteHost, key)
+		if err != nil {
+			return "", err
+		}
+		runtimeDirectory := filepath.Join(runtime.dir, "vpn", environment.ID, "runtime")
+		if err = os.MkdirAll(runtimeDirectory, 0700); err != nil {
+			return "", err
+		}
+		configPath := filepath.Join(runtimeDirectory, "nexo-"+strings.ReplaceAll(environment.ID, "-", "")+".conf")
+		if err = writePrivateFile(configPath, []byte(config), 0600); err != nil {
+			return "", err
+		}
+		return configPath, nil
+	}
 	if !managedEnvironment(environment) {
 		return "", errors.New("invalid managed vpn environment")
 	}
@@ -393,6 +459,32 @@ func managedEnvironment(environment clientVPNEnvironment) bool {
 	return vpnruntime.ValidEnvironmentID(environment.ID) && environment.Engine == "openvpn" && environment.Protocol == "udp" && environment.ListenerPort >= 1024 && environment.ListenerPort <= 65535 && environment.Revision > 0
 }
 
+func usableVPNEnvironment(environment clientVPNEnvironment, credential localVPNCredential) bool {
+	switch environment.Engine {
+	case "openvpn":
+		return credential.State == "issued" && credential.NotAfter != "" && !time.Now().After(parseTime(credential.NotAfter))
+	case "wireguard":
+		return validClientWireGuardPeer(environment)
+	default:
+		return false
+	}
+}
+
+func vpnConfigFingerprint(environment clientVPNEnvironment) string {
+	value := struct {
+		ID              string               `json:"id"`
+		Engine          string               `json:"engine"`
+		Protocol        string               `json:"protocol"`
+		ListenerPort    int                  `json:"listener_port"`
+		Revision        int64                `json:"revision"`
+		ServerPublicKey string               `json:"server_public_key,omitempty"`
+		WireGuardPeer   *clientWireGuardPeer `json:"wireguard_peer,omitempty"`
+	}{environment.ID, environment.Engine, environment.Protocol, environment.ListenerPort, environment.Revision, environment.ServerPublicKey, environment.WireGuardPeer}
+	raw, _ := json.Marshal(value)
+	digest := sha256.Sum256(raw)
+	return hex.EncodeToString(digest[:])
+}
+
 func (runtime *managedVPNRuntime) observe(environmentID string, generation uint64, line string) {
 	runtime.mu.Lock()
 	defer runtime.mu.Unlock()
@@ -423,8 +515,10 @@ func (runtime *managedVPNRuntime) exited(environmentID string, generation uint64
 		return
 	}
 	delete(runtime.processes, environmentID)
+	delete(runtime.generation, environmentID)
 	_ = runtime.removeTransient(environmentID)
 	record := runtime.records[environmentID]
+	record.ConfigFingerprint = ""
 	if record.Desired {
 		record.State, record.LastError = vpnError, "vpn_process_exited"
 		runtime.retryAt[environmentID] = time.Now().Add(30 * time.Second)
@@ -440,11 +534,19 @@ func (runtime *managedVPNRuntime) stopLocked(environmentID string, preserveDesir
 	var stopError error
 	if process := runtime.processes[environmentID]; process != nil {
 		stopError = process.Stop()
-		delete(runtime.processes, environmentID)
+		if stopError == nil {
+			delete(runtime.processes, environmentID)
+		}
 	}
-	cleanupError := runtime.removeTransient(environmentID)
+	var cleanupError error
+	if stopError == nil {
+		cleanupError = runtime.removeTransient(environmentID)
+	}
 	record := runtime.records[environmentID]
 	record.EnvironmentID, record.Desired = environmentID, preserveDesired && record.Desired
+	if stopError == nil && cleanupError == nil {
+		record.ConfigFingerprint = ""
+	}
 	if code == "" && (stopError != nil || cleanupError != nil) {
 		code = "vpn_cleanup_failed"
 	}
@@ -465,6 +567,18 @@ func (runtime *managedVPNRuntime) setErrorLocked(environmentID, code string) {
 }
 
 func (runtime *managedVPNRuntime) removeTransient(environmentID string) error {
+	if !vpnruntime.ValidEnvironmentID(environmentID) {
+		return errors.New("invalid vpn environment")
+	}
+	if runtime.records[environmentID].Engine == "wireguard" {
+		cleaner, ok := runtime.launcher.(vpnEnvironmentCleaner)
+		if !ok {
+			return errors.New("vpn service cleanup unavailable")
+		}
+		if err := cleaner.StopEnvironment(environmentID); err != nil {
+			return err
+		}
+	}
 	directory := filepath.Join(runtime.dir, "vpn", environmentID, "runtime")
 	remove := func(path string) error {
 		var err error
@@ -477,7 +591,7 @@ func (runtime *managedVPNRuntime) removeTransient(environmentID string) error {
 		}
 		return err
 	}
-	return errors.Join(remove(filepath.Join(directory, "client.key")), remove(filepath.Join(directory, "tls-crypt.key")), remove(filepath.Join(directory, "client.ovpn")), remove(directory))
+	return errors.Join(remove(filepath.Join(directory, "client.key")), remove(filepath.Join(directory, "tls-crypt.key")), remove(filepath.Join(directory, "client.ovpn")), remove(filepath.Join(directory, "client.conf")), remove(filepath.Join(directory, "nexo-"+strings.ReplaceAll(environmentID, "-", "")+".conf")), remove(directory))
 }
 
 func (runtime *managedVPNRuntime) cleanupStaleTransient() error {

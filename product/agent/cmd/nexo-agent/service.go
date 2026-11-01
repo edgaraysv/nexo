@@ -33,15 +33,18 @@ type clientCertificateStatus struct {
 }
 
 type clientVPNEnvironment struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Engine          string `json:"engine"`
-	Protocol        string `json:"protocol"`
-	ListenerPort    int    `json:"listener_port"`
-	Revision        int64  `json:"revision"`
-	CredentialState string `json:"credential_state,omitempty"`
-	ConnectionState string `json:"connection_state,omitempty"`
-	ConnectionError string `json:"connection_error,omitempty"`
+	ID              string               `json:"id"`
+	Name            string               `json:"name"`
+	Engine          string               `json:"engine"`
+	Protocol        string               `json:"protocol"`
+	ListenerPort    int                  `json:"listener_port"`
+	Revision        int64                `json:"revision"`
+	ServerPublicKey string               `json:"server_public_key,omitempty"`
+	WireGuardPeer   *clientWireGuardPeer `json:"wireguard_peer,omitempty"`
+	WireGuardState  string               `json:"wireguard_state,omitempty"`
+	CredentialState string               `json:"credential_state,omitempty"`
+	ConnectionState string               `json:"connection_state,omitempty"`
+	ConnectionError string               `json:"connection_error,omitempty"`
 }
 
 type clientVPNCatalog struct {
@@ -201,7 +204,7 @@ func (service *serviceRuntime) Handle(_ context.Context, request clientipc.Reque
 			return nil, "vpn_revocation_failed"
 		}
 		return service.status(), ""
-	case "connect_vpn", "disconnect_vpn":
+	case "connect_vpn", "disconnect_vpn", "rotate_wireguard_peer":
 		var payload struct {
 			EnvironmentID string `json:"environment_id"`
 		}
@@ -209,7 +212,9 @@ func (service *serviceRuntime) Handle(_ context.Context, request clientipc.Reque
 			return nil, "invalid_payload"
 		}
 		if service.vpn == nil {
-			return nil, "vpn_runtime_unavailable"
+			if request.Action != "rotate_wireguard_peer" {
+				return nil, "vpn_runtime_unavailable"
+			}
 		}
 		if time.Now().Before(service.nextMutation) {
 			return nil, "rate_limited"
@@ -218,6 +223,17 @@ func (service *serviceRuntime) Handle(_ context.Context, request clientipc.Reque
 		if request.Action == "disconnect_vpn" {
 			if err := service.vpn.disconnect(payload.EnvironmentID); err != nil {
 				return nil, "vpn_disconnect_failed"
+			}
+			return service.status(), ""
+		}
+		if request.Action == "rotate_wireguard_peer" {
+			environment, err := service.connectableVPNEnvironment(payload.EnvironmentID)
+			if err != nil || environment.Engine != "wireguard" {
+				return nil, "vpn_unavailable"
+			}
+			if err = service.requestWireGuardRotation(environment.ID); err != nil {
+				service.recordError("wireguard_rotation_failed")
+				return nil, "wireguard_rotation_failed"
 			}
 			return service.status(), ""
 		}
@@ -314,7 +330,9 @@ func (service *serviceRuntime) status() clientStatus {
 		}
 		result.VPN.Environments = catalog.Items
 		for index := range result.VPN.Environments {
-			result.VPN.Environments[index].CredentialState = service.readVPNCredentialStatus(result.VPN.Environments[index].ID).State
+			if result.VPN.Environments[index].Engine == "openvpn" {
+				result.VPN.Environments[index].CredentialState = service.readVPNCredentialStatus(result.VPN.Environments[index].ID).State
+			}
 			if service.vpn != nil {
 				connection := service.vpn.connection(result.VPN.Environments[index].ID)
 				result.VPN.Environments[index].ConnectionState = string(connection.State)
@@ -327,6 +345,10 @@ func (service *serviceRuntime) status() clientStatus {
 				switch environment.ConnectionState {
 				case string(vpnConnected):
 					result.VPN.State = "connected"
+				case string(vpnConfigured):
+					if result.VPN.State != "connected" {
+						result.VPN.State = "configured"
+					}
 				case string(vpnConnecting):
 					if result.VPN.State != "connected" {
 						result.VPN.State = "connecting"
@@ -365,6 +387,9 @@ func (service *serviceRuntime) syncVPNCatalog() error {
 	if err = service.syncVPNCredentials(catalog, token); err != nil {
 		return err
 	}
+	if err = service.syncWireGuardPeers(&catalog, token); err != nil {
+		return err
+	}
 	// Environments absent from the catalog are not treated as withdrawn. The
 	// authenticated credential endpoint is the explicit source of a revocation
 	// for credentials the device already holds.
@@ -385,8 +410,16 @@ func (service *serviceRuntime) connectableVPNEnvironment(environmentID string) (
 		return clientVPNEnvironment{}, errors.New("vpn catalog unavailable")
 	}
 	for _, environment := range catalog.Items {
-		if environment.ID == environmentID && service.readVPNCredentialStatus(environmentID).State == "issued" {
+		if environment.ID != environmentID {
+			continue
+		}
+		if environment.Engine == "openvpn" && service.readVPNCredentialStatus(environmentID).State == "issued" {
 			return environment, nil
+		}
+		if environment.Engine == "wireguard" && environment.WireGuardPeer != nil {
+			if _, err := wireGuardClientKeyForPeer(service.dir, environment.ID, environment.WireGuardPeer.ClientPublicKey); err == nil {
+				return environment, nil
+			}
 		}
 	}
 	return clientVPNEnvironment{}, errors.New("vpn environment unavailable")
@@ -401,8 +434,17 @@ func validateVPNCatalog(catalog clientVPNCatalog) error {
 	}
 	seen := map[string]struct{}{}
 	for _, item := range catalog.Items {
-		if !vpnruntime.ValidEnvironmentID(item.ID) || len(strings.TrimSpace(item.Name)) < 1 || len(item.Name) > 120 || item.Engine != "openvpn" || item.Protocol != "udp" || item.ListenerPort < 1024 || item.ListenerPort > 65535 || item.Revision < 1 {
+		if !vpnruntime.ValidEnvironmentID(item.ID) || len(strings.TrimSpace(item.Name)) < 1 || len(item.Name) > 120 || item.Engine != "openvpn" && item.Engine != "wireguard" || item.Protocol != "udp" || item.ListenerPort < 1024 || item.ListenerPort > 65535 || item.Revision < 1 {
 			return errors.New("invalid vpn environment")
+		}
+		if item.Engine == "openvpn" && (item.ServerPublicKey != "" || item.WireGuardPeer != nil || item.WireGuardState != "") || item.Engine == "wireguard" && !validWireGuardClientKey(item.ServerPublicKey) {
+			return errors.New("invalid wireguard environment")
+		}
+		if item.WireGuardPeer != nil && !validClientWireGuardPeer(item) {
+			return errors.New("invalid wireguard peer configuration")
+		}
+		if item.WireGuardState != "" && !map[string]bool{"pending_approval": true, "active": true, "awaiting_node_key": true, "unavailable": true}[item.WireGuardState] {
+			return errors.New("invalid wireguard peer state")
 		}
 		if _, duplicate := seen[item.ID]; duplicate {
 			return errors.New("duplicate vpn environment")

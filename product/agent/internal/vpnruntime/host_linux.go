@@ -5,12 +5,14 @@ package vpnruntime
 import (
 	"bytes"
 	"context"
+	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
@@ -39,7 +41,7 @@ type commandRunner interface {
 type execRunner struct{}
 
 func (execRunner) Run(input []byte, name string, arguments ...string) (string, error) {
-	allowed := map[string]bool{"ip": true, "nft": true, "systemctl": true, "sysctl": true}
+	allowed := map[string]bool{"ip": true, "nft": true, "systemctl": true, "sysctl": true, "wg": true}
 	if !allowed[name] {
 		return "", errors.New("command not allowlisted")
 	}
@@ -71,16 +73,29 @@ type diskManifest struct {
 	Environment DesiredEnvironment `json:"environment"`
 	Digest      string             `json:"digest"`
 }
-type runtimeBundle struct{ openvpn, namespaceFirewall, hostFirewall, unit, digest string }
+type runtimeBundle struct{ openvpn, wireguard, namespaceFirewall, hostFirewall, unit, digest string }
 
 func NewNativeHost() *NativeHost {
 	return &NativeHost{root: nativeRoot, units: transientUnits, forwardingPath: "/proc/sys/net/ipv4/ip_forward", runner: execRunner{}}
 }
 
 func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (digest string, returned error) {
-	forwarding, err := os.ReadFile(host.forwardingPath)
-	if err != nil || strings.TrimSpace(string(forwarding)) != "1" {
-		return "", ErrForwardingDisabled
+	if environment.Engine == "openvpn" {
+		forwarding, err := os.ReadFile(host.forwardingPath)
+		if err != nil || strings.TrimSpace(string(forwarding)) != "1" {
+			return "", ErrForwardingDisabled
+		}
+	} else if len(environment.PrivateAccess) > 0 {
+		return "", ErrWireGuardPrivateAccessUnsupported
+	}
+	directory := filepath.Join(host.root, environment.ID)
+	if err := os.MkdirAll(directory, 0700); err != nil {
+		return "", err
+	}
+	if environment.Engine == "wireguard" {
+		if _, err := ensureWireGuardServerKey(filepath.Join(directory, "wireguard", "server.key")); err != nil {
+			return "", err
+		}
 	}
 	bundle, err := host.render(environment, link)
 	if err != nil {
@@ -100,14 +115,15 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 			_ = host.cleanupRuntime(environment)
 		}
 	}()
-	directory := filepath.Join(host.root, environment.ID)
-	if err = os.MkdirAll(filepath.Join(directory, "pki"), 0700); err != nil {
-		return "", err
+	if environment.Engine == "openvpn" {
+		if err = os.MkdirAll(filepath.Join(directory, "pki"), 0700); err != nil {
+			return "", err
+		}
+		if err = ensurePKI(filepath.Join(directory, "pki"), environment); err != nil {
+			return "", err
+		}
 	}
-	if err = ensurePKI(filepath.Join(directory, "pki"), environment); err != nil {
-		return "", err
-	}
-	for name, value := range map[string]string{"openvpn.conf": bundle.openvpn, "namespace.nft": bundle.namespaceFirewall, "host.nft": bundle.hostFirewall, "unit.service": bundle.unit} {
+	for name, value := range bundleFiles(environment, bundle) {
 		if err = atomicWrite(directory, name, []byte(value), 0600); err != nil {
 			return "", err
 		}
@@ -178,6 +194,13 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 // Inspect reuses the renderer and health probe of Ensure without mutating any
 // native state, so the reconciler can decide whether a repair is really needed.
 func (host *NativeHost) Inspect(environment DesiredEnvironment, link Link) (string, bool, error) {
+	if environment.Engine == "wireguard" {
+		if _, err := os.Lstat(filepath.Join(host.root, environment.ID, "wireguard", "server.key")); errors.Is(err, os.ErrNotExist) {
+			return "", false, nil
+		} else if err != nil {
+			return "", false, err
+		}
+	}
 	bundle, err := host.render(environment, link)
 	if err != nil {
 		return "", false, err
@@ -186,6 +209,12 @@ func (host *NativeHost) Inspect(environment DesiredEnvironment, link Link) (stri
 		return "", false, nil
 	}
 	return bundle.digest, true, nil
+}
+
+// WireGuardServerPublicKey reads only the public half of the server identity.
+// The private half is never returned by this interface or placed in a report.
+func (host *NativeHost) WireGuardServerPublicKey(environment DesiredEnvironment) (string, error) {
+	return readWireGuardServerKey(filepath.Join(host.root, environment.ID, "wireguard", "server.key"))
 }
 
 func (host *NativeHost) Suspend(environment DesiredEnvironment) (string, error) {
@@ -252,7 +281,7 @@ func (host *NativeHost) healthy(environment DesiredEnvironment, bundle runtimeBu
 	if json.Unmarshal(raw, &manifest) != nil || manifest.Digest != bundle.digest || manifest.Environment.Revision != environment.Revision {
 		return false
 	}
-	for name, expected := range map[string]string{"openvpn.conf": bundle.openvpn, "namespace.nft": bundle.namespaceFirewall, "host.nft": bundle.hostFirewall, "unit.service": bundle.unit} {
+	for name, expected := range bundleFiles(environment, bundle) {
 		value, readErr := os.ReadFile(filepath.Join(host.root, environment.ID, name))
 		if readErr != nil || string(value) != expected {
 			return false
@@ -288,9 +317,25 @@ func (host *NativeHost) healthy(environment DesiredEnvironment, bundle runtimeBu
 	if _, err = host.runner.Run(nil, "systemctl", "is-active", "--quiet", unitName(environment)); err != nil {
 		return false
 	}
-	sockets, err := host.runner.Run(nil, "ip", "netns", "exec", environment.NamespaceName, "ss", "-H", "-u", "-l", "-n")
-	if err != nil || !strings.Contains(sockets, fmt.Sprintf(":%d", environment.ListenerPort)) {
-		return false
+	if environment.Engine == "wireguard" {
+		wgPublic, publicErr := host.runner.Run(nil, "ip", "netns", "exec", environment.NamespaceName, "wg", "show", "wg0", "public-key")
+		wgPort, portErr := host.runner.Run(nil, "ip", "netns", "exec", environment.NamespaceName, "wg", "show", "wg0", "listen-port")
+		localPublic, keyErr := host.WireGuardServerPublicKey(environment)
+		if publicErr != nil || portErr != nil || keyErr != nil || strings.TrimSpace(wgPublic) != localPublic || strings.TrimSpace(wgPort) != fmt.Sprint(environment.ListenerPort) {
+			return false
+		}
+		peers, peersErr := host.runner.Run(nil, "ip", "netns", "exec", environment.NamespaceName, "wg", "show", "wg0", "peers")
+		allowed, allowedErr := host.runner.Run(nil, "ip", "netns", "exec", environment.NamespaceName, "wg", "show", "wg0", "allowed-ips")
+		address, addressErr := host.runner.Run(nil, "ip", "-n", environment.NamespaceName, "addr", "show", "dev", "wg0")
+		serverAddress, serverAddressErr := wireGuardServerAddress(environment.TunnelIPv4CIDR)
+		if peersErr != nil || allowedErr != nil || addressErr != nil || serverAddressErr != nil || !wireGuardPeersEqual(peers, environment.WireGuard.Peers) || !wireGuardAllowedIPsEqual(allowed, environment.WireGuard.Peers) || !strings.Contains(address, serverAddress) {
+			return false
+		}
+	} else {
+		sockets, socketErr := host.runner.Run(nil, "ip", "netns", "exec", environment.NamespaceName, "ss", "-H", "-u", "-l", "-n")
+		if socketErr != nil || !strings.Contains(sockets, fmt.Sprintf(":%d", environment.ListenerPort)) {
+			return false
+		}
 	}
 	return true
 }
@@ -427,7 +472,24 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 	_ = networkAddress
 	mask := net.IP(network.Mask).String()
 	directory := filepath.Join(host.root, environment.ID)
-	openvpn := fmt.Sprintf("port %d\nproto udp\ndev tun\ntopology subnet\nserver %s %s\nuser nobody\ngroup nobody\npersist-key\npersist-tun\nkeepalive 10 60\ntls-version-min 1.2\ntls-cert-profile preferred\ndata-ciphers AES-256-GCM:AES-128-GCM\nauth SHA256\nca %s/pki/ca.crt\ncert %s/pki/server.crt\nkey %s/pki/server.key\ncrl-verify %s/pki/crl.pem\ntls-crypt %s/pki/tls-crypt.key\ndh none\nscript-security 1\nverb 3\nexplicit-exit-notify 1\n", environment.ListenerPort, prefix, mask, directory, directory, directory, directory, directory)
+	openvpn := ""
+	wireguard := ""
+	interfaceName := "tun0"
+	if environment.Engine == "openvpn" {
+		openvpn = fmt.Sprintf("port %d\nproto udp\ndev tun\ntopology subnet\nserver %s %s\nuser nobody\ngroup nobody\npersist-key\npersist-tun\nkeepalive 10 60\ntls-version-min 1.2\ntls-cert-profile preferred\ndata-ciphers AES-256-GCM:AES-128-GCM\nauth SHA256\nca %s/pki/ca.crt\ncert %s/pki/server.crt\nkey %s/pki/server.key\ncrl-verify %s/pki/crl.pem\ntls-crypt %s/pki/tls-crypt.key\ndh none\nscript-security 1\nverb 3\nexplicit-exit-notify 1\n", environment.ListenerPort, prefix, mask, directory, directory, directory, directory, directory)
+	} else {
+		interfaceName = "wg0"
+		serverAddress, addressErr := wireGuardServerAddress(environment.TunnelIPv4CIDR)
+		if addressErr != nil {
+			return runtimeBundle{}, addressErr
+		}
+		var config strings.Builder
+		fmt.Fprintf(&config, "[Interface]\nAddress = %s\nListenPort = %d\nMTU = %d\n", serverAddress, environment.ListenerPort, environment.WireGuard.MTU)
+		for _, peer := range environment.WireGuard.Peers {
+			fmt.Fprintf(&config, "\n[Peer]\nPublicKey = %s\nAllowedIPs = %s\nPersistentKeepalive = %d\n", peer.PublicKey, strings.Join(peer.AllowedIPs, ", "), peer.PersistentKeepaliveSeconds)
+		}
+		wireguard = config.String()
+	}
 	accessRules := append([]PrivateAccessRule(nil), environment.PrivateAccess...)
 	sort.Slice(accessRules, func(i, j int) bool {
 		if accessRules[i].Address != accessRules[j].Address {
@@ -447,23 +509,159 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 	var hostReturnRules strings.Builder
 	for _, rule := range accessRules {
 		address := netip.MustParseAddr(rule.Address)
-		openvpn += fmt.Sprintf("push \"route %s 255.255.255.255\"\n", address.String())
-		forwardRules.WriteString(fmt.Sprintf("iifname \"tun0\" oifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", link.NamespaceInterface, environment.TunnelIPv4CIDR, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd))
-		returnRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"tun0\" ct state established,related ip saddr %s %s sport %d-%d ip daddr %s accept; ", link.NamespaceInterface, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd, environment.TunnelIPv4CIDR))
+		if environment.Engine == "openvpn" {
+			openvpn += fmt.Sprintf("push \"route %s 255.255.255.255\"\n", address.String())
+		}
+		forwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd))
+		returnRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ct state established,related ip saddr %s %s sport %d-%d ip daddr %s accept; ", link.NamespaceInterface, interfaceName, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd, environment.TunnelIPv4CIDR))
 		hostAccessRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", link.HostInterface, environment.TunnelIPv4CIDR, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd))
 		hostReturnRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s %s sport %d-%d ip daddr %s accept; ", link.HostInterface, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd, environment.TunnelIPv4CIDR))
 	}
-	namespaceFirewall := fmt.Sprintf("table inet nexo_env {\n chain input { type filter hook input priority 0; policy drop; iifname \"lo\" accept; ct state established,related accept; iifname \"%s\" udp dport %d accept; }\n chain forward { type filter hook forward priority 0; policy drop; %s%s iifname \"tun0\" oifname \"%s\" ip saddr %s counter drop; }\n chain output { type filter hook output priority 0; policy drop; oifname \"lo\" accept; ct state established,related accept; ip daddr 169.254.169.254 drop; oifname \"%s\" udp sport %d accept; }\n}\n", link.NamespaceInterface, environment.ListenerPort, forwardRules.String(), returnRules.String(), link.NamespaceInterface, environment.TunnelIPv4CIDR, link.NamespaceInterface, environment.ListenerPort)
+	namespaceFirewall := fmt.Sprintf("table inet nexo_env {\n chain input { type filter hook input priority 0; policy drop; iifname \"lo\" accept; ct state established,related accept; iifname \"%s\" udp dport %d accept; }\n chain forward { type filter hook forward priority 0; policy drop; %s%s iifname \"%s\" oifname \"%s\" ip saddr %s counter drop; }\n chain output { type filter hook output priority 0; policy drop; oifname \"lo\" accept; ct state established,related accept; ip daddr 169.254.169.254 drop; oifname \"%s\" udp sport %d accept; }\n}\n", link.NamespaceInterface, environment.ListenerPort, forwardRules.String(), returnRules.String(), interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, link.NamespaceInterface, environment.ListenerPort)
 	hostFirewall := fmt.Sprintf("table inet %s {\n chain prerouting { type nat hook prerouting priority dstnat; policy accept; fib daddr type local udp dport %d dnat ip to %s:%d; }\n chain forward { type filter hook forward priority filter; policy accept; %s%s oifname \"%s\" ip daddr %s udp dport %d accept; iifname \"%s\" ip saddr %s udp sport %d accept; iifname \"%s\" counter drop; oifname \"%s\" counter drop; }\n}\n", tableName(environment), environment.ListenerPort, link.NamespaceAddress, environment.ListenerPort, hostReturnRules.String(), hostAccessRules.String(), link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.HostInterface)
-	unit := fmt.Sprintf("[Unit]\nDescription=NEXO OpenVPN environment %s\nAfter=network-online.target\n\n[Service]\nType=simple\nNetworkNamespacePath=/run/netns/%s\nExecStart=/usr/sbin/openvpn --config %s/openvpn.conf\nRestart=on-failure\nRestartSec=3s\nUMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nProtectHome=yes\nProtectKernelTunables=yes\nProtectKernelModules=yes\nProtectControlGroups=yes\nRestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID CAP_SETPCAP\nAmbientCapabilities=\nDevicePolicy=closed\nDeviceAllow=/dev/net/tun rw\nMemoryMax=96M\nCPUQuota=25%%\nTasksMax=64\n\n", environment.ID, environment.NamespaceName, directory)
+	unit := renderUnit(environment, directory, serverAddressForUnit(environment), interfaceName)
 	canonical, _ := json.Marshal(environment)
 	sum := sha256.New()
-	for _, part := range [][]byte{canonical, []byte(openvpn), []byte(namespaceFirewall), []byte(hostFirewall), []byte(unit)} {
+	for _, part := range [][]byte{canonical, []byte(openvpn), []byte(wireguard), []byte(namespaceFirewall), []byte(hostFirewall), []byte(unit)} {
 		sum.Write(part)
 		sum.Write([]byte{0})
 	}
 	digest := hex.EncodeToString(sum.Sum(nil))
-	return runtimeBundle{openvpn: openvpn, namespaceFirewall: namespaceFirewall, hostFirewall: hostFirewall, unit: unit, digest: digest}, nil
+	return runtimeBundle{openvpn: openvpn, wireguard: wireguard, namespaceFirewall: namespaceFirewall, hostFirewall: hostFirewall, unit: unit, digest: digest}, nil
+}
+
+func bundleFiles(environment DesiredEnvironment, bundle runtimeBundle) map[string]string {
+	configName, config := "openvpn.conf", bundle.openvpn
+	if environment.Engine == "wireguard" {
+		configName, config = "wireguard.conf", bundle.wireguard
+	}
+	return map[string]string{configName: config, "namespace.nft": bundle.namespaceFirewall, "host.nft": bundle.hostFirewall, "unit.service": bundle.unit}
+}
+
+func renderUnit(environment DesiredEnvironment, directory, serverAddress, interfaceName string) string {
+	if environment.Engine == "openvpn" {
+		return fmt.Sprintf("[Unit]\nDescription=NEXO OpenVPN environment %s\nAfter=network-online.target\n\n[Service]\nType=simple\nNetworkNamespacePath=/run/netns/%s\nExecStart=/usr/sbin/openvpn --config %s/openvpn.conf\nRestart=on-failure\nRestartSec=3s\nUMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nProtectHome=yes\nProtectKernelTunables=yes\nProtectKernelModules=yes\nProtectControlGroups=yes\nRestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID CAP_SETPCAP\nAmbientCapabilities=\nDevicePolicy=closed\nDeviceAllow=/dev/net/tun rw\nMemoryMax=96M\nCPUQuota=25%%\nTasksMax=64\n\n", environment.ID, environment.NamespaceName, directory)
+	}
+	var unit strings.Builder
+	fmt.Fprintf(&unit, "[Unit]\nDescription=NEXO WireGuard environment %s\nAfter=network-online.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nNetworkNamespacePath=/run/netns/%s\n", environment.ID, environment.NamespaceName)
+	fmt.Fprintf(&unit, "ExecStartPre=/usr/sbin/ip link add %s type wireguard\n", interfaceName)
+	fmt.Fprintf(&unit, "ExecStartPre=/usr/sbin/ip address add %s dev %s\n", serverAddress, interfaceName)
+	fmt.Fprintf(&unit, "ExecStartPre=/usr/sbin/ip link set dev %s mtu %d\n", interfaceName, environment.WireGuard.MTU)
+	fmt.Fprintf(&unit, "ExecStartPre=/usr/sbin/ip link set dev %s up\n", interfaceName)
+	keyPath := filepath.Join(directory, "wireguard", "server.key")
+	fmt.Fprintf(&unit, "ExecStart=/usr/bin/wg set %s private-key %s listen-port %d\n", interfaceName, keyPath, environment.ListenerPort)
+	for _, peer := range environment.WireGuard.Peers {
+		keepalive := "off"
+		if peer.PersistentKeepaliveSeconds != 0 {
+			keepalive = fmt.Sprint(peer.PersistentKeepaliveSeconds)
+		}
+		fmt.Fprintf(&unit, "ExecStart=/usr/bin/wg set %s peer %s allowed-ips %s persistent-keepalive %s\n", interfaceName, peer.PublicKey, strings.Join(peer.AllowedIPs, ","), keepalive)
+	}
+	fmt.Fprintf(&unit, "ExecStop=/usr/sbin/ip link delete %s\n", interfaceName)
+	unit.WriteString("UMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nProtectHome=yes\nProtectKernelTunables=yes\nProtectKernelModules=yes\nProtectControlGroups=yes\nRestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=\nDevicePolicy=closed\nMemoryMax=96M\nCPUQuota=25%\nTasksMax=64\n\n")
+	return unit.String()
+}
+
+func serverAddressForUnit(environment DesiredEnvironment) string {
+	if environment.Engine != "wireguard" {
+		return ""
+	}
+	address, _ := wireGuardServerAddress(environment.TunnelIPv4CIDR)
+	return address
+}
+
+func wireGuardPeersEqual(actual string, desired []WireGuardPeer) bool {
+	keys := strings.Fields(actual)
+	if len(keys) != len(desired) {
+		return false
+	}
+	want := make([]string, len(desired))
+	for index, peer := range desired {
+		want[index] = peer.PublicKey
+	}
+	sort.Strings(keys)
+	sort.Strings(want)
+	return strings.Join(keys, "\n") == strings.Join(want, "\n")
+}
+
+func wireGuardAllowedIPsEqual(actual string, desired []WireGuardPeer) bool {
+	want := make(map[string]string, len(desired))
+	for _, peer := range desired {
+		want[peer.PublicKey] = strings.Join(peer.AllowedIPs, ",")
+	}
+	seen := make(map[string]string, len(desired))
+	for _, line := range strings.Split(strings.TrimSpace(actual), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			if strings.TrimSpace(line) == "" && len(desired) == 0 {
+				return true
+			}
+			return false
+		}
+		seen[fields[0]] = fields[1]
+	}
+	if len(seen) != len(want) {
+		return false
+	}
+	for key, allowed := range want {
+		if seen[key] != allowed {
+			return false
+		}
+	}
+	return true
+}
+
+func ensureWireGuardServerKey(path string) (string, error) {
+	directory := filepath.Dir(path)
+	if err := os.MkdirAll(directory, 0700); err != nil {
+		return "", err
+	}
+	if err := os.Chmod(directory, 0700); err != nil {
+		return "", err
+	}
+	if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+		private, generateErr := ecdh.X25519().GenerateKey(rand.Reader)
+		if generateErr != nil {
+			return "", errors.New("wireguard key generation failed")
+		}
+		contents := []byte(base64.StdEncoding.EncodeToString(private.Bytes()) + "\n")
+		file, createErr := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+		if createErr != nil && !errors.Is(createErr, os.ErrExist) {
+			return "", errors.New("wireguard key persistence failed")
+		}
+		if createErr == nil {
+			_, writeErr := file.Write(contents)
+			syncErr := file.Sync()
+			closeErr := file.Close()
+			if writeErr != nil || syncErr != nil || closeErr != nil {
+				_ = os.Remove(path)
+				return "", errors.New("wireguard key persistence failed")
+			}
+		}
+	} else if err != nil {
+		return "", errors.New("wireguard key unavailable")
+	}
+	return readWireGuardServerKey(path)
+}
+
+func readWireGuardServerKey(path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm() != 0600 {
+		return "", errors.New("wireguard key unavailable")
+	}
+	encoded, err := os.ReadFile(path)
+	if err != nil {
+		return "", errors.New("wireguard key unavailable")
+	}
+	privateBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(encoded)))
+	if err != nil || len(privateBytes) != 32 {
+		return "", errors.New("wireguard key invalid")
+	}
+	private, err := ecdh.X25519().NewPrivateKey(privateBytes)
+	if err != nil {
+		return "", errors.New("wireguard key invalid")
+	}
+	return base64.StdEncoding.EncodeToString(private.PublicKey().Bytes()), nil
 }
 
 func netipPrefix(value string) (string, error) {

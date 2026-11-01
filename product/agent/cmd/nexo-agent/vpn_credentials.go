@@ -42,6 +42,9 @@ type localVPNCredential struct {
 
 func (service *serviceRuntime) syncVPNCredentials(catalog clientVPNCatalog, token string) error {
 	for _, environment := range catalog.Items {
+		if environment.Engine != "openvpn" {
+			continue
+		}
 		csr, err := service.ensureVPNCSR(environment.ID)
 		if err != nil {
 			return err

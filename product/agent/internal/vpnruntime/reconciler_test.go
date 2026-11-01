@@ -1,6 +1,7 @@
 package vpnruntime
 
 import (
+	"encoding/base64"
 	"errors"
 	"testing"
 )
@@ -77,6 +78,24 @@ func TestReconcileRejectsArbitraryOrUnsafeSpecification(t *testing.T) {
 		result := New(host).Reconcile([]DesiredEnvironment{item}, nil)[0]
 		if result.ErrorCode != "invalid_spec" || len(host.active) != 0 {
 			t.Fatalf("unsafe item accepted: %#v", item)
+		}
+	}
+}
+
+func TestWireGuardPeerAddressMustBeUsableHostAndNotServerOrBroadcast(t *testing.T) {
+	publicKey := base64.StdEncoding.EncodeToString(append([]byte{1}, make([]byte, 31)...))
+	valid := DesiredEnvironment{ID: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", Engine: "wireguard", Protocol: "udp", ListenerPort: 21194, TunnelIPv4CIDR: "10.90.0.0/24", NamespaceName: "nexo-aaaaaaaaaaaa", DesiredState: "active", Revision: 1, WireGuard: &WireGuardConfiguration{MTU: 1420, Peers: []WireGuardPeer{{DeviceID: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb6", PublicKey: publicKey, AllowedIPs: []string{"10.90.0.2/32"}}}}}
+	if err := validate(valid); err != nil {
+		t.Fatalf("valid WireGuard peer rejected: %v", err)
+	}
+	for _, address := range []string{"10.90.0.0/32", "10.90.0.1/32", "10.90.0.255/32", "0.0.0.0/0"} {
+		invalid := valid
+		copyConfig := *valid.WireGuard
+		copyConfig.Peers = append([]WireGuardPeer(nil), valid.WireGuard.Peers...)
+		copyConfig.Peers[0].AllowedIPs = []string{address}
+		invalid.WireGuard = &copyConfig
+		if err := validate(invalid); err == nil {
+			t.Fatalf("reserved or unsafe WireGuard address accepted: %s", address)
 		}
 	}
 }

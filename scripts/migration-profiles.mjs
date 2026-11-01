@@ -20,6 +20,16 @@ const f09Base = Object.freeze([...migrations001To015, '017_f09_reporting_permiss
 const f09 = Object.freeze([...f09Base, '019_f03_resource_grants.sql']);
 const f09Local = Object.freeze([...f09, '020_f10_support_consent.sql']);
 const f10 = Object.freeze([...f09Local, '021_f10_support_lifecycle.sql']);
+const f11 = Object.freeze([
+  ...migrations001To015,
+  '016_f07_vpn_credential_rotation.sql',
+  '017_f09_reporting_permissions.sql',
+  '018_ga01_assignment_permissions.sql',
+  '019_f03_resource_grants.sql',
+  '020_f10_support_consent.sql',
+  '021_f10_support_lifecycle.sql',
+  '022_f11_wireguard.sql',
+]);
 const f08 = Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', ...f09.slice(migrations001To015.length), '020_f10_support_consent.sql']);
 const f07 = Object.freeze([...f08]);
 
@@ -31,6 +41,7 @@ export const migrationProfiles = Object.freeze({
   'f09-lab': Object.freeze({ migrations: f09Base, target: 'lab' }),
   // F10 support consent is local-only until its policy and native prompt are accepted.
   'f10-local': Object.freeze({ migrations: f10, target: 'local' }),
+  'f11-local': Object.freeze({ migrations: f11, target: 'local' }),
   // 016 is exercised only against disposable local PostgreSQL instances.
   'f08-local': Object.freeze({ migrations: f08, target: 'local' }),
   // GA-01 is local-only, applies 018 after F09 and then the F03 resource-grant closure.

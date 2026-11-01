@@ -3,7 +3,7 @@ import { ClientStatus, serviceRequest } from './ipc';
 
 const labels: Record<string, string> = { control: 'Canal de control', vpn: 'VPN', support: 'Soporte remoto', backup: 'Respaldo' };
 const enrollmentLabels = { unregistered: 'Sin registrar', pending_approval: 'Pendiente de aprobación', approved: 'Aprobado' };
-const vpnConnectionLabels = { disconnected: 'Desconectada', connecting: 'Conectando…', connected: 'Conectada', error: 'Error de conexión' };
+const vpnConnectionLabels = { disconnected: 'Desconectada', connecting: 'Conectando…', configured: 'Configuración aplicada; handshake sin verificar', connected: 'Conectada', error: 'Error de conexión' };
 
 function formatDate(value?: string) {
   if (!value) return 'Sin observación';
@@ -43,14 +43,14 @@ export default function App() {
     finally { actionInFlight.current = false; setBusy(false); }
   }
 
-  async function performVPN(action: 'connect_vpn' | 'disconnect_vpn', environmentId: string) {
+  async function performVPN(action: 'connect_vpn' | 'disconnect_vpn' | 'rotate_wireguard_peer', environmentId: string) {
     if (actionInFlight.current) return;
     actionInFlight.current = true; setBusy(true); setError(''); setNotice('');
     try {
       setStatus(await serviceRequest<ClientStatus>(action, { environment_id: environmentId }));
-      setNotice(action === 'connect_vpn' ? 'Conexión VPN iniciada.' : 'VPN desconectada.');
+      setNotice(action === 'connect_vpn' ? 'Solicitud de conexión enviada.' : action === 'disconnect_vpn' ? 'VPN desconectada.' : 'Clave nueva preparada. El proveedor debe aprobar la rotación.');
     } catch {
-      setError(action === 'connect_vpn' ? 'No fue posible iniciar la VPN autorizada.' : 'No fue posible detener la VPN.');
+      setError(action === 'connect_vpn' ? 'No fue posible iniciar la VPN autorizada.' : action === 'disconnect_vpn' ? 'No fue posible detener la VPN.' : 'No fue posible preparar la rotación de clave.');
     } finally { actionInFlight.current = false; setBusy(false); }
   }
 
@@ -89,7 +89,7 @@ export default function App() {
     </div>}
 
     <section className="panel modules" aria-labelledby="modules-title"><div><p className="eyebrow">Capacidades</p><h2 id="modules-title">Módulos</h2></div><ul>{Object.entries(status?.modules ?? { control: 'enabled', vpn: 'not_integrated', support: 'not_integrated', backup: 'not_integrated' }).map(([key, value]) => <li key={key}><span>{labels[key] ?? key}</span><strong className={value === 'enabled' ? 'available' : ''}>{value === 'enabled' ? 'Disponible' : value === 'unavailable' ? 'No disponible' : 'No integrado'}</strong></li>)}</ul></section>
-    {status?.modules.vpn === 'enabled' && <section className="panel" aria-labelledby="vpn-title"><p className="eyebrow">VPN empresarial</p><h2 id="vpn-title">Entornos autorizados</h2>{status.vpn.environments.length === 0 ? <p>No hay un entorno VPN operativo para esta empresa.</p> : <ul>{status.vpn.environments.map(environment => <li key={environment.id}><strong>{environment.name}</strong><span>OpenVPN UDP · puerto {environment.listener_port} · revisión {environment.revision}</span><small>{environment.connection_state ? vpnConnectionLabels[environment.connection_state] : environment.credential_state === 'issued' ? 'Credencial lista.' : environment.credential_state === 'pending' ? 'Emisión de credencial pendiente en el nodo.' : environment.credential_state === 'revoked' ? 'Credencial revocada.' : environment.credential_state === 'failed' ? 'No se pudo emitir la credencial.' : 'Preparando credencial VPN.'}</small><div className="actions">{environment.credential_state === 'issued' && environment.connection_state !== 'connected' && environment.connection_state !== 'connecting' && <button disabled={busy} onClick={() => performVPN('connect_vpn', environment.id)}>Conectar</button>}{(environment.connection_state === 'connected' || environment.connection_state === 'connecting') && <button className="secondary" disabled={busy} onClick={() => performVPN('disconnect_vpn', environment.id)}>Desconectar</button>}</div></li>)}</ul>}</section>}
+    {status?.modules.vpn === 'enabled' && <section className="panel" aria-labelledby="vpn-title"><p className="eyebrow">VPN empresarial</p><h2 id="vpn-title">Entornos autorizados</h2>{status.vpn.environments.length === 0 ? <p>No hay un entorno VPN operativo para esta empresa.</p> : <ul>{status.vpn.environments.map(environment => { const connecting = environment.connection_state === 'connecting', active = environment.connection_state === 'connected' || environment.connection_state === 'configured'; const canConnect = environment.engine === 'wireguard' ? Boolean(environment.wireguard_peer) : environment.credential_state === 'issued'; const statusText = environment.connection_state ? vpnConnectionLabels[environment.connection_state] : environment.engine === 'wireguard' ? environment.wireguard_state === 'pending_approval' ? 'Peer registrado; espera aprobación del proveedor.' : environment.wireguard_state === 'active' ? 'Peer WireGuard autorizado.' : environment.wireguard_state === 'unavailable' ? 'No fue posible registrar el peer; se reintentará.' : 'Esperando la clave pública del nodo.' : environment.credential_state === 'issued' ? 'Credencial lista.' : environment.credential_state === 'pending' ? 'Emisión de credencial pendiente en el nodo.' : environment.credential_state === 'revoked' ? 'Credencial revocada.' : environment.credential_state === 'failed' ? 'No se pudo emitir la credencial.' : 'Preparando credencial VPN.'; return <li key={environment.id}><strong>{environment.name}</strong><span>{environment.engine === 'wireguard' ? 'WireGuard' : 'OpenVPN'} UDP · puerto {environment.listener_port} · revisión {environment.revision}</span><small>{statusText}</small><div className="actions">{canConnect && !active && !connecting && <button disabled={busy} onClick={() => performVPN('connect_vpn', environment.id)}>Conectar</button>}{(active || connecting) && <button className="secondary" disabled={busy} onClick={() => performVPN('disconnect_vpn', environment.id)}>Desconectar</button>}{environment.engine === 'wireguard' && environment.wireguard_state === 'active' && <button className="secondary" disabled={busy} onClick={() => performVPN('rotate_wireguard_peer', environment.id)}>Preparar rotación de clave</button>}</div></li>; })}</ul>}</section>}
     <footer>La contraseña humana y la clave privada no se almacenan ni se muestran en esta interfaz.</footer>
   </main>;
 }

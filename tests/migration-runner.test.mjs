@@ -59,13 +59,14 @@ test('F08 local profile includes the runtime closure and retains credential rota
   ]);
 });
 
-test('016 is available only in disposable F07/F08 local profiles', () => {
+test('016 is available only in disposable F07/F08/F11 local profiles', () => {
   const profilesWith016 = Object.entries(migrationProfiles)
     .filter(([, profile]) => profile.migrations.some(file => file.startsWith('016_')))
     .map(([name]) => name).sort();
-  assert.deepEqual(profilesWith016, ['f07-local', 'f08-local']);
+  assert.deepEqual(profilesWith016, ['f07-local', 'f08-local', 'f11-local']);
   assert.equal(migrationProfiles['f07-local'].target, 'local');
   assert.equal(migrationProfiles['f08-local'].target, 'local');
+  assert.equal(migrationProfiles['f11-local'].target, 'local');
 });
 
 test('migration transaction wrapper is removed while inner SQL blocks remain intact', async () => {

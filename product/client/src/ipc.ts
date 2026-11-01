@@ -1,16 +1,18 @@
 import { invoke } from '@tauri-apps/api/core';
 
-export type Action = 'status' | 'diagnostics' | 'enroll' | 'claim' | 'run_diagnostic' | 'revoke_vpn_credential' | 'connect_vpn' | 'disconnect_vpn';
+export type Action = 'status' | 'diagnostics' | 'enroll' | 'claim' | 'run_diagnostic' | 'revoke_vpn_credential' | 'connect_vpn' | 'disconnect_vpn' | 'rotate_wireguard_peer';
 
 export interface VPNEnvironment {
   id: string;
   name: string;
-  engine: 'openvpn';
+  engine: 'openvpn' | 'wireguard';
   protocol: 'udp';
   listener_port: number;
   revision: number;
+  wireguard_peer?: { peerId: string; tunnelIpv4: string; clientPublicKey: string; serverTunnelIpv4: string; serverPublicKey: string; listenerPort: number; allowedIps: string[]; persistentKeepaliveSeconds: 0 | 25 };
+  wireguard_state?: 'pending_approval' | 'active' | 'awaiting_node_key' | 'unavailable';
   credential_state?: 'pending' | 'issued' | 'revocation_pending' | 'revoked' | 'failed';
-  connection_state?: 'disconnected' | 'connecting' | 'connected' | 'error';
+  connection_state?: 'disconnected' | 'connecting' | 'configured' | 'connected' | 'error';
   connection_error?: string;
 }
 
@@ -33,7 +35,7 @@ export interface ClientStatus {
   operating_system: string;
   architecture: string;
   modules: Record<string, 'enabled' | 'unavailable' | 'not_integrated'>;
-  vpn: { state: 'unavailable' | 'catalog_ready' | 'disconnected' | 'connecting' | 'connected' | 'error'; environments: VPNEnvironment[] };
+  vpn: { state: 'unavailable' | 'catalog_ready' | 'disconnected' | 'connecting' | 'configured' | 'connected' | 'error'; environments: VPNEnvironment[] };
 }
 
 interface ServiceResponse<T> {
