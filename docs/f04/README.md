@@ -34,7 +34,7 @@ Los cambios comerciales se revierten mediante una nueva revisión de suscripció
 - No hay facturación, impuestos, pasarela, moneda múltiple por suscripción, reembolsos ni conciliación bancaria.
 - Las revisiones vigentes se auditan, pero este corte no ofrece una API de historial comercial completa.
 - El código y la migración `008_f04_commercial_capabilities.sql` no se aplicaron al laboratorio AWS.
-- F02 y los pendientes granulares de F03 continúan abiertos de forma independiente.
+- F02/PV12 continúa abierto de forma independiente. F03 se cerró localmente bajo roles fijos; la granularidad por instancia/grupo/vigencia se difiere a una etapa posterior dependiente de F10.
 
 ## Verificación
 

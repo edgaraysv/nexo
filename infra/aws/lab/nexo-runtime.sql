@@ -69,7 +69,7 @@ GRANT UPDATE ON TABLE
   access_policies, company_invitations, device_challenges, device_credentials,
   device_heartbeats, device_identities, device_invitations, device_sessions,
   membership_roles, memberships, node_challenges, node_credentials, node_heartbeats, resource_grants,
-  node_heartbeats, node_operation_outbox, node_operations, node_sessions, operation_outbox,
+  node_operation_outbox, node_operations, node_sessions, operation_outbox,
   operations, provider_node_invitations, provider_nodes, provider_settings,
   quota_counters, quota_exceptions, recovery_tokens, roles, sessions,
   subscription_modules, subscriptions, support_consent, support_sessions, users, vpn_client_credentials, vpn_environments,

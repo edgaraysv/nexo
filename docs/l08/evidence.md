@@ -21,3 +21,12 @@ El flujo de regresión encontró que enrollment/claim/run-once reutilizaban func
 ## Límites finales
 
 Pérdida total del host, medio externo, PITR/WAL, carga productiva, SLA, HSM/WORM, custodia multipartita, actualización firmada productiva, AWS, producción y clientes reales: **NOT RUN**.
+
+## Repetición del ensayo local — 29 de octubre de 2026
+
+- `npm run test:l08-recovery`: **PASS** con PostgreSQL 17.6 fijado por digest y base sintética restaurada en volumen nuevo; evidencia final `artifacts/l08/recovery-runs/95b2bd04-756b-40cb-8c2f-1824183d8616/report.json`.
+- Se ejecutaron las migraciones locales 001–018, incluida la comprobación de artefactos 016/018, exclusivamente en Docker local. No representa el esquema AWS ni cambia su estado.
+- Medición refinada: **17.655 ms** desde crear el destino hasta completar restore, configuración, checkpoint, reconciliación e integridad; limpieza excluida. Cumple el objetivo L08 local de ≤600 s de D07 y no propone ni mide RTO F02.
+- Revocación/checkpoint/epoch, cierre de sesión, operación ausente, cuarentena, dos tenants y RLS: **PASS**. CA real, credenciales reales, custodia externa, agentes reales y pérdida total del host: **NOT RUN**.
+- Limpieza etiquetada de contenedores y volúmenes y eliminación del directorio temporal: **PASS**; comprobación externa posterior encontró cero recursos con la etiqueta de este run. El reporte histórico `artifacts/l08/recovery-report.json` no se sobrescribió; cada repetición produce una ruta única.
+- Repetición final con atributos del rol restaurado verificados (`NOSUPERUSER`, sin creación de DB/roles, sin replicación/BYPASSRLS y `NOINHERIT`): **PASS**, `artifacts/l08/recovery-runs/6b9c0436-ebec-4117-ab0e-3984defead5a/report.json`. Restore medido: **19.714 ms**; limpieza de contenedores, volúmenes y scratch: **PASS**.

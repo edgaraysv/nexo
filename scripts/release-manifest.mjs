@@ -31,7 +31,7 @@ assert.ok(Number.isSafeInteger(commitTime) && commitTime > 0, 'Timestamp de comm
 
 const initialFiles = await walk(output);
 const paths = new Set(initialFiles.map(file => file.path));
-for (const required of ['nexo-source.tar.gz', 'nexo-agent.exe', 'nexo-endpoint-installer.exe']) {
+for (const required of ['nexo-source.tar.gz', 'nexo-agent.exe', 'nexo-agent-updater.exe', 'nexo-endpoint-installer.exe']) {
   assert.ok(paths.has(required), `Falta artefacto requerido: ${required}`);
 }
 assert.ok([...paths].some(path => path.endsWith('.cdx.json')), 'Falta el SBOM CycloneDX.');

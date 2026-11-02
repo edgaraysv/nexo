@@ -28,7 +28,8 @@ El usuario confirmó inicialmente estas asignaciones sin autorizar instalación,
 | Gate | Entrada pendiente | Impide |
 | --- | --- | --- |
 | F02 | Alcance activo local sin AWS; plan real pendiente de retomar con ID/perfil, región/costos y aprobación separada de apply; sin límite presupuestario fijado | Crear infraestructura externa y cerrar F02 |
-| F03–F05 | Identidad/sesiones, delegación, cuotas y política offline versionada | Cerrar contratos productivos correspondientes |
+| F03 | Corte local cerrado: migración 019/RLS en PostgreSQL 17.6, 403 por grant expirado/revocado y suite 26/26 PASS; evidencia en `docs/f03/evidence.md` | No implica despliegue, piloto ni cierre global de PV01; F10 puede comenzar |
+| F04–F05 | Criterios y decisiones operativas pendientes de sus contratos productivos; ver evidencias por fase | Cerrar los contratos productivos correspondientes |
 | F07/F12 | Raíz de identidad/firma, custodia, rotación y canales | Distribución confiable y actualizaciones reales |
 | F10 | Autorización de proveedor y política desatendida; resultado de spike motor | Habilitar soporte |
 | F12/F13 | Revisión de seguridad independiente y riesgo kernel/host compartido | Clientes/datos reales |

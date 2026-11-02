@@ -41,6 +41,6 @@ El runner `scripts/f02-local.mjs` no admite argumentos, rutas de dump, nombres d
 
 ## Interpretación de recuperación
 
-Se mide tiempo local de arranque y restore, no un SLA ni RTO acordado. La escritura posterior al dump que no reaparece ejemplifica el límite del punto de copia; no prueba un RPO en horas o una estrategia PITR/WAL. Falta recuperar PostgreSQL y control reales, claves de emisión, secretos, estado IaC, políticas cambiantes y alertas con el RPO/RTO que acuerde el usuario.
+Se mide tiempo local de arranque y restore, no un SLA ni RTO acordado. La escritura posterior al dump que no reaparece ejemplifica el límite del punto de copia; no prueba un RPO en horas o una estrategia PITR/WAL. La matriz de cobertura y la propuesta pendiente de aprobación para F02 están en [recovery.md](recovery.md). Faltan PostgreSQL y control reales, claves de emisión, secretos, estado IaC, políticas cambiantes y alertas con los objetivos que acuerde el usuario.
 
 AWS sigue pendiente: IAM mínimo/MFA, host endurecido y acceso de emergencia, red/puertos efectivos, IMDS desde runtime empresarial, S3/KMS/Backup, costos y alertas, reconstrucción EC2 y restore limpio del control. **F02 no se cierra por aprobar este laboratorio.**

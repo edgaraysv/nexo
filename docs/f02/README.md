@@ -48,8 +48,8 @@ Resultados de ejecución y límites: [evidence.md](evidence.md).
 1. Sustituir el usuario IAM administrativo de larga duración por acceso humano temporal con MFA y mínimo privilegio; requiere autorización separada.
 2. Resolver el drift de perfil IAM/hop limit y decidir si `nexo-lab-ssm` forma parte del HCL. Su policy inline permite Get/Put/List del bucket y Decrypt/GenerateDataKey con la KMS.
 3. Confirmar región/residencia, CIDR, capacidad, administración segura, alarmas/responsables, retención y presupuesto operativo.
-4. Verificar después de la ventana del 24 de octubre de 2026 que existan job exitoso, recovery point y snapshot; luego autorizar separadamente un restore en destino nuevo con fixtures sintéticos.
-5. Diseñar backup consistente PostgreSQL/PKI, RPO/RTO y custodia. Sin reconstrucción y restore comprobados, **F02 permanece abierta** y PV12 NOT RUN.
+4. Revalidar, con autorización explícita, el estado actual de AWS Backup; la lectura histórica del 23 de octubre observó 0 jobs/recovery points/snapshots y no demuestra qué ocurrió después. Verificar job exitoso, recovery point realmente recuperable y snapshot antes de pedir autorización separada para un restore aislado.
+5. Aprobar la propuesta RPO/RTO y definir backup consistente PostgreSQL/PKI, custodia y responsables. Sin reconstrucción y restore completos dentro de objetivos aprobados, **F02 permanece abierta** y PV12 NOT RUN.
 
 ## Fuentes oficiales
 

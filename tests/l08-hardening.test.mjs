@@ -26,10 +26,19 @@ test('L08 runbooks preserve quarantine, revocations and endpoint private keys', 
 
 test('L08 recovery report contract is sanitized and honest about host loss', async () => {
   const source = await readFile('scripts/l08-recovery.mjs', 'utf8');
-  const reportBlock = source.slice(source.indexOf('const report = {'), source.indexOf('await mkdir', source.indexOf('const report = {')));
+  const reportStart = source.indexOf('const report = {');
+  const reportEnd = source.indexOf('\n};', reportStart);
+  const reportBlock = source.slice(reportStart, reportEnd);
   assert.match(reportBlock, /recoveryScope: 'volume'/);
   assert.match(reportBlock, /totalHostLoss: 'NOT_RUN'/);
-  assert.match(reportBlock, /keySeparation: 'PASS_SAME_HOST'/);
-  assert.match(source, /elapsedMs <= 600_000/);
+  assert.match(source, /report\.keySeparation = 'PASS_SAME_HOST'/);
+  assert.match(source, /restoreElapsedMs <= report\.objectiveMs/);
+  assert.match(reportBlock, /objectiveMs: 600_000/);
+  assert.match(reportBlock, /aws: 'NOT CONTACTED'/);
+  assert.match(reportBlock, /migrationCoverage: 'local-synthetic-001-018'/);
+  assert.match(source, /com\.nexo\.recovery\.run/);
+  assert.match(source, /volume', 'rm'/);
+  assert.match(source, /flag: 'wx'/);
+  assert.match(source, /recovery-runs/);
   for (const forbidden of ['password', 'privateMaterial', 'token', 'certificate', 'custodyDir', 'archiveDir']) assert.equal(reportBlock.includes(forbidden), false);
 });
