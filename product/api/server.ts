@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Pool } from 'pg';
-import { createProductApplication } from './application.js';
+import { createProductApplication, NullNotificationSink } from './application.js';
 import { GoCertificateIssuer } from './go-certificate-issuer.js';
 import { PostgresCompanyRepository } from './postgres-company-repository.js';
 import { PostgresDeviceRepository } from './postgres-device-repository.js';
@@ -26,7 +26,7 @@ export interface ServerConfig {
   issuerBinary: string;
   caDirectory: string;
   privateNetworksEnabled: boolean;
-  mail: SmtpMailConfig;
+  mail?: SmtpMailConfig;
 }
 
 function integer(value: string | undefined, fallback: number, minimum: number, maximum: number, name: string): number {
@@ -62,15 +62,16 @@ export function readServerConfig(env: NodeJS.ProcessEnv): ServerConfig {
     issuerBinary: requiredPath(env.NEXO_ISSUER_BINARY, 'issuer_binary'),
     caDirectory: requiredPath(env.NEXO_CA_DIRECTORY, 'ca_directory'),
     privateNetworksEnabled,
-    mail: readSmtpMailConfig(env)
+    ...(env.NEXO_SMTP_HOST === undefined ? {} : { mail: readSmtpMailConfig(env) })
   };
 }
 
 export async function startServer(config: ServerConfig): Promise<void> {
   const encodedKey = (await readFile(config.secretKeyFile, 'utf8')).trim();
   if (!/^[0-9a-f]{64}$/u.test(encodedKey)) throw new Error('invalid_secret_key');
-  const mailPassword = (await readFile(config.mail.passwordFile, 'utf8')).replace(/\r?\n$/u, '');
-  const notifications = new SmtpNotificationSink(config.mail, createSmtpMailTransport(config.mail, mailPassword));
+  const notifications = config.mail
+    ? new SmtpNotificationSink(config.mail, createSmtpMailTransport(config.mail, (await readFile(config.mail.passwordFile, 'utf8')).replace(/\r?\n$/u, '')))
+    : new NullNotificationSink();
   const pool = new Pool({ ...config.postgres, application_name: 'nexo-api', idleTimeoutMillis: 30_000, connectionTimeoutMillis: 5_000 });
   pool.on('error', () => process.stderr.write('nexo_database_pool_error\n'));
   await pool.query('SELECT 1');

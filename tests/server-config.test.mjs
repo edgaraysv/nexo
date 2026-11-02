@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readServerConfig } from '../dist/product/server.js';
+import { NullNotificationSink } from '../dist/product/application.js';
 
 const valid = {
   NEXO_SECRET_KEY_FILE: '/etc/nexo/seal.key',
@@ -35,5 +36,13 @@ test('server config rejects network exposure, relative secrets and invalid ident
   assert.throws(() => readServerConfig({ ...valid, NEXO_F08_ENABLED: 'yes' }), /invalid_f08_flag/);
   assert.throws(() => readServerConfig({ ...valid, NEXO_SMTP_TLS_MODE: 'plain' }), /invalid_nexo_smtp_tls_mode/);
   assert.throws(() => readServerConfig({ ...valid, NEXO_PUBLIC_URL: 'http://control.example.test' }), /invalid_nexo_public_url/);
-  assert.throws(() => readServerConfig({ ...valid, NEXO_SMTP_HOST: undefined }), /invalid_nexo_smtp_host/);
+  assert.throws(() => readServerConfig({ ...valid, NEXO_SMTP_HOST: 'smtp.example.test', NEXO_SMTP_PORT: undefined }), /invalid_nexo_smtp_port/);
+});
+
+test('server config allows SMTP to be omitted and the null notification sink is safe to call', async () => {
+  assert.equal(readServerConfig({ ...valid, NEXO_SMTP_HOST: undefined }).mail, undefined);
+  const sink = new NullNotificationSink();
+  await assert.doesNotReject(sink.deliver('user@example.test', 'opaque-token'));
+  await assert.doesNotReject(sink.deliver('user@example.test', 'opaque-token', 'tenant-id'));
+  assert.doesNotThrow(() => sink.close());
 });
