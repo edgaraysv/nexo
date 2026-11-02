@@ -21,6 +21,7 @@ import { MemoryWireGuardPeerRepository, type WireGuardPeerRepository, type WireG
 import { companyReportsPage, providerReportsPage } from './reporting-ui.js';
 import { administrativePage } from './administrative-ui.js';
 import { AgentUpdateFeed } from './agent-update-feed.js';
+import { accountAccessPage } from './account-access-ui.js';
 
 export const IDENTITY_REPOSITORY = Symbol('IDENTITY_REPOSITORY');
 export const RECOVERY_SINK = Symbol('RECOVERY_SINK');
@@ -271,7 +272,49 @@ class IdentityController {
   @Post('v1/company/invitations')
   async inviteUser(@Req()request:FastifyRequest,@Body()raw:unknown,@Res()reply:FastifyReply):Promise<void>{const{tenantId,user}=await this.companyIdentity(request,'company.user.invite');const body=objectBody(raw);const email=requiredString(body,'email',320).trim().toLowerCase(),role=requiredString(body,'role',40);if(!['company.admin','company.technician','company.auditor'].includes(role))throw new HttpException('invalid_body',422);const token=createOpaqueToken();await this.company.createInvitation(tenantId,{email,role,tokenHash:token.tokenHash,expiresAt:Date.now()+24*60*60_000},user.id);try{await this.invitationSink.deliver(email,token.token,tenantId);}catch{throw new HttpException('notification_delivery_failed',503);}reply.code(202).send({status:'pending'});}
   @Post('v1/company/invitations/accept')
-  async acceptInvitation(@Req()request:FastifyRequest,@Body()raw:unknown,@Res()reply:FastifyReply):Promise<void>{const authenticated=await this.authenticate(request);const token=requiredString(objectBody(raw),'token',512);const accepted=await this.company.acceptInvitation(hashOpaqueToken(token),authenticated.user.id,authenticated.user.email);if(!accepted)throw new HttpException('invalid_invitation',401);reply.code(200).send({tenant_id:accepted.tenantId,role:accepted.role});}
+  async acceptInvitation(@Req() request: FastifyRequest, @Body() raw: unknown, @Res() reply: FastifyReply): Promise<void> {
+    const body = objectBody(raw);
+    if (Object.keys(body).some(key => !['token', 'selection'].includes(key))) throw new HttpException('invalid_body', 422);
+    const token = requiredString(body, 'token', 512);
+    let user: UserIdentity;
+    let selectionHash: string | undefined;
+    if (request.headers.authorization !== undefined) {
+      if (body.selection !== undefined) throw new HttpException('invalid_body', 422);
+      user = (await this.authenticate(request)).user;
+    } else {
+      if (body.selection === undefined) throw new HttpException('unauthorized', 401);
+      const selectionToken = requiredString(body, 'selection', 512);
+      selectionHash = hashOpaqueToken(selectionToken);
+      const selection = selections.get(selectionHash);
+      if (!selection || selection.expiresAt <= Date.now()) throw new HttpException('unauthorized', 401);
+      const selectedUser = await this.repository.findUserById(selection.userId);
+      if (!selectedUser || selectedUser.status !== 'active') throw new HttpException('unauthorized', 401);
+      user = selectedUser;
+    }
+
+    const accepted = await this.company.acceptInvitation(hashOpaqueToken(token), user.id, user.email);
+    if (!accepted) throw new HttpException('invalid_invitation', 401);
+
+    if (selectionHash) {
+      // The in-memory identity adapter is used by local tests; PostgreSQL hydrates this membership
+      // from the same transaction performed by PostgresCompanyRepository.
+      const membership = user.memberships.find(item => item.tenantId === accepted.tenantId);
+      if (membership) {
+        membership.roles = [...new Set([...membership.roles, accepted.role])];
+      } else {
+        user.memberships.push({ tenantId: accepted.tenantId, tenantName: accepted.tenantId, roles: [accepted.role] });
+      }
+      const session = createOpaqueToken();
+      const expiresAt = Date.now() + 8 * 60 * 60_000;
+      await this.repository.createSession({ tokenHash: session.tokenHash, userId: user.id, tenantId: accepted.tenantId, expiresAt });
+      await this.repository.audit({ tenantId: accepted.tenantId, actorUserId: user.id, action: 'session.created', resourceType: 'session' });
+      selections.delete(selectionHash);
+      reply.code(200).send({ tenant_id: accepted.tenantId, role: accepted.role, token: session.token, expires_at: new Date(expiresAt).toISOString() });
+      return;
+    }
+
+    reply.code(200).send({ tenant_id: accepted.tenantId, role: accepted.role });
+  }
   @Get('v1/company/policies')
   async policies(@Req()request:FastifyRequest,@Res()reply:FastifyReply):Promise<void>{const{tenantId}=await this.companyIdentity(request,'company.policy.read');reply.send({items:await this.company.listPolicies(tenantId)});}
   @Post('v1/company/policies')
@@ -471,6 +514,9 @@ class IdentityController {
 
 @Controller()
 class UiController {
+  @Get('account')
+  accountAccess(@Res() reply: FastifyReply): void { reply.type('text/html; charset=utf-8').send(accountAccessPage()); }
+
   @Get('admin')
   admin(@Res()reply:FastifyReply):void{reply.type('text/html; charset=utf-8').send(administrativePage());}
 
@@ -501,7 +547,7 @@ class UiController {
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>NEXO · Portal empresarial</title><style>
 body{font-family:system-ui;max-width:58rem;margin:2rem auto;padding:0 1rem;color:#18212f}nav{display:flex;justify-content:space-between;align-items:center}section{border:1px solid #d7dce2;border-radius:.7rem;padding:1rem;margin:1rem 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem}label{display:block;margin:.6rem 0}input,select,button{box-sizing:border-box;font:inherit;width:100%;padding:.65rem;margin-top:.25rem}button{cursor:pointer}ul{padding-left:1.25rem}.summary{font-weight:700}#message{min-height:1.5rem}
-</style></head><body><nav><h1>Portal empresarial NEXO</h1><span><a href="/company/reports">Actividad y reportes</a> · <a href="/">Proveedor</a></span></nav>
+</style></head><body><nav><h1>Portal empresarial NEXO</h1><span><a href="/company/reports">Actividad y reportes</a> · <a href="/account">Cuenta</a> · <a href="/">Proveedor</a></span></nav>
 <section id="access"><h2>Acceso</h2><form id="login"><label>Correo<input name="email" type="email" autocomplete="username" required></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label><button>Continuar</button></form><form id="mfa" hidden><label>Código MFA<input name="code" inputmode="numeric" pattern="[0-9]{6}" required></label><button>Verificar</button></form><form id="tenant" hidden><label>Empresa<select name="tenant_id" required></select></label><button>Entrar al portal</button></form></section>
 <main id="portal" hidden><p id="summary" class="summary"></p><div class="grid">
 <section><h2>Sedes</h2><ul id="sites"></ul><form id="site-form"><label>Código<input name="code" required pattern="[a-z0-9][a-z0-9-]{1,62}"></label><label>Nombre<input name="name" required maxlength="120"></label><label>Redes privadas CIDR<input name="networks" placeholder="10.20.0.0/24, fd00:20::/64"></label><button>Crear sede</button></form></section>
@@ -511,8 +557,8 @@ body{font-family:system-ui;max-width:58rem;margin:2rem auto;padding:0 1rem;color
 <section><h2>Agentes</h2><ul id="agents"></ul><form id="agent-invite-form"><label>Tipo<select name="device_kind"><option value="endpoint">Endpoint</option><option value="gateway">Gateway</option></select></label><label>Usos<input name="uses" type="number" min="1" max="100" value="1" required></label><button>Crear invitación de dispositivo</button></form><output id="device-invitation" aria-live="polite"></output></section>
 <section><h2>Diagnósticos</h2><ul id="operations"></ul><form id="operation-form"><label>Agente<select name="target_device_id" required></select></label><label>Diagnóstico<select name="type"><option value="endpoint.runtime_info.v1">Runtime del endpoint</option></select></label><button>Solicitar diagnóstico</button></form></section>
 </div></main><p id="message" role="status" aria-live="polite"></p><script>
-let challenge,selection,sessionToken;const q=s=>document.querySelector(s),message=q('#message'),login=q('#login'),mfa=q('#mfa'),tenant=q('#tenant'),portal=q('#portal');
-const request=async(url,options={})=>{options.headers={...(options.headers||{}),...(sessionToken?{authorization:'Bearer '+sessionToken}:{})};const response=await fetch(url,options);const data=response.status===204?{}:await response.json();if(!response.ok)throw new Error(data.error||'request_failed');return data};
+let challenge,selection,sessionToken;const q=s=>document.querySelector(s),message=q('#message'),login=q('#login'),mfa=q('#mfa'),tenant=q('#tenant'),portal=q('#portal');let appRoot=location.pathname.slice(0,location.pathname.lastIndexOf('/company'));
+const request=async(url,options={})=>{options.headers={...(options.headers||{}),...(sessionToken?{authorization:'Bearer '+sessionToken}:{})};const response=await fetch(appRoot+url,options);const data=response.status===204?{}:await response.json();if(!response.ok)throw new Error(data.error||'request_failed');return data};
 login.addEventListener('submit',async event=>{event.preventDefault();try{const data=await request('/v1/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(login)))});challenge=data.challenge;login.hidden=true;mfa.hidden=false;message.textContent='Introduce tu segundo factor.'}catch{message.textContent='No fue posible iniciar sesión.'}});
 mfa.addEventListener('submit',async event=>{event.preventDefault();try{const data=await request('/v1/auth/mfa',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({challenge,code:mfa.elements.code.value})});selection=data.selection;tenant.elements.tenant_id.replaceChildren(...data.memberships.map(item=>new Option(item.name,item.tenant_id)));mfa.hidden=true;tenant.hidden=false;message.textContent='Selecciona la empresa.'}catch{message.textContent='Código no válido.'}});
 tenant.addEventListener('submit',async event=>{event.preventDefault();try{const data=await request('/v1/session/select',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({selection,scope_kind:'tenant',tenant_id:tenant.elements.tenant_id.value})});sessionToken=data.token;q('#access').hidden=true;portal.hidden=false;await refresh();message.textContent='Portal empresarial listo.'}catch{message.textContent='No fue posible abrir la empresa.'}});
@@ -522,6 +568,7 @@ function postForm(selector,url,transform){q(selector).addEventListener('submit',
 postForm('#site-form','/v1/company/sites',x=>({...x,networks:x.networks.split(',').map(v=>v.trim()).filter(Boolean)}));postForm('#device-form','/v1/company/devices',x=>x.site_id?x:(({site_id,...rest})=>rest)(x));postForm('#invite-form','/v1/company/invitations');postForm('#policy-form','/v1/company/policies');
 q('#agent-invite-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;try{const raw=Object.fromEntries(new FormData(form)),created=await request('/v1/company/device-invitations',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...raw,uses:Number(raw.uses)})});q('#device-invitation').textContent='Token de un solo uso (15 min): '+created.token;message.textContent='Invitación creada. Guárdala ahora: no se vuelve a mostrar.'}catch{message.textContent='No fue posible crear la invitación.'}});
 q('#operation-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,raw=Object.fromEntries(new FormData(form));try{await request('/v1/company/operations',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...raw,arguments:{},idempotency_key:crypto.randomUUID(),expires_in:300})});await refresh();message.textContent='Diagnóstico en cola.'}catch{message.textContent='No fue posible solicitar el diagnóstico.'}});
+const pendingSession=sessionStorage.getItem('nexo_pending_session');if(pendingSession){sessionStorage.removeItem('nexo_pending_session');sessionToken=pendingSession;q('#access').hidden=true;portal.hidden=false;refresh().then(()=>{message.textContent='Portal empresarial listo.'}).catch(()=>{message.textContent='La sesión se verificó, pero no fue posible cargar todas las vistas del portal.'})}
 </script></body></html>`);
   }
 

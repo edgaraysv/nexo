@@ -32,11 +32,12 @@ test('SMTP sink formats and dispatches recovery and invitation messages through 
   assert.equal(sent[0].from, 'noreply@example.test');
   assert.equal(sent[0].to, 'person@example.test');
   assert.equal(sent[0].subject, 'Recuperación de cuenta NEXO');
-  assert.match(sent[0].text, /POST https:\/\/control\.example\.test\/nexo\/v1\/auth\/recovery\/confirm/u);
-  assert.match(sent[0].text, new RegExp(`"token":"${token}"`, 'u'));
+  assert.match(sent[0].text, /https:\/\/control\.example\.test\/nexo\/account/u);
+  assert.match(sent[0].text, new RegExp('Token de recuperación \\(un solo uso\\): ' + token, 'u'));
   assert.match(sent[0].text, /15 minutos/u);
   assert.equal(sent[1].subject, 'Invitación a NEXO');
-  assert.match(sent[1].text, /POST https:\/\/control\.example\.test\/nexo\/v1\/company\/invitations\/accept/u);
+  assert.match(sent[1].text, /https:\/\/control\.example\.test\/nexo\/account/u);
+  assert.match(sent[1].text, new RegExp('Token de invitación \\(un solo uso\\): ' + token, 'u'));
   assert.match(sent[1].text, /24 horas/u);
   assert.equal(closed, true);
 });

@@ -114,28 +114,25 @@ export class SmtpNotificationSink implements RecoverySink, InvitationSink {
   async deliver(email: string, token: string, tenantId?: string): Promise<void> {
     if (!validAddress(email) || !/^[A-Za-z0-9_-]{43}$/u.test(token)) throw new Error('invalid_notification');
     const apiBase = this.config.publicUrl.replace(/\/$/u, '');
+    const accountUrl = `${apiBase}/account`;
     const invitation = tenantId !== undefined;
-    const route = invitation ? '/v1/company/invitations/accept' : '/v1/auth/recovery/confirm';
-    const url = `${apiBase}${route}`;
     const text = invitation
       ? [
           'Se creó una invitación para esta dirección de correo en NEXO.',
           `Empresa: ${tenantId}`,
-          'Inicia sesión en NEXO con esta dirección y acepta la invitación usando el token de un solo uso.',
-          `POST ${url}`,
-          'Content-Type: application/json',
+          'Abre el portal seguro de cuenta, inicia sesión con esta dirección, verifica MFA y pega el token de invitación.',
+          accountUrl,
           '',
-          JSON.stringify({ token }),
+          `Token de invitación (un solo uso): ${token}`,
           '',
           'El token vence en 24 horas. Si no esperabas esta invitación, ignora este mensaje.'
         ].join('\n')
       : [
           'Se solicitó restablecer la contraseña de tu cuenta NEXO.',
-          'Para completar la recuperación, envía el siguiente JSON al endpoint indicado y establece una contraseña nueva:',
-          `POST ${url}`,
-          'Content-Type: application/json',
+          'Abre el portal seguro de cuenta, pega el token y establece una contraseña nueva. NEXO nunca te pedirá que envíes tu contraseña por correo.',
+          accountUrl,
           '',
-          JSON.stringify({ token, new_password: '<tu-nueva-contraseña>' }),
+          `Token de recuperación (un solo uso): ${token}`,
           '',
           'El token vence en 15 minutos y solo puede usarse una vez. Si no solicitaste este cambio, ignora este mensaje.'
         ].join('\n');
