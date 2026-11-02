@@ -2,8 +2,9 @@
    nexo-tokens.css
    Capa 1 — SYSMedia §15 (prefijo --sys-*)
    Capa 2 — Nexo producto (prefijo --nx-*)
-   Fuentes Manrope/Inter: propuestas pendientes de aprobación;
-   fallback a system-ui mientras no estén autorizadas.
+   Fuentes Manrope/Inter: propuestas; el shell administrativo las carga
+   desde Google Fonts por solicitud explícita. Revisar licencia y disponibilidad
+   antes de producción.
    ============================================================= */
 
 :root {
@@ -69,7 +70,7 @@
      ============================================================ */
 
   /* Superficies */
-  --nx-bg:        #F0F5FA;
+  --nx-bg:        #EFF4F9;
   --nx-surface:   #FFFFFF;
   --nx-surface-2: #EAF1F7;
   --nx-border:    var(--sys-border-default);

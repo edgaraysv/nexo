@@ -74,8 +74,10 @@ test('account page is served without caching and exposes invitation plus recover
     assert.match(response.body, /MFA/u);
     assert.match(response.body, /nexo_pending_session/u);
     const companyPage = await app.inject({ method: 'GET', url: '/company' });
-    assert.equal(companyPage.statusCode, 200);
-    assert.match(companyPage.body, /sessionStorage\.removeItem\('nexo_pending_session'\)/u);
+    assert.equal(companyPage.statusCode, 302);
+    assert.equal(companyPage.headers.location, '/admin#company-summary');
+    const adminPage = await app.inject({ method: 'GET', url: '/admin' });
+    assert.match(adminPage.body, /sessionStorage\.removeItem\('nexo_pending_session'\)/u);
   } finally { await app.close(); }
 });
 
