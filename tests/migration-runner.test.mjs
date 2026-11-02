@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { migrationProfiles, stripMigrationTransaction } from '../scripts/migration-profiles.mjs';
@@ -30,6 +31,35 @@ test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes
   assert.ok(!ga01.some(file => file.startsWith('016_')));
 });
 
+test('production profile is exactly the ordered 001-022 sequence and guarded from implicit execution', () => {
+  const production = migrationProfiles.production;
+  assert.equal(production.target, 'production');
+  assert.deepEqual(production.migrations, migrationProfiles['f11-local'].migrations);
+  assert.deepEqual(production.migrations.map(file => Number(file.slice(0, 3))), Array.from({ length: 22 }, (_, index) => index + 1));
+
+  const result = spawnSync(process.execPath, ['scripts/migrate.mjs', '--profile', 'production'], {
+    encoding: 'utf8',
+    env: { ...process.env, DATABASE_URL: 'postgresql://127.0.0.1:1/nexo', NEXO_MIGRATION_TARGET: '' },
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /requiere --confirm-production y NEXO_MIGRATION_TARGET=production/u);
+  assert.doesNotMatch(result.stderr, /ECONNREFUSED/u, 'guard must reject before attempting a database connection');
+});
+
+test('production migration dry-run lists all 22 files without DATABASE_URL or confirmation', () => {
+  const env = { ...process.env };
+  delete env.DATABASE_URL;
+  delete env.NEXO_MIGRATION_TARGET;
+  const result = spawnSync(process.execPath, ['scripts/migrate.mjs', '--profile', 'production', '--dry-run'], {
+    encoding: 'utf8', env,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Perfil production \(production\): 22 migraciones/u);
+  assert.match(result.stdout, /^001_l02_identity\.sql /mu);
+  assert.match(result.stdout, /^022_f11_wireguard\.sql /mu);
+  assert.doesNotMatch(result.stdout, /APPLY /u);
+});
+
 test('F10 support consent is local-only and follows the verified F03 grant migration', () => {
   const f10 = migrationProfiles['f10-local'];
   assert.equal(f10.target, 'local');
@@ -59,14 +89,15 @@ test('F08 local profile includes the runtime closure and retains credential rota
   ]);
 });
 
-test('016 is available only in disposable F07/F08/F11 local profiles', () => {
+test('016 appears in disposable F07/F08/F11 profiles and in the complete production baseline', () => {
   const profilesWith016 = Object.entries(migrationProfiles)
     .filter(([, profile]) => profile.migrations.some(file => file.startsWith('016_')))
     .map(([name]) => name).sort();
-  assert.deepEqual(profilesWith016, ['f07-local', 'f08-local', 'f11-local']);
+  assert.deepEqual(profilesWith016, ['f07-local', 'f08-local', 'f11-local', 'production']);
   assert.equal(migrationProfiles['f07-local'].target, 'local');
   assert.equal(migrationProfiles['f08-local'].target, 'local');
   assert.equal(migrationProfiles['f11-local'].target, 'local');
+  assert.equal(migrationProfiles.production.target, 'production');
 });
 
 test('migration transaction wrapper is removed while inner SQL blocks remain intact', async () => {

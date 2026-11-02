@@ -12,8 +12,11 @@
 | `f08-local` | `001–016 + 017 + 019 + 020` | Host loopback únicamente; base efímera/local desechable |
 | `ga01-local` | `001–015 + 017 + 018 + 019` | Host loopback únicamente; solo pruebas desechables |
 | `f10-local` | `001–015 + 017 + 019 + 020 + 021` | Host loopback únicamente; base efímera/local desechable |
+| `production` | `001–022`, estrictamente en orden | Requiere `NEXO_MIGRATION_TARGET=production` y `--confirm-production`; `--initialize` exige base vacía |
 
 **No existe perfil que aplique `016` o `018` al laboratorio AWS.** El `f09-lab` no adopta el esquema AWS existente: el ledger debe existir y el primer uso de `--initialize` solo acepta una base sin relaciones de aplicación. El esquema actual del laboratorio no tiene este historial; no ejecutar el runner allí ni crear un baseline retroactivo sin una comparación/adopción revisada y autorización específica.
+
+El perfil `production` define el historial completo desde una base nueva: crea `public.nexo_schema_migrations` **antes** de `001`, y registra cada archivo y su SHA-256 en la misma transacción de esa migración. Rechaza bases no vacías sin historial, mezcla de perfiles, huecos y checksums divergentes. Toda ejecución requiere una `DATABASE_URL` explícita, `NEXO_MIGRATION_TARGET=production` y `--confirm-production`; no se infiere ni selecciona una conexión. `--dry-run` no requiere URL, no abre conexiones y solo enumera las 22 migraciones/checksums.
 
 `f10-local` es solo para probar el esquema de consentimiento y ciclo de vida F10 en PostgreSQL local desechable. La migración 020 es el corte inicial y 021 lo evoluciona sin reescribirlo; no forman parte de un perfil de despliegue AWS. La decisión autenticada por API no sustituye el prompt nativo; el servidor no configura un motor de transporte. El 2026-11-01 se aplicaron manualmente 020 y 021 al PostgreSQL del AWS lab como excepción explícita; véase la evidencia inferior. Esto no acepta F10 ni habilita soporte remoto.
 
@@ -24,6 +27,28 @@
 `f08-local` conserva 016 después de 015 y añade 020 tras la secuencia F09 para cubrir las tablas citadas por los grants runtime. Su secuencia equivale a `f10-local` más 016; debe inicializarse en una base desechable independiente.
 
 ## Uso local
+
+Para inspeccionar el perfil completo sin conexión:
+
+```bash
+npm run db:migrate -- --profile production --dry-run
+```
+
+La forma de inicializar una base de producción previamente provisionada y vacía es:
+
+```bash
+NEXO_MIGRATION_TARGET=production DATABASE_URL="$DATABASE_URL" \
+  npm run db:migrate -- --profile production --initialize --confirm-production
+```
+
+La implementación del perfil se ejercita contra PostgreSQL desechable local, nunca AWS, mediante `npm run test:prod-migrate`. El ensayo solo crea un contenedor Docker de esta ejecución, publica PostgreSQL en loopback, verifica las 22 filas/checksums y elimina el contenedor etiquetado. No despliega ni ejecuta migraciones en una base real.
+
+### Evidencia del perfil production — 2026-11-01
+
+- `npm run db:migrate -- --profile production --dry-run`: **PASS**, enumeró `001–022` en orden con SHA-256 y sin `DATABASE_URL`.
+- `npm run test:prod-migrate`: **PASS** sobre PostgreSQL `17.6-bookworm` en Docker local y puerto loopback. Base desechable vacía inicializada; ledger creado antes de las migraciones; 22/22 filas en orden con checksums íntegros; segunda ejecución omitió las 22 tras validar hashes; dry-run sin conexión y guardas de confirmación comprobadas.
+- `tests/migration-runner.test.mjs`: una ejecución inicial **FAIL** por una aserción de fixture que todavía limitaba 016 a perfiles locales; se corrigió para incluir el perfil completo production. Reejecución final: **PASS, 13/13**.
+- AWS: **NOT CONTACTED**. El ensayo no usó credenciales, SSM ni endpoints AWS; el contenedor de esta ejecución fue retirado.
 
 En una base PostgreSQL vacía y desechable, defina `DATABASE_URL` con un host de loopback. Ejecute `--initialize` una sola vez para crear el ledger y aplicar el perfil:
 

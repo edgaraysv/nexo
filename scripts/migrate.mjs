@@ -10,18 +10,21 @@ const usage = `Uso:
   npm run db:migrate -- --profile f11-local --initialize
   npm run db:migrate -- --profile ga01-local
   npm run db:migrate -- --profile f08-local --initialize
+  npm run db:migrate -- --profile production --initialize --confirm-production
   NEXO_MIGRATION_TARGET=lab npm run db:migrate -- --profile f09-lab --initialize --confirm-lab
 
 DATABASE_URL es obligatorio salvo con --dry-run. --initialize solo acepta una base sin tablas de aplicación.
+El perfil production exige NEXO_MIGRATION_TARGET=production y --confirm-production para ejecutar SQL.
 El runner no adopta bases existentes sin historial ni ofrece rollback automático.`;
 
 function parseArguments(argv) {
-  const options = { initialize: false, confirmLab: false, dryRun: false, help: false };
+  const options = { initialize: false, confirmLab: false, confirmProduction: false, dryRun: false, help: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--help' || argument === '-h') options.help = true;
     else if (argument === '--initialize') options.initialize = true;
     else if (argument === '--confirm-lab') options.confirmLab = true;
+    else if (argument === '--confirm-production') options.confirmProduction = true;
     else if (argument === '--dry-run') options.dryRun = true;
     else if (argument === '--profile') {
       assert.ok(!options.profile, '--profile solo puede indicarse una vez');
@@ -138,6 +141,10 @@ async function main() {
     throw new Error('El perfil f09-lab requiere --confirm-lab y NEXO_MIGRATION_TARGET=lab. No se ejecutó SQL.');
   }
   if (options.confirmLab && profile.target !== 'lab') throw new Error('--confirm-lab solo aplica al perfil f09-lab.');
+  if (options.confirmProduction && profile.target !== 'production') throw new Error('--confirm-production solo aplica al perfil production.');
+  if (profile.target === 'production' && !options.dryRun && (!options.confirmProduction || process.env.NEXO_MIGRATION_TARGET !== 'production')) {
+    throw new Error('El perfil production requiere --confirm-production y NEXO_MIGRATION_TARGET=production. No se ejecutó SQL.');
+  }
   if (options.initialize && profile.target === 'lab' && (!options.confirmLab || process.env.NEXO_MIGRATION_TARGET !== 'lab')) {
     throw new Error('--initialize para f09-lab requiere también --confirm-lab y NEXO_MIGRATION_TARGET=lab.');
   }

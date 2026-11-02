@@ -42,6 +42,8 @@ export const migrationProfiles = Object.freeze({
   // F10 support consent is local-only until its policy and native prompt are accepted.
   'f10-local': Object.freeze({ migrations: f10, target: 'local' }),
   'f11-local': Object.freeze({ migrations: f11, target: 'local' }),
+  // Full ordered schema for a newly provisioned production database.
+  production: Object.freeze({ migrations: f11, target: 'production' }),
   // 016 is exercised only against disposable local PostgreSQL instances.
   'f08-local': Object.freeze({ migrations: f08, target: 'local' }),
   // GA-01 is local-only, applies 018 after F09 and then the F03 resource-grant closure.
