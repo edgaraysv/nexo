@@ -16,6 +16,7 @@ import { PostgresWireGuardPeerRepository } from './postgres-wireguard-peer-repos
 import { PostgresVpnCredentialRepository } from './postgres-vpn-credential-repository.js';
 import { PostgresPrivateNetworkRepository } from './postgres-private-network-repository.js';
 import { PostgresSupportRepository } from './postgres-support-repository.js';
+import { createSmtpMailTransport, readSmtpMailConfig, SmtpNotificationSink, type SmtpMailConfig } from './mail-sink.js';
 
 export interface ServerConfig {
   host: '127.0.0.1' | '::1';
@@ -25,6 +26,7 @@ export interface ServerConfig {
   issuerBinary: string;
   caDirectory: string;
   privateNetworksEnabled: boolean;
+  mail: SmtpMailConfig;
 }
 
 function integer(value: string | undefined, fallback: number, minimum: number, maximum: number, name: string): number {
@@ -59,23 +61,26 @@ export function readServerConfig(env: NodeJS.ProcessEnv): ServerConfig {
     secretKeyFile: requiredPath(env.NEXO_SECRET_KEY_FILE, 'secret_key_file'),
     issuerBinary: requiredPath(env.NEXO_ISSUER_BINARY, 'issuer_binary'),
     caDirectory: requiredPath(env.NEXO_CA_DIRECTORY, 'ca_directory'),
-    privateNetworksEnabled
+    privateNetworksEnabled,
+    mail: readSmtpMailConfig(env)
   };
 }
 
 export async function startServer(config: ServerConfig): Promise<void> {
   const encodedKey = (await readFile(config.secretKeyFile, 'utf8')).trim();
   if (!/^[0-9a-f]{64}$/u.test(encodedKey)) throw new Error('invalid_secret_key');
+  const mailPassword = (await readFile(config.mail.passwordFile, 'utf8')).replace(/\r?\n$/u, '');
+  const notifications = new SmtpNotificationSink(config.mail, createSmtpMailTransport(config.mail, mailPassword));
   const pool = new Pool({ ...config.postgres, application_name: 'nexo-api', idleTimeoutMillis: 30_000, connectionTimeoutMillis: 5_000 });
   pool.on('error', () => process.stderr.write('nexo_database_pool_error\n'));
   await pool.query('SELECT 1');
   const identity = new PostgresIdentityRepository(pool, Buffer.from(encodedKey, 'hex'));
   const app = await createProductApplication(
     identity,
-    undefined,
+    notifications,
     new PostgresProviderRepository(pool),
     new PostgresCompanyRepository(pool),
-    undefined,
+    notifications,
     new PostgresDeviceRepository(pool),
     new GoCertificateIssuer(config.issuerBinary, config.caDirectory),
     new PostgresOperationRepository(pool),
@@ -92,6 +97,7 @@ export async function startServer(config: ServerConfig): Promise<void> {
     if (stopping) return;
     stopping = true;
     await app.close().catch(() => {});
+    notifications.close();
     await pool.end().catch(() => {});
   };
   process.once('SIGTERM', () => { void stop(); });

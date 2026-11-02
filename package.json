@@ -33,6 +33,7 @@
     "verify": "node scripts/verify.mjs",
     "sign:agent-release": "node scripts/sign-agent-release.mjs",
     "verify:f12": "npm run build && node --test tests/f12-*.test.mjs tests/l07-client.test.mjs",
+    "test:f12-load": "npm run build && node scripts/f12-load.mjs",
     "verify:f02": "node scripts/f02.mjs",
     "test:f02-local": "node scripts/f02-local.mjs",
     "verify:f03": "npm run build && node scripts/f03.mjs",
@@ -60,6 +61,7 @@
     "@nestjs/core": "12.2.0",
     "@nestjs/platform-fastify": "12.2.0",
     "fastify": "5.12.7",
+    "nodemailer": "10.3.1",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"

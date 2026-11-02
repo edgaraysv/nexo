@@ -1,6 +1,6 @@
 # F12 — firma de releases, actualización y recuperación por pérdida de host
 
-**Estado:** implementación local en revisión. La integración real KMS Ed25519 en AWS lab y la aceptación del manifiesto de prueba por Go dieron **PASS** el 1 de noviembre de 2026. Esto no habilita producción ni autoriza clientes/datos reales. La aplicación en Windows/SCM, la protección monotónica TPM y el restore AWS por pérdida total de host continúan **NOT RUN/BLOCKED**; la presencia TPM sí fue comprobada, ver [evidencia](evidence.md).
+**Estado:** implementación local en revisión. La integración real KMS Ed25519 en AWS lab y la aceptación del manifiesto de prueba por Go dieron **PASS** el 1 de noviembre de 2026. También se reportó PASS del control puntual «accesos revocados no reaparecen» tras restore AWS y se verificó IMDSv2 efectivo por SSM. Esto no habilita producción ni autoriza clientes/datos reales. La aplicación en Windows/SCM, la protección monotónica TPM y la recuperación integral por pérdida de host/PV12 continúan **NOT RUN/BLOCKED**; la presencia TPM sí fue comprobada, ver [evidencia](evidence.md).
 
 ## Alcance aprobado
 
@@ -43,7 +43,7 @@ La disponibilidad sí pudo comprobarse sin elevar privilegios: `tpmtool getdevic
 
 El runbook [total-host-loss](runbooks/total-host-loss.md) reconstruye un destino aislado desde respaldos consistentes, restaura configuración/identidades de control y material de emisión autorizado, reaplica revocaciones/checkpoint, mantiene cuarentena y mide el resultado. Los objetivos aprobados son RPO ≤24 h y RTO ≤4 h, con inicio y fin definidos para que puedan medirse con `scripts/f12-recovery-metrics.mjs`.
 
-El respaldo diario de EBS/EC2 configurado en `infra/aws/lab/backup.tf` no demuestra consistencia de PostgreSQL, recuperación de PKI/secretos ni restore. En AWS lab solo se crearon la clave, el rol y el alias de firma F12 descritos en la evidencia; no se ejecutó un restore. El restore productivo y PV12 permanecen abiertos hasta que exista evidencia de un ejercicio real aislado.
+El respaldo diario de EBS/EC2 configurado en `infra/aws/lab/backup.tf` no demuestra consistencia de PostgreSQL, recuperación de PKI/secretos ni recuperación integral. El control puntual de revocación tras restore AWS se reportó PASS el 2026-11-01, pero no sustituye un ejercicio completo de pérdida de host ni cierra PV12; faltan RPO/RTO aprobados y trazabilidad independiente de los IDs SSM de restore/revocación.
 
 ## Verificación
 

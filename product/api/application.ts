@@ -107,7 +107,7 @@ class IdentityController {
   @Post('v1/auth/recovery/request')
   async requestRecovery(@Body() raw: unknown, @Res() reply: FastifyReply): Promise<void> {
     const email = requiredString(objectBody(raw), 'email', 320).trim().toLowerCase(); const user = await this.repository.findUserByEmail(email);
-    if (user?.status === 'active') { const recovery = createOpaqueToken(); await this.repository.createRecoveryToken(user.id, recovery.tokenHash, Date.now() + 15 * 60_000); await this.recoverySink.deliver(user.email, recovery.token); }
+    if (user?.status === 'active') { const recovery = createOpaqueToken(); await this.repository.createRecoveryToken(user.id, recovery.tokenHash, Date.now() + 15 * 60_000); void this.recoverySink.deliver(user.email, recovery.token).catch(() => process.stderr.write('nexo_recovery_email_delivery_failed\n')); }
     reply.code(202).send({ status: 'accepted' });
   }
 
@@ -269,7 +269,7 @@ class IdentityController {
   @Delete('v1/company/resource-grants/:grantId')
   async revokeResourceGrant(@Req()request:FastifyRequest,@Param('grantId')grantId:string,@Res()reply:FastifyReply):Promise<void>{const{tenantId,user}=await this.companyIdentity(request,'company.resource_grant.manage');if(!/^[0-9a-f-]{36}$/iu.test(grantId))throw new HttpException('invalid_body',422);const result=await this.company.revokeResourceGrant(tenantId,grantId,user.id);if(!result.found)throw new HttpException('not_found',404);reply.code(204).send();}
   @Post('v1/company/invitations')
-  async inviteUser(@Req()request:FastifyRequest,@Body()raw:unknown,@Res()reply:FastifyReply):Promise<void>{const{tenantId,user}=await this.companyIdentity(request,'company.user.invite');const body=objectBody(raw);const email=requiredString(body,'email',320).trim().toLowerCase(),role=requiredString(body,'role',40);if(!['company.admin','company.technician','company.auditor'].includes(role))throw new HttpException('invalid_body',422);const token=createOpaqueToken();await this.company.createInvitation(tenantId,{email,role,tokenHash:token.tokenHash,expiresAt:Date.now()+24*60*60_000},user.id);await this.invitationSink.deliver(email,token.token,tenantId);reply.code(202).send({status:'pending'});}
+  async inviteUser(@Req()request:FastifyRequest,@Body()raw:unknown,@Res()reply:FastifyReply):Promise<void>{const{tenantId,user}=await this.companyIdentity(request,'company.user.invite');const body=objectBody(raw);const email=requiredString(body,'email',320).trim().toLowerCase(),role=requiredString(body,'role',40);if(!['company.admin','company.technician','company.auditor'].includes(role))throw new HttpException('invalid_body',422);const token=createOpaqueToken();await this.company.createInvitation(tenantId,{email,role,tokenHash:token.tokenHash,expiresAt:Date.now()+24*60*60_000},user.id);try{await this.invitationSink.deliver(email,token.token,tenantId);}catch{throw new HttpException('notification_delivery_failed',503);}reply.code(202).send({status:'pending'});}
   @Post('v1/company/invitations/accept')
   async acceptInvitation(@Req()request:FastifyRequest,@Body()raw:unknown,@Res()reply:FastifyReply):Promise<void>{const authenticated=await this.authenticate(request);const token=requiredString(objectBody(raw),'token',512);const accepted=await this.company.acceptInvitation(hashOpaqueToken(token),authenticated.user.id,authenticated.user.email);if(!accepted)throw new HttpException('invalid_invitation',401);reply.code(200).send({tenant_id:accepted.tenantId,role:accepted.role});}
   @Get('v1/company/policies')
@@ -537,7 +537,7 @@ class SafeFilter implements ExceptionFilter {
     const detail = typeof error === 'object' && error !== null ? error as { statusCode?: number; code?: string } : {};
     let status = error instanceof HttpException ? error.getStatus() : detail.statusCode ?? 500;
     if (error instanceof SyntaxError || detail.code === 'FST_ERR_CTP_INVALID_JSON_BODY') status = 422;
-    const allowed: Record<number, string> = { 400: 'bad_request', 401: 'unauthorized', 403: 'forbidden', 404: 'not_found', 409: 'conflict', 413: 'body_too_large', 415: 'unsupported_media_type', 422: 'invalid_request', 429: 'rate_limited' };
+    const allowed: Record<number, string> = { 400: 'bad_request', 401: 'unauthorized', 403: 'forbidden', 404: 'not_found', 409: 'conflict', 413: 'body_too_large', 415: 'unsupported_media_type', 422: 'invalid_request', 429: 'rate_limited', 503: 'service_unavailable' };
     host.switchToHttp().getResponse<FastifyReply>().code(status in allowed ? status : 500).send({ error: allowed[status] ?? 'internal_error' });
   }
 }

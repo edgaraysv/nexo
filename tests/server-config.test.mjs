@@ -5,7 +5,13 @@ import { readServerConfig } from '../dist/product/server.js';
 const valid = {
   NEXO_SECRET_KEY_FILE: '/etc/nexo/seal.key',
   NEXO_ISSUER_BINARY: '/usr/local/lib/nexo/nexo-issuer',
-  NEXO_CA_DIRECTORY: '/var/lib/nexo/ca'
+  NEXO_CA_DIRECTORY: '/var/lib/nexo/ca',
+  NEXO_SMTP_HOST: 'smtp.example.test',
+  NEXO_SMTP_PORT: '587',
+  NEXO_SMTP_USER: 'nexo@example.test',
+  NEXO_SMTP_PASSWORD_FILE: '/etc/nexo/smtp-password',
+  NEXO_MAIL_FROM: 'noreply@example.test',
+  NEXO_PUBLIC_URL: 'https://control.example.test'
 };
 
 test('server config defaults to loopback, peer-compatible PostgreSQL and bounded pool', () => {
@@ -16,7 +22,8 @@ test('server config defaults to loopback, peer-compatible PostgreSQL and bounded
     secretKeyFile: '/etc/nexo/seal.key',
     issuerBinary: '/usr/local/lib/nexo/nexo-issuer',
     caDirectory: '/var/lib/nexo/ca',
-    privateNetworksEnabled: false
+    privateNetworksEnabled: false,
+    mail: { host: 'smtp.example.test', port: 587, tlsMode: 'starttls', username: 'nexo@example.test', passwordFile: '/etc/nexo/smtp-password', from: 'noreply@example.test', publicUrl: 'https://control.example.test' }
   });
 });
 
@@ -26,4 +33,7 @@ test('server config rejects network exposure, relative secrets and invalid ident
   assert.throws(() => readServerConfig({ ...valid, PGUSER: 'postgres' }), /invalid_postgres_identity/);
   assert.throws(() => readServerConfig({ ...valid, NEXO_PORT: '80' }), /invalid_nexo_port/);
   assert.throws(() => readServerConfig({ ...valid, NEXO_F08_ENABLED: 'yes' }), /invalid_f08_flag/);
+  assert.throws(() => readServerConfig({ ...valid, NEXO_SMTP_TLS_MODE: 'plain' }), /invalid_nexo_smtp_tls_mode/);
+  assert.throws(() => readServerConfig({ ...valid, NEXO_PUBLIC_URL: 'http://control.example.test' }), /invalid_nexo_public_url/);
+  assert.throws(() => readServerConfig({ ...valid, NEXO_SMTP_HOST: undefined }), /invalid_nexo_smtp_host/);
 });

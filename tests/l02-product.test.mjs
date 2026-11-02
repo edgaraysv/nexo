@@ -18,10 +18,11 @@ function totp(secret, now = Date.now()) {
   return String((((digest[offset] & 127) << 24) | (digest[offset + 1] << 16) | (digest[offset + 2] << 8) | digest[offset + 3]) % 1_000_000).padStart(6, '0');
 }
 
-async function fixture() {
+async function fixture(recoverySink) {
   const deliveries = [];
   const repository = new MemoryIdentityRepository([{ id: USER_ID, email: 'owner@example.test', passwordHash: await hashPassword('correct horse battery staple'), status: 'active', mfaRequired: true, totpSecret: SECRET, memberships: [{ tenantId: TENANT_A, tenantName: 'Empresa A', roles: ['owner'] }, { tenantId: TENANT_B, tenantName: 'Empresa B', roles: ['auditor'] }] }]);
-  const app = await createProductApplication(repository, { deliver: async (email, token) => deliveries.push({ email, token }) }); await app.init(); await app.getHttpAdapter().getInstance().ready(); return { app, repository, deliveries };
+  const sink = recoverySink ?? { deliver: async (email, token) => deliveries.push({ email, token }) };
+  const app = await createProductApplication(repository, sink); await app.init(); await app.getHttpAdapter().getInstance().ready(); return { app, repository, deliveries };
 }
 
 async function login(app, tenantId = TENANT_A) {
@@ -74,6 +75,17 @@ test('L02 recovery is non-enumerating, one-use and revokes existing sessions', a
     assert.equal((await app.inject({ method: 'POST', url: '/v1/auth/recovery/confirm', payload: { token: deliveries[0].token, new_password: 'another correct horse battery staple' } })).statusCode, 401);
     assert.equal((await app.inject({ method: 'POST', url: '/v1/auth/login', payload: { email: 'owner@example.test', password: 'correct horse battery staple' } })).statusCode, 401);
     assert.equal((await app.inject({ method: 'POST', url: '/v1/auth/login', payload: { email: 'owner@example.test', password: 'new correct horse battery staple' } })).statusCode, 200);
+  } finally { await app.close(); }
+});
+
+test('L02 SMTP failure does not reveal whether a recovery address exists', async () => {
+  const { app } = await fixture({ deliver: async () => { throw new Error('provider credentials must not leak'); } });
+  try {
+    const unknown = await app.inject({ method: 'POST', url: '/v1/auth/recovery/request', payload: { email: 'unknown@example.test' } });
+    const known = await app.inject({ method: 'POST', url: '/v1/auth/recovery/request', payload: { email: 'owner@example.test' } });
+    assert.equal(unknown.statusCode, 202);
+    assert.equal(known.statusCode, 202);
+    assert.deepEqual(unknown.json(), known.json());
   } finally { await app.close(); }
 });
 

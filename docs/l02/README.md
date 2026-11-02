@@ -9,7 +9,7 @@ Estado: **corte local implementado y verificado**. No equivale a autorización p
 - **Contraseñas:** `scrypt` con sal aleatoria y parámetros codificados; nunca texto plano.
 - **MFA:** TOTP de seis dígitos con ventana acotada para la verificación local. El secreto TOTP se modela como ciphertext y requiere custodia D04 antes de producción.
 - **Sesiones:** tokens opacos, almacenados como SHA-256, con expiración y revocación explícita.
-- **Recuperación:** tokens opacos de un solo uso y expiración; el canal de entrega sigue siendo adaptador local hasta decidir D03.
+- **Recuperación e invitaciones:** tokens opacos de un solo uso y expiración; el servidor usa un adaptador SMTP configurado por entorno. La entrega real permanece NOT RUN hasta configurar y validar un proveedor.
 
 ## Entregables
 
@@ -25,8 +25,13 @@ Estado: **corte local implementado y verificado**. No equivale a autorización p
 Este corte no emite certificados, no usa AWS, no crea usuarios reales ni conecta
 un proveedor externo de identidad. La UI es mínima y mantiene el bearer token
 solo en memoria; no es todavía el panel L03. La custodia operativa de la clave
-AES, notificaciones externas, rate limiting distribuido y revisión independiente
-siguen pendientes antes de producción/clientes reales.
+AES, configuración y prueba real de entrega SMTP, rate limiting distribuido y
+revisión independiente siguen pendientes antes de producción/clientes reales.
+
+El proveedor SMTP se configura con las variables documentadas en
+[`notifications.md`](notifications.md). Sin esa configuración el servidor no
+arranca, evitando que un despliegue use silenciosamente sinks no-op. Las pruebas
+inyectan un transporte stub; no requieren credenciales ni envían correo real.
 
 La migración debe ejecutarse con el propietario de esquema. El runtime requiere
 un rol separado `NOSUPERUSER` y `NOBYPASSRLS`; no se crea automáticamente para
