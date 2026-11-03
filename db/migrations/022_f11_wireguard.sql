@@ -194,4 +194,13 @@ CREATE INDEX wireguard_peers_environment_state_idx ON wireguard_peers(environmen
 CREATE INDEX wireguard_peers_device_idx ON wireguard_peers(tenant_id,device_id,state);
 CREATE INDEX wireguard_previews_expiry_idx ON wireguard_change_previews(state,expires_at);
 
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='nexo_runtime') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON wireguard_environment_config TO nexo_runtime;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON wireguard_peers TO nexo_runtime;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON wireguard_peer_keys TO nexo_runtime;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON wireguard_change_previews TO nexo_runtime;
+  END IF;
+END $$;
+
 COMMIT;
