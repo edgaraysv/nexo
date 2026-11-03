@@ -3,7 +3,11 @@ import { Body, Catch, Controller, Delete, Get, HttpException, Inject, Module, Pa
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import fastifyStatic from '@fastify/static';
 import { X509Certificate, createHash, createPublicKey, verify as verifySignature } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { extname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createOpaqueToken, hashOpaqueToken, hashPassword, verifyPassword, verifyTotp } from './security.js';
 import type { IdentityRepository, UserIdentity } from './repository.js';
 import { MemoryProviderRepository, type ProviderRepository } from './provider-repository.js';
@@ -625,5 +629,26 @@ export async function createProductApplication(repository: IdentityRepository, r
   const app = await NestFactory.create<NestFastifyApplication>(ProductModule.register(repository, recoverySink, provider,company,invitationSink,devices,issuer,operations,nodes,vpnEnvironments,vpnCredentials,privateNetworks,support,wireguardPeers), adapter, { logger: false, bodyParser: false });
   app.useGlobalFilters(new SafeFilter());
   fastify.addHook('onSend', async (_request, reply, payload) => { reply.header('cache-control', 'no-store'); reply.header('x-content-type-options', 'nosniff'); return payload; });
+  const portalRoot = fileURLToPath(new URL('../../dist/portal/', import.meta.url));
+  if (existsSync(portalRoot)) {
+    fastify.register(fastifyStatic, { root: resolve(portalRoot, 'assets'), prefix: '/portal/assets/' });
+    const servePortalIndex = (_request: FastifyRequest, reply: FastifyReply) => reply.sendFile('index.html', portalRoot);
+    fastify.get('/portal', servePortalIndex);
+    fastify.get('/portal/', servePortalIndex);
+    fastify.get('/portal/*', async (request: FastifyRequest, reply: FastifyReply) => {
+      const pathname = request.url.split('?', 1)[0] ?? '';
+      let relativePath: string;
+      try {
+        relativePath = decodeURIComponent(pathname.slice('/portal/'.length));
+      } catch {
+        return reply.code(400).send({ error: 'invalid_path' });
+      }
+      if (relativePath.includes('\0') || relativePath.includes('\\') || relativePath.split('/').some((part) => part === '.' || part === '..')) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
+      if (extname(relativePath)) return reply.code(404).send({ error: 'not_found' });
+      return reply.sendFile('index.html', portalRoot);
+    });
+  }
   return app;
 }
