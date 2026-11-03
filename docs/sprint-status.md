@@ -15,7 +15,7 @@
 
 ## Migraciones
 
-La sección F13 no especifica cambio de esquema ni una migración SQL concreta. En el repositorio hay migraciones `001–022` y el runner `scripts/migrate.mjs`, pero no hay migración `023`/F13 ni una migración de datos de empresas, dispositivos, rutas o credenciales desde el servicio anterior. **No se registra una migración nueva como faltante obligatoria del plan**: su necesidad debe derivarse de decisiones de piloto/migración aprobadas, no inventarse en esta revisión.
+La sección F13 no especifica cambio de esquema ni una migración SQL concreta. En la fecha de esta revisión (2026-11-01), el repositorio tenía migraciones `001–022`. El 2026-11-03 se añadió `023_f03_resource_grants_runtime_privileges.sql` para reparar el permiso runtime de una tabla existente; no es una migración F13 ni migra datos de empresas, dispositivos, rutas o credenciales desde el servicio anterior. **No se registra una migración F13 nueva como faltante obligatoria del plan**: su necesidad debe derivarse de decisiones de piloto/migración aprobadas, no inventarse en esta revisión.
 
 ## Base reutilizable, no cierre F13
 
