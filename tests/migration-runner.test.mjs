@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
@@ -8,34 +9,39 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
   const expected = [...Array.from({ length: 15 }, (_, index) => `${String(index + 1).padStart(3, '0')}_`), '017_'];
   assert.equal(migrationProfiles['f09-lab'].migrations.length, 16);
   assert.deepEqual(migrationProfiles['f09-lab'].migrations.map(file => file.slice(0, 4)), expected);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -2), migrationProfiles['f09-lab'].migrations);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(-2), [
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -4), migrationProfiles['f09-lab'].migrations);
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(-4), [
     '019_f03_resource_grants.sql',
     '020_f10_support_consent.sql',
+    '022_f11_wireguard.sql',
+    '023_f03_resource_grants_runtime_privileges.sql',
   ]);
   assert.equal(migrationProfiles['f09-local'].target, 'local');
   assert.deepEqual(migrationProfiles['f09-local'].migrations, [
     ...migrationProfiles['f09-lab'].migrations,
     '019_f03_resource_grants.sql',
     '020_f10_support_consent.sql',
+    '022_f11_wireguard.sql',
+    '023_f03_resource_grants_runtime_privileges.sql',
   ]);
-  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_')));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_') || file.startsWith('022_') || file.startsWith('023_')));
 });
 
 test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes 016', () => {
   const ga01 = migrationProfiles['ga01-local'].migrations;
   assert.equal(migrationProfiles['ga01-local'].target, 'local');
-  assert.deepEqual(ga01.slice(0, -2), migrationProfiles['f09-lab'].migrations);
-  assert.equal(ga01.at(-2), '018_ga01_assignment_permissions.sql');
-  assert.equal(ga01.at(-1), '019_f03_resource_grants.sql');
+  assert.deepEqual(ga01.slice(0, -3), migrationProfiles['f09-lab'].migrations);
+  assert.equal(ga01.at(-3), '018_ga01_assignment_permissions.sql');
+  assert.equal(ga01.at(-2), '019_f03_resource_grants.sql');
+  assert.equal(ga01.at(-1), '023_f03_resource_grants_runtime_privileges.sql');
   assert.ok(!ga01.some(file => file.startsWith('016_')));
 });
 
-test('production profile is exactly the ordered 001-022 sequence and guarded from implicit execution', () => {
+test('production profile is exactly the ordered 001-023 sequence and guarded from implicit execution', () => {
   const production = migrationProfiles.production;
   assert.equal(production.target, 'production');
   assert.deepEqual(production.migrations, migrationProfiles['f11-local'].migrations);
-  assert.deepEqual(production.migrations.map(file => Number(file.slice(0, 3))), Array.from({ length: 22 }, (_, index) => index + 1));
+  assert.deepEqual(production.migrations.map(file => Number(file.slice(0, 3))), Array.from({ length: 23 }, (_, index) => index + 1));
 
   const result = spawnSync(process.execPath, ['scripts/migrate.mjs', '--profile', 'production'], {
     encoding: 'utf8',
@@ -46,7 +52,7 @@ test('production profile is exactly the ordered 001-022 sequence and guarded fro
   assert.doesNotMatch(result.stderr, /ECONNREFUSED/u, 'guard must reject before attempting a database connection');
 });
 
-test('production migration dry-run lists all 22 files without DATABASE_URL or confirmation', () => {
+test('production migration dry-run lists all 23 files without DATABASE_URL or confirmation', () => {
   const env = { ...process.env };
   delete env.DATABASE_URL;
   delete env.NEXO_MIGRATION_TARGET;
@@ -54,20 +60,25 @@ test('production migration dry-run lists all 22 files without DATABASE_URL or co
     encoding: 'utf8', env,
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Perfil production \(production\): 22 migraciones/u);
+  assert.match(result.stdout, /Perfil production \(production\): 23 migraciones/u);
   assert.match(result.stdout, /^001_l02_identity\.sql /mu);
   assert.match(result.stdout, /^022_f11_wireguard\.sql /mu);
+  assert.match(result.stdout, /^023_f03_resource_grants_runtime_privileges\.sql /mu);
   assert.doesNotMatch(result.stdout, /APPLY /u);
 });
 
 test('F10 support consent is local-only and follows the verified F03 grant migration', () => {
   const f10 = migrationProfiles['f10-local'];
   assert.equal(f10.target, 'local');
-  assert.equal(f10.migrations.at(-3), '019_f03_resource_grants.sql');
-  assert.equal(f10.migrations.at(-2), '020_f10_support_consent.sql');
-  assert.equal(f10.migrations.at(-1), '021_f10_support_lifecycle.sql');
+  assert.equal(f10.migrations.at(-5), '019_f03_resource_grants.sql');
+  assert.equal(f10.migrations.at(-4), '020_f10_support_consent.sql');
+  assert.equal(f10.migrations.at(-3), '021_f10_support_lifecycle.sql');
+  assert.equal(f10.migrations.at(-2), '022_f11_wireguard.sql');
+  assert.equal(f10.migrations.at(-1), '023_f03_resource_grants_runtime_privileges.sql');
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('020_f10_support_consent.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('021_f10_support_lifecycle.sql'));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.includes('022_f11_wireguard.sql'));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.includes('023_f03_resource_grants_runtime_privileges.sql'));
 });
 
 test('F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile', () => {
@@ -85,8 +96,36 @@ test('F08 local profile includes the runtime closure and retains credential rota
     ...f09.slice(0, 15),
     '016_f07_vpn_credential_rotation.sql',
     ...f09.slice(15),
+    '023_f03_resource_grants_runtime_privileges.sql',
+  ]);
+});
+
+test('forward resource-grant privilege migration follows every profile that applies 019 and stays least-privilege', async () => {
+  const grantMigration = '023_f03_resource_grants_runtime_privileges.sql';
+  for (const [name, profile] of Object.entries(migrationProfiles)) {
+    const resourceGrantIndex = profile.migrations.indexOf('019_f03_resource_grants.sql');
+    const privilegeIndex = profile.migrations.indexOf(grantMigration);
+    if (profile.testOnly) {
+      assert.equal(name, 'f10-upgrade-seed-local');
+      assert.ok(resourceGrantIndex >= 0);
+      assert.equal(privilegeIndex, -1, 'historical seed must stop before the forward migration being tested');
+      continue;
+    }
+    assert.equal(privilegeIndex >= 0, resourceGrantIndex >= 0, `${name} must include 023 iff it includes 019`);
+    if (resourceGrantIndex >= 0) assert.ok(privilegeIndex > resourceGrantIndex, `${name} must apply 023 after 019`);
+  }
+
+  assert.deepEqual(migrationProfiles['f10-upgrade-seed-local'].migrations, [
+    ...migrationProfiles['f09-lab'].migrations,
+    '019_f03_resource_grants.sql',
     '020_f10_support_consent.sql',
   ]);
+
+  const sql = await readFile(new URL('../db/migrations/023_f03_resource_grants_runtime_privileges.sql', import.meta.url), 'utf8');
+  const body = stripMigrationTransaction(sql, grantMigration);
+  assert.match(body, /IF EXISTS \(SELECT 1 FROM pg_roles WHERE rolname='nexo_runtime'\)/u);
+  assert.match(body, /GRANT SELECT, INSERT, UPDATE ON resource_grants TO nexo_runtime/u);
+  assert.doesNotMatch(body, /GRANT[^;]*DELETE/u);
 });
 
 test('016 appears in disposable F07/F08/F11 profiles and in the complete production baseline', () => {
@@ -120,6 +159,11 @@ test('F03 resource-grant migration is atomic and encodes tenant/resource constra
   assert.match(body, /ENABLE ROW LEVEL SECURITY;\s*ALTER TABLE resource_grants FORCE ROW LEVEL SECURITY/u);
   assert.match(body, /valid_until IS NULL OR valid_until>valid_from/u);
   assert.match(body, /WHERE revoked_at IS NULL/u);
+});
+
+test('historical 019 checksum stays unchanged after its manual lab application', async () => {
+  const sql = await readFile(new URL('../db/migrations/019_f03_resource_grants.sql', import.meta.url), 'utf8');
+  assert.equal(createHash('sha256').update(sql).digest('hex'), '4472fd3dc20f3fcd2a055e35fed0114cb71d8b04d1287af5053d77d615df71c3');
 });
 
 test('F10 migration persists consent with tenant/device RLS and limits contracted mode to assisted support', async () => {

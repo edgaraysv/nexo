@@ -75,7 +75,7 @@ try {
   }
   if (!ready) throw new Error('PostgreSQL did not become ready');
 
-  const port = runMigrationProfile(container, 'f09-local', password);
+  const port = runMigrationProfile(container, 'f10-upgrade-seed-local', password);
   psql(`
     INSERT INTO tenants(id,slug,display_name) VALUES('${TENANT}','f10-local','F10 Local');
     INSERT INTO users(id,email,password_hash) VALUES('${USER}','f10@example.test','fixture');

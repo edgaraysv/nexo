@@ -26,7 +26,8 @@ const migrations = [
   '018_ga01_assignment_permissions.sql',
   '019_f03_resource_grants.sql',
   '020_f10_support_consent.sql',
-  '021_f10_support_lifecycle.sql'
+  '021_f10_support_lifecycle.sql',
+  '023_f03_resource_grants_runtime_privileges.sql',
 ];
 
 function run(command, args, options = {}) {
@@ -52,7 +53,14 @@ try {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
   }
   if (!ready) throw new Error('PostgreSQL did not become ready');
+  psql('CREATE ROLE nexo_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS');
   for (const migration of migrations) psql(await readFile(`db/migrations/${migration}`, 'utf8'));
+
+  const resourceGrantMigrationMissing = Number(psql("SELECT count(*) FROM (VALUES ('SELECT'),('INSERT'),('UPDATE')) required(privilege) WHERE NOT has_table_privilege('nexo_runtime','public.resource_grants',privilege)"));
+  const resourceGrantMigrationDelete = psql("SELECT has_table_privilege('nexo_runtime','public.resource_grants','DELETE')");
+  assert.equal(resourceGrantMigrationMissing, 0, '023 must grant the runtime SELECT/INSERT/UPDATE privileges before centralized grants');
+  assert.equal(resourceGrantMigrationDelete, 'f', '023 must not grant DELETE on resource_grants');
+
   psql(await readFile('infra/aws/lab/nexo-runtime.sql', 'utf8'));
 
   const tableCount = Number(psql("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p')"));
@@ -100,7 +108,7 @@ try {
   assert.equal(publicTableGrants, 0);
   assert.equal(revisionFunctionRuntime, 't');
   assert.equal(revisionFunctionPublic, 'f');
-  console.log(JSON.stringify({ phase: 'runtime-grants', migrations: migrations.length, tables: tableCount, ownership: 'PASS', leastPrivilege: 'PASS', delete: 'ALLOWLISTED (2 TABLES)', f04: 'PASS', f06: 'PASS', f07: 'PASS', f08: 'PASS', f03ResourceGrants: 'PASS', f10SupportConsent: 'PASS', f10SupportLifecycle: 'PASS', heartbeats: 'PASS', rls: 'PASS', image }));
+  console.log(JSON.stringify({ phase: 'runtime-grants', migrations: migrations.length, tables: tableCount, ownership: 'PASS', leastPrivilege: 'PASS', delete: 'ALLOWLISTED (2 TABLES)', f04: 'PASS', f06: 'PASS', f07: 'PASS', f08: 'PASS', f03ResourceGrantMigration: 'PASS', f03ResourceGrants: 'PASS', f10SupportConsent: 'PASS', f10SupportLifecycle: 'PASS', heartbeats: 'PASS', rls: 'PASS', image }));
 } finally {
   spawnSync('docker', ['rm', '-f', name], { stdio: 'ignore' });
 }

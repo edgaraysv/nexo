@@ -18,8 +18,9 @@ const migrations001To015 = Object.freeze([
 
 const f09Base = Object.freeze([...migrations001To015, '017_f09_reporting_permissions.sql']);
 const f09 = Object.freeze([...f09Base, '019_f03_resource_grants.sql']);
-const f09Local = Object.freeze([...f09, '020_f10_support_consent.sql']);
-const f10 = Object.freeze([...f09Local, '021_f10_support_lifecycle.sql']);
+const f10UpgradeSeed = Object.freeze([...f09, '020_f10_support_consent.sql']);
+const f09Local = Object.freeze([...f10UpgradeSeed, '022_f11_wireguard.sql', '023_f03_resource_grants_runtime_privileges.sql']);
+const f10 = Object.freeze([...f10UpgradeSeed, '021_f10_support_lifecycle.sql', '022_f11_wireguard.sql', '023_f03_resource_grants_runtime_privileges.sql']);
 const f11 = Object.freeze([
   ...migrations001To015,
   '016_f07_vpn_credential_rotation.sql',
@@ -29,8 +30,9 @@ const f11 = Object.freeze([
   '020_f10_support_consent.sql',
   '021_f10_support_lifecycle.sql',
   '022_f11_wireguard.sql',
+  '023_f03_resource_grants_runtime_privileges.sql',
 ]);
-const f08 = Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', ...f09.slice(migrations001To015.length), '020_f10_support_consent.sql']);
+const f08 = Object.freeze([...migrations001To015, '016_f07_vpn_credential_rotation.sql', ...f09.slice(migrations001To015.length), '020_f10_support_consent.sql', '022_f11_wireguard.sql', '023_f03_resource_grants_runtime_privileges.sql']);
 const f07 = Object.freeze([...f08]);
 
 export const migrationProfiles = Object.freeze({
@@ -39,6 +41,8 @@ export const migrationProfiles = Object.freeze({
   // The local profile adds F03 resource grants; the lab profile remains unchanged.
   'f09-local': Object.freeze({ migrations: f09Local, target: 'local' }),
   'f09-lab': Object.freeze({ migrations: f09Base, target: 'lab' }),
+  // Test-only historical cut for seeding legacy rows before the 021 upgrade; not an operational profile.
+  'f10-upgrade-seed-local': Object.freeze({ migrations: f10UpgradeSeed, target: 'local', testOnly: true }),
   // F10 support consent is local-only until its policy and native prompt are accepted.
   'f10-local': Object.freeze({ migrations: f10, target: 'local' }),
   'f11-local': Object.freeze({ migrations: f11, target: 'local' }),
@@ -48,7 +52,7 @@ export const migrationProfiles = Object.freeze({
   'f08-local': Object.freeze({ migrations: f08, target: 'local' }),
   // GA-01 is local-only, applies 018 after F09 and then the F03 resource-grant closure.
   'ga01-local': Object.freeze({
-    migrations: Object.freeze([...f09Base, '018_ga01_assignment_permissions.sql', '019_f03_resource_grants.sql']),
+    migrations: Object.freeze([...f09Base, '018_ga01_assignment_permissions.sql', '019_f03_resource_grants.sql', '023_f03_resource_grants_runtime_privileges.sql']),
     target: 'local',
   }),
 });
