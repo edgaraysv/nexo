@@ -16,6 +16,7 @@ const companyLinks = [
   { label: 'Usuarios y equipos', to: '/admin/company/people' },
   { label: 'Redes y políticas', to: '/admin/company/networks' },
   { label: 'Operaciones y auditoría', to: '/admin/company/activity' },
+  { label: 'Soporte', to: '/admin/company/support' },
 ];
 
 export default function Shell() {

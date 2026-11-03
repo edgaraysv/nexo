@@ -9,6 +9,11 @@ import ProviderCommercialPage from './pages/provider/ProviderCommercialPage';
 import ProviderInfraPage from './pages/provider/ProviderInfraPage';
 import ProviderWireGuardPage from './pages/provider/ProviderWireGuardPage';
 import ProviderReportsPage from './pages/provider/ProviderReportsPage';
+import CompanySummaryPage from './pages/company/CompanySummaryPage';
+import CompanyPeoplePage from './pages/company/CompanyPeoplePage';
+import CompanyNetworksPage from './pages/company/CompanyNetworksPage';
+import CompanyActivityPage from './pages/company/CompanyActivityPage';
+import CompanySupportPage from './pages/company/CompanySupportPage';
 
 function RequireAuth() {
   const { session } = useAuth();
@@ -23,20 +28,6 @@ function AdminRedirect() {
       to={session.surface === 'provider' ? '/admin/provider/summary' : '/admin/company/summary'}
       replace
     />
-  );
-}
-
-function SurfacePage({ surface, title }: { surface: 'provider' | 'company'; title: string }) {
-  const { session } = useAuth();
-  if (!session) return <LoginPage />;
-  if (session.surface !== surface) {
-    return <Navigate to={session.surface === 'provider' ? '/admin/provider/summary' : '/admin/company/summary'} replace />;
-  }
-  return (
-    <section aria-labelledby="page-title">
-      <h1 id="page-title">{title}</h1>
-      <p>(migración pendiente)</p>
-    </section>
   );
 }
 
@@ -56,6 +47,13 @@ function RequireProvider({ children }: { children: ReactNode }) {
   return children;
 }
 
+function RequireCompany({ children }: { children: ReactNode }) {
+  const { session } = useAuth();
+  if (!session) return <LoginPage />;
+  if (session.surface !== 'company') return <Navigate to="/admin/provider/summary" replace />;
+  return children;
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -69,10 +67,11 @@ export default function App() {
             <Route path="provider/infra" element={<RequireProvider><ProviderInfraPage /></RequireProvider>} />
             <Route path="provider/wireguard" element={<RequireProvider><ProviderWireGuardPage /></RequireProvider>} />
             <Route path="provider/reports" element={<RequireProvider><ProviderReportsPage /></RequireProvider>} />
-            <Route path="company/summary" element={<SurfacePage surface="company" title="Resumen de la empresa" />} />
-            <Route path="company/people" element={<SurfacePage surface="company" title="Usuarios y equipos" />} />
-            <Route path="company/networks" element={<SurfacePage surface="company" title="Redes y políticas" />} />
-            <Route path="company/activity" element={<SurfacePage surface="company" title="Operaciones y auditoría" />} />
+            <Route path="company/summary" element={<RequireCompany><CompanySummaryPage /></RequireCompany>} />
+            <Route path="company/people" element={<RequireCompany><CompanyPeoplePage /></RequireCompany>} />
+            <Route path="company/networks" element={<RequireCompany><CompanyNetworksPage /></RequireCompany>} />
+            <Route path="company/activity" element={<RequireCompany><CompanyActivityPage /></RequireCompany>} />
+            <Route path="company/support" element={<RequireCompany><CompanySupportPage /></RequireCompany>} />
           </Route>
           <Route path="/account" element={<RequireAuth />}>
             <Route index element={<AccountPage />} />
