@@ -10,6 +10,19 @@ interface CompanyUser {
   roles: string[];
 }
 
+interface CompanySite {
+  id: string;
+  name: string;
+}
+
+interface DeclaredDevice {
+  id: string;
+  siteId?: string;
+  name: string;
+  platform: string;
+  status: string;
+}
+
 interface ExportGrant {
   role: string;
   enabled: boolean;
@@ -47,11 +60,14 @@ export default function CompanyPeoplePage() {
   const api = useApi();
   const { session } = useAuth();
   const permissions = session?.permissions ?? [];
-  const isAdmin = session?.role === 'admin' || session?.role.split(', ').includes('company.admin') === true;
-  const canManageExports = isAdmin || permissions.includes('company.report.manage') || permissions.includes('company.user.roles.manage');
+  const canCreateDevice = permissions.includes('company.device.create');
+  const canInviteDevice = permissions.includes('company.agent.invite');
+  const canManageExports = permissions.includes('company.resource_grant.manage');
   const [users, setUsers] = useState<CompanyUser[]>([]);
+  const [sites, setSites] = useState<CompanySite[]>([]);
   const [grants, setGrants] = useState<ExportGrant[]>([]);
   const [usersState, setUsersState] = useState<LoadState>({ status: 'loading' });
+  const [sitesState, setSitesState] = useState<LoadState>(canCreateDevice ? { status: 'loading' } : { status: 'ready' });
   const [grantsState, setGrantsState] = useState<LoadState>(canManageExports ? { status: 'loading' } : { status: 'ready' });
   const [invitation, setInvitation] = useState<DeviceInvitation | null>(null);
   const [deviceKind, setDeviceKind] = useState<'endpoint' | 'gateway'>('endpoint');
@@ -61,6 +77,21 @@ export default function CompanyPeoplePage() {
   const [confirmPending, setConfirmPending] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (!canCreateDevice) return;
+    let current = true;
+    void api.get<ItemsResponse<CompanySite>>('/v1/company/sites')
+      .then((response) => {
+        if (!current) return;
+        setSites(response.items);
+        setSitesState({ status: 'ready' });
+      })
+      .catch((reason: unknown) => {
+        if (current) setSitesState(failed(reason));
+      });
+    return () => { current = false; };
+  }, [api, canCreateDevice]);
 
   useEffect(() => {
     let current = true;
@@ -89,6 +120,30 @@ export default function CompanyPeoplePage() {
     });
     return () => { current = false; };
   }, [api, canManageExports]);
+
+  async function registerDevice(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const siteId = String(values.get('site_id') ?? '');
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await api.post<DeclaredDevice>('/v1/company/devices', {
+        name: String(values.get('name') ?? '').trim(),
+        platform: String(values.get('platform') ?? 'unknown'),
+        ...(siteId ? { site_id: siteId } : {}),
+      });
+      setNotice('Dispositivo declarado.');
+      form.reset();
+    } catch (reason) {
+      setError(reason instanceof ApiError ? reason.code : 'request_failed');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function createInvitation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -170,25 +225,57 @@ export default function CompanyPeoplePage() {
         )}
       </Card>
 
-      <Card heading="Invitación de dispositivo">
-        <form className="nx-row" onSubmit={createInvitation}>
-          <label className="nx-field">
-            <span>Tipo de dispositivo</span>
-            <select className="nx-select" value={deviceKind} onChange={(event) => setDeviceKind(event.target.value === 'gateway' ? 'gateway' : 'endpoint')}>
-              <option value="endpoint">Endpoint</option>
-              <option value="gateway">Gateway</option>
-            </select>
-          </label>
-          <Button type="submit" disabled={busy}>{busy ? 'Creando…' : 'Crear invitación (un uso)'}</Button>
-        </form>
-        {invitation && (
-          <div>
-            <p>Guarda el token ahora: no se vuelve a mostrar. Vigencia: 15 minutos.</p>
-            <pre className="nx-pre">{invitation.token}</pre>
-            <Button type="button" variant="secondary" onClick={() => void copyInvitationToken()}>Copiar token</Button>
-          </div>
-        )}
-      </Card>
+      {canCreateDevice && (
+        <Card heading="Registrar dispositivo">
+          {renderLoadState(sitesState)}
+          <form className="nx-row" onSubmit={registerDevice}>
+            <label className="nx-field">
+              <span>Sede (opcional)</span>
+              <select className="nx-select" name="site_id" defaultValue="">
+                <option value="">Sin sede</option>
+                {sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
+              </select>
+            </label>
+            <label className="nx-field">
+              <span>Plataforma</span>
+              <select className="nx-select" name="platform" defaultValue="windows">
+                <option value="windows">Windows</option>
+                <option value="linux">Linux</option>
+                <option value="macos">macOS</option>
+                <option value="gateway">Gateway</option>
+                <option value="unknown">Desconocida</option>
+              </select>
+            </label>
+            <label className="nx-field">
+              <span>Nombre</span>
+              <input className="nx-input" name="name" required maxLength={160} />
+            </label>
+            <Button type="submit" disabled={busy}>{busy ? 'Registrando…' : 'Registrar dispositivo'}</Button>
+          </form>
+        </Card>
+      )}
+
+      {canInviteDevice && (
+        <Card heading="Invitación de dispositivo">
+          <form className="nx-row" onSubmit={createInvitation}>
+            <label className="nx-field">
+              <span>Tipo de dispositivo</span>
+              <select className="nx-select" value={deviceKind} onChange={(event) => setDeviceKind(event.target.value === 'gateway' ? 'gateway' : 'endpoint')}>
+                <option value="endpoint">Endpoint</option>
+                <option value="gateway">Gateway</option>
+              </select>
+            </label>
+            <Button type="submit" disabled={busy}>{busy ? 'Creando…' : 'Crear invitación (un uso)'}</Button>
+          </form>
+          {invitation && (
+            <div>
+              <p>Guarda el token ahora: no se vuelve a mostrar. Vigencia: 15 minutos.</p>
+              <pre className="nx-pre">{invitation.token}</pre>
+              <Button type="button" variant="secondary" onClick={() => void copyInvitationToken()}>Copiar token</Button>
+            </div>
+          )}
+        </Card>
+      )}
 
       {canManageExports && (
         <Card heading="Permisos de exportación">

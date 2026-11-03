@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, useApi } from '../../api';
+import { useAuth } from '../../auth/AuthContext';
 import { Button, Card, Input, Table } from '../../components';
 
 interface Site {
@@ -69,6 +70,17 @@ interface NetworkPolicy {
   revision: number;
 }
 
+interface NetworkDiagnostic {
+  decision: 'deny' | 'allow';
+  reason: 'default_deny' | 'explicit_deny' | 'configuration_pending' | 'policy_allows';
+  connectivity: 'not_tested';
+  profileRevision: number;
+  appliedRevision?: number;
+  pathMode: 'direct' | 'gateway';
+  returnMode: 'routed' | 'snat';
+  dnsMode: 'local' | 'split';
+}
+
 interface ItemsResponse<T> {
   items: T[];
 }
@@ -106,6 +118,10 @@ function normalizeAgents(items: ApiAgent[]): Agent[] {
 
 export default function CompanyNetworksPage() {
   const api = useApi();
+  const { session } = useAuth();
+  const permissions = session?.permissions ?? [];
+  const canManageNetwork = permissions.includes('company.network.manage');
+  const canDiagnoseNetwork = permissions.includes('company.network.diagnose');
   const [profiles, setProfiles] = useState<LoadState<NetworkProfile[]>>({ status: 'loading' });
   const [resources, setResources] = useState<LoadState<PrivateResource[]>>({ status: 'loading' });
   const [policies, setPolicies] = useState<LoadState<NetworkPolicy[]>>({ status: 'loading' });
@@ -124,6 +140,7 @@ export default function CompanyNetworksPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [diagnosticResult, setDiagnosticResult] = useState<NetworkDiagnostic | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -265,6 +282,30 @@ export default function CompanyNetworksPage() {
     }
   }
 
+  async function runDiagnostic(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const values = new FormData(event.currentTarget);
+    setBusy(true);
+    setError('');
+    setNotice('');
+    setDiagnosticResult(null);
+    try {
+      const result = await api.post<NetworkDiagnostic>('/v1/company/network-diagnostics', {
+        source_device_id: String(values.get('source_device_id') ?? ''),
+        resource_id: String(values.get('resource_id') ?? ''),
+        protocol: String(values.get('protocol') ?? 'tcp'),
+        port: Number(values.get('port')),
+      });
+      setDiagnosticResult(result);
+      setNotice('Evaluación de política completada; la conectividad real no fue probada.');
+    } catch (reason) {
+      setError(reason instanceof ApiError ? reason.code : 'request_failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section aria-labelledby="page-title">
       <h1 id="page-title">Redes y políticas</h1>
@@ -291,74 +332,76 @@ export default function CompanyNetworksPage() {
         )}
       </Card>
 
-      <Card heading="Crear perfil de red">
-        {statusMessage(sites, 'Cargando sedes…')}
-        {sites.status === 'ready' && (
-          <form className="nx-grid" onSubmit={createProfile}>
-            <label className="nx-field">
-              <span>Sede</span>
-              <select className="nx-select" value={selectedSiteId} onChange={(event) => setSelectedSiteId(event.target.value)} required>
-                <option value="" disabled>Selecciona una sede</option>
-                {siteItems.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
-              </select>
-            </label>
-            <Input label="ID del entorno VPN" name="vpn_environment_id" required maxLength={64} />
-            <Input label="Nombre" name="name" required maxLength={120} />
-            <label className="nx-field">
-              <span>Trayecto</span>
-              <select className="nx-select" value={pathMode} onChange={(event) => {
-                const next = event.target.value === 'gateway' ? 'gateway' : 'direct';
-                setPathMode(next);
-                if (next === 'direct') {
-                  setGatewayDeviceId('');
-                  setReturnMode('routed');
-                }
-              }}>
-                <option value="direct">Endpoint directo</option>
-                <option value="gateway">Gateway</option>
-              </select>
-            </label>
-            {pathMode === 'gateway' && (
+      {canManageNetwork && (
+        <Card heading="Crear perfil de red">
+          {statusMessage(sites, 'Cargando sedes…')}
+          {sites.status === 'ready' && (
+            <form className="nx-grid" onSubmit={createProfile}>
               <label className="nx-field">
-                <span>Gateway aprobado</span>
-                <select className="nx-select" value={gatewayDeviceId} onChange={(event) => setGatewayDeviceId(event.target.value)} required>
-                  <option value="" disabled>Selecciona un gateway</option>
-                  {approvedGateways.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+                <span>Sede</span>
+                <select className="nx-select" value={selectedSiteId} onChange={(event) => setSelectedSiteId(event.target.value)} required>
+                  <option value="" disabled>Selecciona una sede</option>
+                  {siteItems.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
                 </select>
               </label>
-            )}
-            <label className="nx-field">
-              <span>Modo de retorno</span>
-              <select className="nx-select" value={pathMode === 'direct' ? 'routed' : returnMode} disabled={pathMode === 'direct'} onChange={(event) => setReturnMode(event.target.value === 'snat' ? 'snat' : 'routed')}>
-                <option value="routed">routed</option>
-                <option value="snat">snat</option>
-              </select>
-            </label>
-            <label className="nx-field">
-              <span>DNS</span>
-              <select className="nx-select" value={dnsMode} onChange={(event) => {
-                const next = event.target.value === 'split' ? 'split' : 'local';
-                setDnsMode(next);
-                if (next === 'local') {
-                  setDnsServersText('');
-                  setDnsSuffixesText('');
-                }
-              }}>
-                <option value="local">local</option>
-                <option value="split">split</option>
-              </select>
-            </label>
-            <Input label="DNS servers (coma-separado)" value={dnsServersText} onChange={(event) => setDnsServersText(event.target.value)} disabled={dnsMode === 'local'} required={dnsMode === 'split'} placeholder="10.20.0.53" />
-            <Input label="DNS suffixes (coma-separado)" value={dnsSuffixesText} onChange={(event) => setDnsSuffixesText(event.target.value)} disabled={dnsMode === 'local'} required={dnsMode === 'split'} placeholder="corp.example" />
-            <Input label="Redes de sede (derivadas de la sede seleccionada)" value={selectedSite?.networks.join(', ') ?? ''} readOnly />
-            {pathMode === 'gateway' && agents.status !== 'ready' && statusMessage(agents, 'Cargando gateways aprobados…')}
-            {pathMode === 'gateway' && agents.status === 'ready' && approvedGateways.length === 0 && <p className="nx-muted">No hay gateways aprobados disponibles.</p>}
-            <Button type="submit" disabled={busy || !selectedSiteId || !selectedSite?.networks.length || (pathMode === 'gateway' && !gatewayDeviceId)}>
-              {busy ? 'Creando…' : 'Crear perfil'}
-            </Button>
-          </form>
-        )}
-      </Card>
+              <Input label="ID del entorno VPN" name="vpn_environment_id" required maxLength={64} />
+              <Input label="Nombre" name="name" required maxLength={120} />
+              <label className="nx-field">
+                <span>Trayecto</span>
+                <select className="nx-select" value={pathMode} onChange={(event) => {
+                  const next = event.target.value === 'gateway' ? 'gateway' : 'direct';
+                  setPathMode(next);
+                  if (next === 'direct') {
+                    setGatewayDeviceId('');
+                    setReturnMode('routed');
+                  }
+                }}>
+                  <option value="direct">Endpoint directo</option>
+                  <option value="gateway">Gateway</option>
+                </select>
+              </label>
+              {pathMode === 'gateway' && (
+                <label className="nx-field">
+                  <span>Gateway aprobado</span>
+                  <select className="nx-select" value={gatewayDeviceId} onChange={(event) => setGatewayDeviceId(event.target.value)} required>
+                    <option value="" disabled>Selecciona un gateway</option>
+                    {approvedGateways.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+                  </select>
+                </label>
+              )}
+              <label className="nx-field">
+                <span>Modo de retorno</span>
+                <select className="nx-select" value={pathMode === 'direct' ? 'routed' : returnMode} disabled={pathMode === 'direct'} onChange={(event) => setReturnMode(event.target.value === 'snat' ? 'snat' : 'routed')}>
+                  <option value="routed">routed</option>
+                  <option value="snat">snat</option>
+                </select>
+              </label>
+              <label className="nx-field">
+                <span>DNS</span>
+                <select className="nx-select" value={dnsMode} onChange={(event) => {
+                  const next = event.target.value === 'split' ? 'split' : 'local';
+                  setDnsMode(next);
+                  if (next === 'local') {
+                    setDnsServersText('');
+                    setDnsSuffixesText('');
+                  }
+                }}>
+                  <option value="local">local</option>
+                  <option value="split">split</option>
+                </select>
+              </label>
+              <Input label="DNS servers (coma-separado)" value={dnsServersText} onChange={(event) => setDnsServersText(event.target.value)} disabled={dnsMode === 'local'} required={dnsMode === 'split'} placeholder="10.20.0.53" />
+              <Input label="DNS suffixes (coma-separado)" value={dnsSuffixesText} onChange={(event) => setDnsSuffixesText(event.target.value)} disabled={dnsMode === 'local'} required={dnsMode === 'split'} placeholder="corp.example" />
+              <Input label="Redes de sede (derivadas de la sede seleccionada)" value={selectedSite?.networks.join(', ') ?? ''} readOnly />
+              {pathMode === 'gateway' && agents.status !== 'ready' && statusMessage(agents, 'Cargando gateways aprobados…')}
+              {pathMode === 'gateway' && agents.status === 'ready' && approvedGateways.length === 0 && <p className="nx-muted">No hay gateways aprobados disponibles.</p>}
+              <Button type="submit" disabled={busy || !selectedSiteId || !selectedSite?.networks.length || (pathMode === 'gateway' && !gatewayDeviceId)}>
+                {busy ? 'Creando…' : 'Crear perfil'}
+              </Button>
+            </form>
+          )}
+        </Card>
+      )}
 
       <Card heading="Recursos privados">
         {statusMessage(resources)}
@@ -370,10 +413,10 @@ export default function CompanyNetworksPage() {
             empty="No hay recursos privados."
           />
         )}
-        {profiles.status === 'loading' && <p className="nx-muted">Cargando perfiles para el formulario…</p>}
-        {profiles.status === 'forbidden' && <p>Sin permiso para crear recursos sin perfiles disponibles.</p>}
-        {profiles.status === 'error' && <p role="status">{profiles.code}</p>}
-        {profiles.status === 'ready' && (
+        {canManageNetwork && profiles.status === 'loading' && <p className="nx-muted">Cargando perfiles para el formulario…</p>}
+        {canManageNetwork && profiles.status === 'forbidden' && <p>Sin permiso para crear recursos sin perfiles disponibles.</p>}
+        {canManageNetwork && profiles.status === 'error' && <p role="status">{profiles.code}</p>}
+        {canManageNetwork && profiles.status === 'ready' && (
           <form className="nx-row" onSubmit={createResource}>
             <label className="nx-field">
               <span>Perfil</span>
@@ -414,13 +457,13 @@ export default function CompanyNetworksPage() {
             empty="No hay políticas de red."
           />
         )}
-        {profiles.status === 'loading' && <p className="nx-muted">Cargando perfiles…</p>}
-        {profiles.status === 'forbidden' && <p>Sin permiso.</p>}
-        {profiles.status === 'error' && <p role="status">{profiles.code}</p>}
-        {resources.status === 'loading' && <p className="nx-muted">Cargando recursos…</p>}
-        {resources.status === 'forbidden' && <p>Sin permiso.</p>}
-        {resources.status === 'error' && <p role="status">{resources.code}</p>}
-        {profiles.status === 'ready' && resources.status === 'ready' && (
+        {canManageNetwork && profiles.status === 'loading' && <p className="nx-muted">Cargando perfiles…</p>}
+        {canManageNetwork && profiles.status === 'forbidden' && <p>Sin permiso.</p>}
+        {canManageNetwork && profiles.status === 'error' && <p role="status">{profiles.code}</p>}
+        {canManageNetwork && resources.status === 'loading' && <p className="nx-muted">Cargando recursos…</p>}
+        {canManageNetwork && resources.status === 'forbidden' && <p>Sin permiso.</p>}
+        {canManageNetwork && resources.status === 'error' && <p role="status">{resources.code}</p>}
+        {canManageNetwork && profiles.status === 'ready' && resources.status === 'ready' && (
           <form className="nx-grid" onSubmit={createPolicy}>
             <label className="nx-field">
               <span>Perfil</span>
@@ -486,6 +529,45 @@ export default function CompanyNetworksPage() {
           </form>
         )}
       </Card>
+
+      {canDiagnoseNetwork && (
+        <Card heading="Diagnóstico">
+          {agents.status !== 'ready' && statusMessage(agents, 'Cargando endpoints aprobados…')}
+          {resources.status !== 'ready' && statusMessage(resources, 'Cargando recursos privados…')}
+          {agents.status === 'ready' && resources.status === 'ready' && (
+            <form className="nx-grid" onSubmit={runDiagnostic}>
+              <label className="nx-field">
+                <span>Endpoint origen</span>
+                <select className="nx-select" name="source_device_id" required defaultValue="">
+                  <option value="" disabled>Selecciona un endpoint aprobado</option>
+                  {approvedEndpoints.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+                </select>
+              </label>
+              <label className="nx-field">
+                <span>Recurso privado</span>
+                <select className="nx-select" name="resource_id" required defaultValue="">
+                  <option value="" disabled>Selecciona un recurso</option>
+                  {resourceItems.map((resource) => <option key={resource.id} value={resource.id}>{resource.name} · {resource.address}</option>)}
+                </select>
+              </label>
+              <label className="nx-field">
+                <span>Protocolo</span>
+                <select className="nx-select" name="protocol" defaultValue="tcp">
+                  <option value="tcp">TCP</option>
+                  <option value="udp">UDP</option>
+                </select>
+              </label>
+              <Input label="Puerto" name="port" type="number" min={1} max={65535} step={1} required />
+              <Button type="submit" disabled={busy || approvedEndpoints.length === 0 || resourceItems.length === 0}>
+                {busy ? 'Evaluando…' : 'Evaluar política y configuración'}
+              </Button>
+              {approvedEndpoints.length === 0 && <p className="nx-muted">No hay endpoints aprobados disponibles.</p>}
+              {resourceItems.length === 0 && <p className="nx-muted">No hay recursos privados disponibles.</p>}
+            </form>
+          )}
+          {diagnosticResult && <pre className="nx-pre">{JSON.stringify(diagnosticResult, null, 2)}</pre>}
+        </Card>
+      )}
 
       <p className="nx-status" role="status" aria-live="polite">{error || notice}</p>
     </section>

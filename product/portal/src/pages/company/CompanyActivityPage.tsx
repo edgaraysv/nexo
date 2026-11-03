@@ -110,12 +110,14 @@ export default function CompanyActivityPage() {
   const api = useApi();
   const { session } = useAuth();
   const permissions = session?.permissions ?? [];
+  const canCreateOperation = permissions.includes('company.operation.create');
+  const canReadAudit = permissions.includes('company.audit.read');
   const canExport = permissions.includes('company.report.export');
   const canExportSummary = canExport && permissions.includes('company.summary.read');
   const canExportAudit = canExport && permissions.includes('company.audit.read');
   const [operations, setOperations] = useState<LoadState<OperationView>>({ status: 'loading' });
   const [heartbeats, setHeartbeats] = useState<LoadState<HeartbeatRecord>>({ status: 'loading' });
-  const [audit, setAudit] = useState<LoadState<CompanyAuditEvent>>({ status: 'loading' });
+  const [audit, setAudit] = useState<LoadState<CompanyAuditEvent>>(canReadAudit ? { status: 'loading' } : { status: 'forbidden' });
   const [agents, setAgents] = useState<LoadState<Agent>>({ status: 'loading' });
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -124,10 +126,13 @@ export default function CompanyActivityPage() {
 
   useEffect(() => {
     let current = true;
+    const auditRequest = canReadAudit
+      ? api.get<ItemsResponse<CompanyAuditEvent>>('/v1/company/audit?page_size=50')
+      : Promise.resolve(undefined);
     void Promise.allSettled([
       api.get<ItemsResponse<OperationView>>('/v1/company/operations?page_size=50'),
       api.get<ItemsResponse<HeartbeatWire>>('/v1/company/heartbeats?page_size=50'),
-      api.get<ItemsResponse<CompanyAuditEvent>>('/v1/company/audit?page_size=50'),
+      auditRequest,
       api.get<ItemsResponse<AgentWire>>('/v1/company/agents?page_size=100'),
     ]).then(([operationsResult, heartbeatsResult, auditResult, agentsResult]) => {
       if (!current) return;
@@ -136,14 +141,16 @@ export default function CompanyActivityPage() {
       if (heartbeatsResult.status === 'fulfilled') {
         setHeartbeats({ status: 'ready', data: { ...heartbeatsResult.value, items: normalizeHeartbeats(heartbeatsResult.value.items) } });
       } else setHeartbeats(failed(heartbeatsResult.reason));
-      if (auditResult.status === 'fulfilled') setAudit({ status: 'ready', data: auditResult.value });
-      else setAudit(failed(auditResult.reason));
+      if (auditResult.status === 'fulfilled') {
+        if (auditResult.value) setAudit({ status: 'ready', data: auditResult.value });
+        else setAudit({ status: 'forbidden' });
+      } else setAudit(failed(auditResult.reason));
       if (agentsResult.status === 'fulfilled') {
         setAgents({ status: 'ready', data: { ...agentsResult.value, items: normalizeAgents(agentsResult.value.items) } });
       } else setAgents(failed(agentsResult.reason));
     });
     return () => { current = false; };
-  }, [api, refresh]);
+  }, [api, canReadAudit, refresh]);
 
   const operationItems = operations.status === 'ready' ? operations.data.items : [];
   const approvedAgents = agents.status === 'ready'
@@ -220,28 +227,30 @@ export default function CompanyActivityPage() {
       <h1 id="page-title">Operaciones y auditoría</h1>
       <p className="nx-lede">Los datos muestran fuente, cobertura y momento de lectura. Un heartbeat no demuestra conectividad a una aplicación.</p>
 
-      <Card heading="Solicitar diagnóstico">
-        {statusMessage(agents, 'Cargando dispositivos aprobados…')}
-        {agents.status === 'ready' && (
-          <form className="nx-row" onSubmit={requestDiagnostic}>
-            <label className="nx-field">
-              <span>Dispositivo</span>
-              <select className="nx-select" name="target_device_id" required defaultValue="">
-                <option value="" disabled>Selecciona un endpoint aprobado</option>
-                {approvedAgents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
-              </select>
-            </label>
-            <label className="nx-field">
-              <span>Diagnóstico</span>
-              <input className="nx-input" value="endpoint.runtime_info.v1" readOnly />
-            </label>
-            <Button type="submit" disabled={busy || approvedAgents.length === 0}>
-              {busy ? 'Solicitando…' : 'Solicitar diagnóstico'}
-            </Button>
-            {approvedAgents.length === 0 && <p className="nx-muted">No hay endpoints aprobados disponibles.</p>}
-          </form>
-        )}
-      </Card>
+      {canCreateOperation && (
+        <Card heading="Solicitar diagnóstico">
+          {statusMessage(agents, 'Cargando dispositivos aprobados…')}
+          {agents.status === 'ready' && (
+            <form className="nx-row" onSubmit={requestDiagnostic}>
+              <label className="nx-field">
+                <span>Dispositivo</span>
+                <select className="nx-select" name="target_device_id" required defaultValue="">
+                  <option value="" disabled>Selecciona un endpoint aprobado</option>
+                  {approvedAgents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+                </select>
+              </label>
+              <label className="nx-field">
+                <span>Diagnóstico</span>
+                <input className="nx-input" value="endpoint.runtime_info.v1" readOnly />
+              </label>
+              <Button type="submit" disabled={busy || approvedAgents.length === 0}>
+                {busy ? 'Solicitando…' : 'Solicitar diagnóstico'}
+              </Button>
+              {approvedAgents.length === 0 && <p className="nx-muted">No hay endpoints aprobados disponibles.</p>}
+            </form>
+          )}
+        </Card>
+      )}
 
       <Card heading="Operaciones">
         {statusMessage(operations)}
@@ -276,8 +285,9 @@ export default function CompanyActivityPage() {
       </Card>
 
       <Card heading="Auditoría">
-        {statusMessage(audit)}
-        {audit.status === 'ready' && (
+        {!canReadAudit && <p className="nx-muted">Sin permiso para ver eventos de auditoría.</p>}
+        {canReadAudit && statusMessage(audit)}
+        {canReadAudit && audit.status === 'ready' && (
           <Table
             headers={['Actor', 'Acción', 'Tipo de recurso', 'ID de recurso', 'Fecha']}
             rows={audit.data.items}
