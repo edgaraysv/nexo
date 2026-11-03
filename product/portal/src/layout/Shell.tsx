@@ -7,6 +7,7 @@ const providerLinks = [
   { label: 'Empresas', to: '/admin/provider/companies' },
   { label: 'Comercial', to: '/admin/provider/commercial' },
   { label: 'Nodos y VPN', to: '/admin/provider/infra' },
+  { label: 'WireGuard', to: '/admin/provider/wireguard' },
   { label: 'Reportes', to: '/admin/provider/reports' },
 ];
 
