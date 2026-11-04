@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Prototipo UX aislado de Nexo. Fixtures locales; sin conexión a APIs.">
+  <title>Nexo · Centro de control · Prototipo UX v2.1</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido principal</a>
+  <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div class="app">
+    <aside class="sidebar" aria-label="Navegación de escritorio">
+      <div class="brand"><strong>Nexo</strong><span>SYSMedia · producto Nexo</span><small>Placeholder de marca oficial</small></div>
+      <nav id="desktop-nav" class="nav-list" aria-label="Navegación principal"></nav>
+      <p class="sidebar-foot"><strong id="sidebar-role"></strong><span>Interfaz conceptual · sin conexión</span></p>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-row">
+          <div class="brand-small"><strong>Nexo</strong><span>SYSMedia · BRING SMART SOLUTIONS</span></div>
+          <button id="menu-button" class="button menu-button" type="button" aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false">☰ Menú</button>
+          <p id="breadcrumb" class="breadcrumb"></p>
+          <button id="theme-button" class="button secondary" type="button" aria-pressed="false">Activar tema oscuro</button>
+        </div>
+        <div class="context-row">
+          <div class="field"><label for="persona">Persona de prueba · no autentica</label><select id="persona"></select></div>
+          <div id="tenant-wrap" class="field"><label for="tenant">Ámbito visible</label><select id="tenant"></select></div>
+          <p id="scope-note" class="scope-note">El selector cambia fixtures locales; no concede permisos.</p>
+        </div>
+      </header>
+      <aside class="prototype-note" role="note"><strong>Prototipo aislado · datos sintéticos.</strong> No consulta API, no persiste cambios operativos y no modifica infraestructura. Soporte y respaldos no tienen acciones operativas.</aside>
+      <main id="main" tabindex="-1">
+        <header class="page-header">
+          <div><p id="surface-label" class="eyebrow"></p><h1 id="page-title"></h1><p id="page-lede" class="lede"></p></div>
+          <div id="page-actions" class="actions"></div>
+        </header>
+        <details class="state-control"><summary>Estados para revisión · solo demostración</summary><div class="state-options"><label for="state">Estado de pantalla</label><select id="state"><option value="normal">Normal · fixture local</option><option value="empty">Empty · sin registros</option><option value="loading">Loading · cargando</option><option value="error">Error · recuperable</option><option value="stale">Stale · observación vencida</option><option value="forbidden">Forbidden · sin permiso</option></select><span>Estos estados no verifican RBAC ni disponibilidad del backend.</span></div></details>
+        <section id="state-region" aria-live="polite"></section>
+        <section id="content"></section>
+        <footer>SYSMedia es la marca institucional y Nexo el producto. Placeholder sujeto a recibir el logo maestro aprobado. Tipografía del sistema; no se cargan fuentes externas. Sin afirmación de conformidad WCAG.</footer>
+      </main>
+    </div>
+  </div>
+  <dialog id="mobile-menu" aria-labelledby="mobile-menu-title"><div class="dialog-head"><div><h2 id="mobile-menu-title">Navegación</h2><p id="mobile-menu-context"></p></div><button class="close-dialog" type="button" data-close aria-label="Cerrar menú">×</button></div><div class="dialog-body"><nav id="mobile-nav" class="nav-list" aria-label="Navegación móvil"></nav></div></dialog>
+  <dialog id="device-dialog" class="drawer" aria-labelledby="device-title"><div class="dialog-head"><div><p class="eyebrow">Ficha de equipo · fixture</p><h2 id="device-title"></h2><p id="device-subtitle"></p></div><button class="close-dialog" type="button" data-close aria-label="Cerrar ficha">×</button></div><div id="device-detail" class="dialog-body"></div></dialog>
+  <dialog id="flow-dialog" aria-labelledby="flow-title"><div class="dialog-head"><div><p id="flow-progress" class="small"></p><h2 id="flow-title"></h2><p id="flow-lede"></p></div><button class="close-dialog" type="button" data-close aria-label="Cerrar recorrido">×</button></div><div id="flow-content" class="dialog-body"></div></dialog>
+</body>
+</html>

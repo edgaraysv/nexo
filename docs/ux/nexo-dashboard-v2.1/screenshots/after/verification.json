@@ -1,0 +1,1871 @@
+{
+  "date": "2026-11-04T02:20:20.214Z",
+  "browser": "chromium",
+  "devtoolsPort": 34481,
+  "viewportWidths": [
+    320,
+    768,
+    1440
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "taskCount": 14,
+  "screenshots": 89,
+  "assertions": [
+    {
+      "name": "UX-01 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-01 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-01 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-01 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-01 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-01 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-01 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-01 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-01 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-01 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-01 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-01 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-01 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-01 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-01 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-01 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-01 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-01 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-01 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-01 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-01 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-01 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-01 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-01 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-02 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":true,\"menuExpanded\":\"true\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-02 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-02 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-02 320px light: mobile menu opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 320px light: mobile links have visible contrast color",
+      "result": "PASS",
+      "detail": "{\"links\":9,\"color\":\"rgb(8, 43, 83)\"}"
+    },
+    {
+      "name": "UX-02 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":true,\"menuExpanded\":\"true\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-02 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-02 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-02 768px light: mobile menu opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 768px light: mobile links have visible contrast color",
+      "result": "PASS",
+      "detail": "{\"links\":9,\"color\":\"rgb(8, 43, 83)\"}"
+    },
+    {
+      "name": "UX-02 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-02 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-02 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-02 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":true,\"menuExpanded\":\"true\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-02 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-02 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-02 320px dark: mobile menu opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 320px dark: mobile links have visible contrast color",
+      "result": "PASS",
+      "detail": "{\"links\":9,\"color\":\"rgb(229, 237, 245)\"}"
+    },
+    {
+      "name": "UX-02 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":true,\"menuExpanded\":\"true\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-02 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-02 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-02 768px dark: mobile menu opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 768px dark: mobile links have visible contrast color",
+      "result": "PASS",
+      "detail": "{\"links\":9,\"color\":\"rgb(229, 237, 245)\"}"
+    },
+    {
+      "name": "UX-02 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-02 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-02 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-02 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-03 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-03 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-03 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-03 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-03 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-03 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-03 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-03 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-03 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-03 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-03 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-03 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-03 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-03 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-03 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-03 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-03 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-03 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-03 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-03 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-03 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-03 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-03 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-03 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-04 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-04 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-04 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-04 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-04 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":768,\"scrollWidth\":768,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-04 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=768; viewport=768"
+    },
+    {
+      "name": "UX-04 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-04 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-04 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":1440,\"scrollWidth\":1440,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-04 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1440; viewport=1440"
+    },
+    {
+      "name": "UX-04 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-04 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-04 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-04 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-04 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-04 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-04 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":768,\"scrollWidth\":768,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-04 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=768; viewport=768"
+    },
+    {
+      "name": "UX-04 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-04 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-04 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":1440,\"scrollWidth\":1440,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-04 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1440; viewport=1440"
+    },
+    {
+      "name": "UX-04 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-04 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-05 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-05 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-05 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-05 320px light: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-05 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-05 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-05 768px light: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-05 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-05 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-05 1440px light: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-05 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-05 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-05 320px dark: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-05 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-05 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-05 768px dark: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-05 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-05 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-05 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-05 1440px dark: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-06 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-06 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-06 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-06 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-06 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-06 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-06 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-06 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-06 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-06 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-06 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-06 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-06 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-06 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-06 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-06 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-06 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-06 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-06 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-06 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-06 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Resumen\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-06 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-06 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-06 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-07 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-07 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-07 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-07 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-07 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-07 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-07 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-07 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-07 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-07 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-07 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-07 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-07 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-07 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-07 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-07 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-07 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-07 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-07 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-07 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-07 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-07 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-07 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-07 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-08 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-08 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-08 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-08 320px light: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-08 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-08 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-08 768px light: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-08 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-08 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-08 1440px light: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-08 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-08 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-08 320px dark: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-08 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-08 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-08 768px dark: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":true,\"flowOpen\":false,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-08 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-08 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-08 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-08 1440px dark: device dialog opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":true,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-09 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-09 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-09 320px light: enrollment wizard opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":true,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-09 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-09 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-09 768px light: enrollment wizard opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":true,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-09 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-09 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-09 1440px light: enrollment wizard opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":true,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-09 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-09 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-09 320px dark: enrollment wizard opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":true,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-09 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-09 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-09 768px dark: enrollment wizard opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Dispositivos\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":true,\"mobileLinks\":7,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-09 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-09 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-09 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-09 1440px dark: enrollment wizard opens",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-10 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Actividad y auditoría\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":6,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-10 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-10 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-10 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-10 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Actividad y auditoría\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":6,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-10 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-10 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-10 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-10 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Actividad y auditoría\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":6,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-10 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-10 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-10 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-10 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Actividad y auditoría\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":6,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-10 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-10 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-10 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-10 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Actividad y auditoría\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":6,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-10 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-10 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-10 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-10 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Actividad y auditoría\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":6,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-10 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-10 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-10 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-11 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"VPN y revisiones\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-11 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-11 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-11 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-11 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"VPN y revisiones\",\"width\":768,\"scrollWidth\":768,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-11 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=768; viewport=768"
+    },
+    {
+      "name": "UX-11 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-11 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-11 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"VPN y revisiones\",\"width\":1440,\"scrollWidth\":1440,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-11 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1440; viewport=1440"
+    },
+    {
+      "name": "UX-11 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-11 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-11 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"VPN y revisiones\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-11 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-11 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-11 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-11 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"VPN y revisiones\",\"width\":768,\"scrollWidth\":768,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-11 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=768; viewport=768"
+    },
+    {
+      "name": "UX-11 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-11 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-11 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"VPN y revisiones\",\"width\":1440,\"scrollWidth\":1440,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":5,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-11 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1440; viewport=1440"
+    },
+    {
+      "name": "UX-11 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-11 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-12 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Cliente endpoint\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":1,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-12 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-12 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-12 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-12 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Cliente endpoint\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":1,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-12 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-12 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-12 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-12 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Cliente endpoint\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":1,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-12 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-12 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-12 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-12 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Cliente endpoint\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":1,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-12 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-12 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-12 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-12 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Cliente endpoint\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":1,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-12 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-12 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-12 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-12 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Cliente endpoint\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":1,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-12 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-12 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-12 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-13 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-13 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-13 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-13 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-13 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":768,\"scrollWidth\":768,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-13 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=768; viewport=768"
+    },
+    {
+      "name": "UX-13 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-13 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-13 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":1440,\"scrollWidth\":1440,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-13 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1440; viewport=1440"
+    },
+    {
+      "name": "UX-13 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-13 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-13 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-13 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-13 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-13 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-13 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":768,\"scrollWidth\":768,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-13 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=768; viewport=768"
+    },
+    {
+      "name": "UX-13 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-13 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-13 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Preferencias\",\"width\":1440,\"scrollWidth\":1440,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-13 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1440; viewport=1440"
+    },
+    {
+      "name": "UX-13 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-13 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-14 320px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Revisión UX local\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-14 320px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-14 320px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-14 320px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-14 768px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Revisión UX local\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-14 768px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-14 768px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-14 768px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-14 1440px light: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Revisión UX local\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(8, 43, 83)\",\"contextOverlap\":false,\"theme\":\"light\"}"
+    },
+    {
+      "name": "UX-14 1440px light: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-14 1440px light: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-14 1440px light: expected theme",
+      "result": "PASS",
+      "detail": "light"
+    },
+    {
+      "name": "UX-14 320px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Revisión UX local\",\"width\":320,\"scrollWidth\":320,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-14 320px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=320; viewport=320"
+    },
+    {
+      "name": "UX-14 320px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-14 320px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-14 768px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Revisión UX local\",\"width\":768,\"scrollWidth\":753,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-14 768px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=753; viewport=768"
+    },
+    {
+      "name": "UX-14 768px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-14 768px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "UX-14 1440px dark: rendered heading",
+      "result": "PASS",
+      "detail": "{\"title\":\"Revisión UX local\",\"width\":1440,\"scrollWidth\":1425,\"menuOpen\":false,\"menuExpanded\":\"false\",\"deviceOpen\":false,\"flowOpen\":false,\"mobileLinks\":9,\"mobileActiveColor\":\"rgb(229, 237, 245)\",\"contextOverlap\":false,\"theme\":\"dark\"}"
+    },
+    {
+      "name": "UX-14 1440px dark: no page horizontal overflow",
+      "result": "PASS",
+      "detail": "scrollWidth=1425; viewport=1440"
+    },
+    {
+      "name": "UX-14 1440px dark: scope controls and context note do not overlap",
+      "result": "PASS"
+    },
+    {
+      "name": "UX-14 1440px dark: expected theme",
+      "result": "PASS",
+      "detail": "dark"
+    },
+    {
+      "name": "Keyboard: first Tab exposes skip link",
+      "result": "PASS",
+      "detail": "{\"className\":\"skip-link\",\"text\":\"Saltar al contenido principal\"}"
+    },
+    {
+      "name": "Keyboard: mobile menu opens modally and focuses inside",
+      "result": "PASS",
+      "detail": "{\"open\":true,\"focusInDialog\":true,\"expanded\":\"true\"}"
+    },
+    {
+      "name": "Keyboard: Escape closes mobile menu and restores trigger focus",
+      "result": "PASS",
+      "detail": "{\"open\":false,\"focus\":\"menu-button\",\"expanded\":\"false\"}"
+    },
+    {
+      "name": "Keyboard: Enter reopens mobile menu from restored trigger",
+      "result": "PASS",
+      "detail": "{\"open\":true,\"expanded\":\"true\"}"
+    },
+    {
+      "name": "Keyboard: Tab reaches a route and stays within native menu dialog",
+      "result": "PASS",
+      "detail": "[{\"inside\":true,\"page\":\"overview\",\"tag\":\"A\"},{\"inside\":true,\"page\":\"devices\",\"tag\":\"A\"}]"
+    },
+    {
+      "name": "Keyboard: Enter activates mobile route and restores focus to main",
+      "result": "PASS",
+      "detail": "{\"open\":false,\"title\":\"Dispositivos\",\"focus\":\"main\",\"aria\":\"false\"}"
+    },
+    {
+      "name": "Keyboard: device drawer opens as modal and receives focus",
+      "result": "PASS",
+      "detail": "{\"open\":true,\"focusInDialog\":true}"
+    },
+    {
+      "name": "Keyboard: Escape closes device drawer and restores row trigger",
+      "result": "PASS",
+      "detail": "{\"open\":false,\"focusId\":\"a1\"}"
+    },
+    {
+      "name": "Keyboard 320px: device drawer opens and focuses inside",
+      "result": "PASS",
+      "detail": "{\"open\":true,\"focusInDialog\":true}"
+    },
+    {
+      "name": "Keyboard 320px: Escape restores focus to visible device card",
+      "result": "PASS",
+      "detail": "{\"open\":false,\"focusId\":\"a1\",\"visible\":true}"
+    },
+    {
+      "name": "Keyboard 768px: device drawer opens and focuses inside",
+      "result": "PASS",
+      "detail": "{\"open\":true,\"focusInDialog\":true}"
+    },
+    {
+      "name": "Keyboard 768px: Escape restores focus to visible device card",
+      "result": "PASS",
+      "detail": "{\"open\":false,\"focusId\":\"a1\",\"visible\":true}"
+    },
+    {
+      "name": "Wizard: invitation uses rejects zero before review",
+      "result": "PASS"
+    },
+    {
+      "name": "Keyboard: Tab reaches enrollment review action",
+      "result": "PASS",
+      "detail": "[{\"tag\":\"BUTTON\",\"id\":\"\",\"name\":\"\",\"action\":\"cancel-flow\",\"label\":null},{\"tag\":\"BUTTON\",\"id\":\"\",\"name\":\"\",\"action\":\"flow-next\",\"label\":null}]"
+    },
+    {
+      "name": "Wizard: Enter validates and advances to scope review",
+      "result": "PASS",
+      "detail": "{\"step\":\"Paso 2 de 3 · Revisión previa\",\"uses\":true}"
+    },
+    {
+      "name": "Wizard: simulated error preserves review values and announces alert",
+      "result": "PASS",
+      "detail": "{\"alert\":true,\"uses\":true}"
+    },
+    {
+      "name": "Wizard: return to edit preserves draft",
+      "result": "PASS",
+      "detail": "2"
+    },
+    {
+      "name": "State contract: empty is visible",
+      "result": "PASS"
+    },
+    {
+      "name": "State contract: loading is visible",
+      "result": "PASS"
+    },
+    {
+      "name": "State contract: error is visible",
+      "result": "PASS"
+    },
+    {
+      "name": "State contract: stale is visible",
+      "result": "PASS"
+    },
+    {
+      "name": "State contract: forbidden is visible",
+      "result": "PASS"
+    },
+    {
+      "name": "RBAC presentation: company.admin has no implicit report export",
+      "result": "PASS",
+      "detail": "true"
+    },
+    {
+      "name": "RBAC presentation: explicit company.report.export grant enables local export",
+      "result": "PASS"
+    },
+    {
+      "name": "Tenant fixtures: company B does not render company A device",
+      "result": "PASS",
+      "detail": "{\"hasB\":true,\"hasA\":false}"
+    },
+    {
+      "name": "Inventory: search/type/count/URL agree on one row",
+      "result": "PASS",
+      "detail": "{\"count\":\"1 de 5 equipos sintéticos\",\"query\":\"Demo A-05\",\"kind\":\"Gateway\",\"rows\":1}"
+    },
+    {
+      "name": "Inventory: CSV export contains precisely the filtered fixture row",
+      "result": "PASS",
+      "detail": "{\"intercepted\":true,\"rows\":2,\"hasSelected\":true,\"hasOther\":false,\"csvText\":\"\\\"Equipo\\\",\\\"Tipo\\\",\\\"Sede\\\",\\\"Agente\\\",\\\"VPN\\\",\\\"Recurso\\\",\\\"Observado\\\"\\r\\n\\\"Gateway Demo A-05\\\",\\\"Gateway\\\",\\\"Sucursal de ejemplo B\\\",\\\"Señal reciente\\\",\\\"Conectada · muestra\\\",\\\"Ruta no verificada\\\",\\\"18:10 CST · fixture\\\"\"}"
+    },
+    {
+      "name": "Scope switch: owner changes tenant and clears URL filters",
+      "result": "PASS",
+      "detail": "{\"tenant\":\"a\",\"search\":null,\"kind\":null,\"title\":\"Resumen\"}"
+    },
+    {
+      "name": "Scope selector: assigned provider operator cannot select an unassigned fixture",
+      "result": "PASS",
+      "detail": "{\"hidden\":true,\"options\":[\"a\"]}"
+    },
+    {
+      "name": "Prototype: no uncaught JavaScript runtime exceptions",
+      "result": "PASS"
+    },
+    {
+      "name": "Prototype: no external HTTP(S) requests",
+      "result": "PASS"
+    }
+  ],
+  "runtimeExceptions": [],
+  "externalRequests": [],
+  "result": "PASS"
+}
