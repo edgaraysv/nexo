@@ -16,7 +16,8 @@ import CompanyActivityPage from './pages/company/CompanyActivityPage';
 import CompanySupportPage from './pages/company/CompanySupportPage';
 
 function RequireAuth() {
-  const { session } = useAuth();
+  const { session, isRestoring } = useAuth();
+  if (isRestoring) return <main role="status" aria-busy="true">Verificando sesión…</main>;
   return session ? <Shell /> : <LoginPage />;
 }
 

@@ -59,8 +59,16 @@ test('L02 refuses arbitrary tenant and revocation invalidates subsequent request
   } finally { await app.close(); }
 });
 
-test('L02 sends the root route to the unified admin login and serves the MFA tenant selector there', async () => {
-  const { app } = await fixture(); try { const root = await app.inject({ method: 'GET', url: '/' }); assert.equal(root.statusCode, 302); assert.equal(root.headers.location, '/admin'); const page = await app.inject({ method: 'GET', url: '/admin' }); assert.equal(page.statusCode, 200); assert.match(page.body, /autocomplete="current-password"/); assert.match(page.body, /aria-live="polite"/); assert.match(page.body, /name="tenant_id"/); assert.equal(page.headers['cache-control'], 'no-store'); } finally { await app.close(); }
+test('L02 sends root and legacy admin routes to the React portal', async () => {
+  const { app } = await fixture(); try {
+    const root = await app.inject({ method: 'GET', url: '/' });
+    assert.equal(root.statusCode, 302);
+    assert.equal(root.headers.location, '/portal/admin');
+    const page = await app.inject({ method: 'GET', url: '/admin' });
+    assert.equal(page.statusCode, 302);
+    assert.equal(page.headers.location, '/portal/admin');
+    assert.equal(page.headers['cache-control'], 'no-store');
+  } finally { await app.close(); }
 });
 
 test('L02 recovery is non-enumerating, one-use and revokes existing sessions', async () => {

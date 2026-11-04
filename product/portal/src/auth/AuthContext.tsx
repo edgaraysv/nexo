@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 export interface Session {
   token: string;
@@ -35,6 +35,7 @@ interface MeResponse {
 
 interface AuthContextValue {
   session: Session | null;
+  isRestoring: boolean;
   login(email: string, password: string): Promise<{ challenge: string }>;
   verifyMfa(challenge: string, code: string): Promise<MfaResult>;
   selectProvider(selection: string): Promise<void>;
@@ -112,6 +113,21 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [pendingSessionToken] = useState(() =>
+    typeof window === 'undefined' ? null : window.sessionStorage.getItem('nexo_pending_session'),
+  );
+  const [isRestoring, setIsRestoring] = useState(Boolean(pendingSessionToken));
+  const restoreStarted = useRef(false);
+
+  useEffect(() => {
+    if (!pendingSessionToken || restoreStarted.current) return;
+    restoreStarted.current = true;
+    window.sessionStorage.removeItem('nexo_pending_session');
+    void request<MeResponse>('/v1/me', {}, pendingSessionToken)
+      .then(me => setSession(sessionFromMe(pendingSessionToken, me)))
+      .catch(() => setSession(null))
+      .finally(() => setIsRestoring(false));
+  }, [pendingSessionToken]);
 
   async function login(email: string, password: string) {
     const result = await request<LoginResponse>('/v1/auth/login', {
@@ -170,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, login, verifyMfa, selectProvider, selectCompany, logout, refreshMe }}
+      value={{ session, isRestoring, login, verifyMfa, selectProvider, selectCompany, logout, refreshMe }}
     >
       {children}
     </AuthContext.Provider>

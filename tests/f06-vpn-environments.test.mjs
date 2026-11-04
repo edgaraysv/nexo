@@ -169,16 +169,11 @@ test('F06 state change requires expected revision and blocks retired re-activati
   } finally { await app.close(); }
 });
 
-test('F06 exposes the minimal provider VPN administration interface', async () => {
+test('F06 routes legacy VPN administration to the React portal', async () => {
   const { app } = await setup(new MemoryVpnEnvironmentRepository(new Set([TENANT])));
   try {
     const page = await app.inject({ method: 'GET', url: '/provider/vpn' });
     assert.equal(page.statusCode, 302);
-    assert.equal(page.headers.location, '/admin#provider-infra');
-    const admin = await app.inject({ method: 'GET', url: '/admin' });
-    assert.match(admin.body, /name="tenant_id"/u);
-    assert.match(admin.body, /name="node_id"/u);
-    assert.match(admin.body, /name="tunnel_ipv4_cidr"/u);
-    assert.match(admin.body, /observado/u);
+    assert.equal(page.headers.location, '/portal/admin/provider/infra');
   } finally { await app.close(); }
 });
