@@ -9,12 +9,13 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
   const expected = [...Array.from({ length: 15 }, (_, index) => `${String(index + 1).padStart(3, '0')}_`), '017_'];
   assert.equal(migrationProfiles['f09-lab'].migrations.length, 16);
   assert.deepEqual(migrationProfiles['f09-lab'].migrations.map(file => file.slice(0, 4)), expected);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -4), migrationProfiles['f09-lab'].migrations);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(-4), [
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -5), migrationProfiles['f09-lab'].migrations);
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(-5), [
     '019_f03_resource_grants.sql',
     '020_f10_support_consent.sql',
     '022_f11_wireguard.sql',
     '023_f03_resource_grants_runtime_privileges.sql',
+    '024_f10_support_runtime_privileges.sql',
   ]);
   assert.equal(migrationProfiles['f09-local'].target, 'local');
   assert.deepEqual(migrationProfiles['f09-local'].migrations, [
@@ -23,8 +24,9 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
     '020_f10_support_consent.sql',
     '022_f11_wireguard.sql',
     '023_f03_resource_grants_runtime_privileges.sql',
+    '024_f10_support_runtime_privileges.sql',
   ]);
-  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_') || file.startsWith('022_') || file.startsWith('023_')));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_') || file.startsWith('022_') || file.startsWith('023_') || file.startsWith('024_')));
 });
 
 test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes 016', () => {
@@ -37,11 +39,11 @@ test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes
   assert.ok(!ga01.some(file => file.startsWith('016_')));
 });
 
-test('production profile is exactly the ordered 001-023 sequence and guarded from implicit execution', () => {
+test('production profile is exactly the ordered 001-024 sequence and guarded from implicit execution', () => {
   const production = migrationProfiles.production;
   assert.equal(production.target, 'production');
   assert.deepEqual(production.migrations, migrationProfiles['f11-local'].migrations);
-  assert.deepEqual(production.migrations.map(file => Number(file.slice(0, 3))), Array.from({ length: 23 }, (_, index) => index + 1));
+  assert.deepEqual(production.migrations.map(file => Number(file.slice(0, 3))), Array.from({ length: 24 }, (_, index) => index + 1));
 
   const result = spawnSync(process.execPath, ['scripts/migrate.mjs', '--profile', 'production'], {
     encoding: 'utf8',
@@ -52,7 +54,7 @@ test('production profile is exactly the ordered 001-023 sequence and guarded fro
   assert.doesNotMatch(result.stderr, /ECONNREFUSED/u, 'guard must reject before attempting a database connection');
 });
 
-test('production migration dry-run lists all 23 files without DATABASE_URL or confirmation', () => {
+test('production migration dry-run lists all 24 files without DATABASE_URL or confirmation', () => {
   const env = { ...process.env };
   delete env.DATABASE_URL;
   delete env.NEXO_MIGRATION_TARGET;
@@ -60,25 +62,28 @@ test('production migration dry-run lists all 23 files without DATABASE_URL or co
     encoding: 'utf8', env,
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Perfil production \(production\): 23 migraciones/u);
+  assert.match(result.stdout, /Perfil production \(production\): 24 migraciones/u);
   assert.match(result.stdout, /^001_l02_identity\.sql /mu);
   assert.match(result.stdout, /^022_f11_wireguard\.sql /mu);
   assert.match(result.stdout, /^023_f03_resource_grants_runtime_privileges\.sql /mu);
+  assert.match(result.stdout, /^024_f10_support_runtime_privileges\.sql /mu);
   assert.doesNotMatch(result.stdout, /APPLY /u);
 });
 
 test('F10 support consent is local-only and follows the verified F03 grant migration', () => {
   const f10 = migrationProfiles['f10-local'];
   assert.equal(f10.target, 'local');
-  assert.equal(f10.migrations.at(-5), '019_f03_resource_grants.sql');
-  assert.equal(f10.migrations.at(-4), '020_f10_support_consent.sql');
-  assert.equal(f10.migrations.at(-3), '021_f10_support_lifecycle.sql');
-  assert.equal(f10.migrations.at(-2), '022_f11_wireguard.sql');
-  assert.equal(f10.migrations.at(-1), '023_f03_resource_grants_runtime_privileges.sql');
+  assert.equal(f10.migrations.at(-6), '019_f03_resource_grants.sql');
+  assert.equal(f10.migrations.at(-5), '020_f10_support_consent.sql');
+  assert.equal(f10.migrations.at(-4), '021_f10_support_lifecycle.sql');
+  assert.equal(f10.migrations.at(-3), '022_f11_wireguard.sql');
+  assert.equal(f10.migrations.at(-2), '023_f03_resource_grants_runtime_privileges.sql');
+  assert.equal(f10.migrations.at(-1), '024_f10_support_runtime_privileges.sql');
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('020_f10_support_consent.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('021_f10_support_lifecycle.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('022_f11_wireguard.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('023_f03_resource_grants_runtime_privileges.sql'));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.includes('024_f10_support_runtime_privileges.sql'));
 });
 
 test('F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile', () => {
@@ -90,13 +95,14 @@ test('F07 PostgreSQL fixture combines credential rotation with runtime grants in
 
 test('F08 local profile includes the runtime closure and retains credential rotation 016', () => {
   const f08 = migrationProfiles['f08-local'];
-  const f09 = migrationProfiles['f09-local'].migrations.slice(0, -1);
+  const f09 = migrationProfiles['f09-local'].migrations.slice(0, -2);
   assert.equal(f08.target, 'local');
   assert.deepEqual(f08.migrations, [
     ...f09.slice(0, 15),
     '016_f07_vpn_credential_rotation.sql',
     ...f09.slice(15),
     '023_f03_resource_grants_runtime_privileges.sql',
+    '024_f10_support_runtime_privileges.sql',
   ]);
 });
 
@@ -126,6 +132,36 @@ test('forward resource-grant privilege migration follows every profile that appl
   assert.match(body, /IF EXISTS \(SELECT 1 FROM pg_roles WHERE rolname='nexo_runtime'\)/u);
   assert.match(body, /GRANT SELECT, INSERT, UPDATE ON resource_grants TO nexo_runtime/u);
   assert.doesNotMatch(body, /GRANT[^;]*DELETE/u);
+});
+
+test('forward support privilege migration follows F10 consent and grants only existing tables without DELETE', async () => {
+  const supportMigration = '024_f10_support_runtime_privileges.sql';
+  for (const [name, profile] of Object.entries(migrationProfiles)) {
+    const consentIndex = profile.migrations.indexOf('020_f10_support_consent.sql');
+    const privilegeIndex = profile.migrations.indexOf(supportMigration);
+    if (profile.testOnly) {
+      assert.equal(name, 'f10-upgrade-seed-local');
+      assert.ok(consentIndex >= 0);
+      assert.equal(privilegeIndex, -1, 'historical seed must stop before forward migrations');
+      continue;
+    }
+    assert.equal(privilegeIndex >= 0, consentIndex >= 0, `${name} must include 024 iff it includes F10 support consent`);
+    if (consentIndex >= 0) {
+      assert.ok(profile.migrations.indexOf('023_f03_resource_grants_runtime_privileges.sql') < privilegeIndex, `${name} must apply 024 after 023`);
+    }
+  }
+
+  const sql = await readFile(new URL('../db/migrations/024_f10_support_runtime_privileges.sql', import.meta.url), 'utf8');
+  const body = stripMigrationTransaction(sql, supportMigration);
+  assert.match(body, /IF EXISTS \(SELECT 1 FROM pg_roles WHERE rolname='nexo_runtime'\)/u);
+  assert.match(body, /FOREACH support_table IN ARRAY ARRAY\[/u);
+  assert.match(body, /to_regclass\(format\('public\.%I', support_table\)\) IS NOT NULL/u);
+  for (const table of ['support_sessions', 'support_consent', 'support_session_attempts', 'support_session_outbox']) {
+    assert.match(body, new RegExp(`'${table}'`, 'u'));
+  }
+  assert.match(body, /GRANT SELECT, INSERT, UPDATE ON TABLE public\.%I TO nexo_runtime/u);
+  assert.doesNotMatch(body, /GRANT[^;]*DELETE/u);
+  assert.doesNotMatch(body, /CREATE POLICY|ALTER TABLE[^;]*ROW LEVEL SECURITY/u);
 });
 
 test('016 appears in disposable F07/F08/F11 profiles and in the complete production baseline', () => {

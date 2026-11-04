@@ -41,7 +41,7 @@ let client;
 try {
   const profile = migrationProfiles.production;
   assert.equal(profile.target, 'production');
-  assert.equal(profile.migrations.length, 23);
+  assert.equal(profile.migrations.length, 24);
 
   dockerRun(['image', 'inspect', image]);
   dockerRun([
@@ -64,8 +64,8 @@ try {
   delete dryEnv.NEXO_MIGRATION_TARGET;
   const dryRun = runNode(['scripts/migrate.mjs', '--profile', 'production', '--dry-run'], dryEnv);
   assertSuccessful(dryRun, 'dry-run sin DATABASE_URL');
-  assert.match(dryRun.stdout, /Perfil production \(production\): 23 migraciones/u);
-  assert.equal([...dryRun.stdout.matchAll(/^\d{3}_[a-z0-9_]+\.sql /gmu)].length, 23);
+  assert.match(dryRun.stdout, /Perfil production \(production\): 24 migraciones/u);
+  assert.equal([...dryRun.stdout.matchAll(/^\d{3}_[a-z0-9_]+\.sql /gmu)].length, 24);
 
   const unconfirmedEnv = { ...applyEnv, NEXO_MIGRATION_TARGET: '' };
   const unconfirmed = runNode(['scripts/migrate.mjs', '--profile', 'production'], unconfirmedEnv);
@@ -92,12 +92,12 @@ try {
 
   const rerun = runNode(['scripts/migrate.mjs', '--profile', 'production', '--confirm-production'], applyEnv);
   assertSuccessful(rerun, 'revalidación del historial de producción');
-  assert.equal([...rerun.stdout.matchAll(/^SKIP /gmu)].length, 23);
+  assert.equal([...rerun.stdout.matchAll(/^SKIP /gmu)].length, 24);
 
   console.log(JSON.stringify({
     result: 'PASS',
     profile: 'production',
-    migrations: 23,
+    migrations: 24,
     orderedLedgerAndChecksums: 'PASS',
     initializeOnlyOnEmptyDatabase: 'PASS',
     rerunSkipsVerifiedHistory: 'PASS',

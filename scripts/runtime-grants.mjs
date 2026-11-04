@@ -28,6 +28,7 @@ const migrations = [
   '020_f10_support_consent.sql',
   '021_f10_support_lifecycle.sql',
   '023_f03_resource_grants_runtime_privileges.sql',
+  '024_f10_support_runtime_privileges.sql',
 ];
 
 function run(command, args, options = {}) {
@@ -54,7 +55,19 @@ try {
   }
   if (!ready) throw new Error('PostgreSQL did not become ready');
   psql('CREATE ROLE nexo_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS');
-  for (const migration of migrations) psql(await readFile(`db/migrations/${migration}`, 'utf8'));
+  for (const migration of migrations) {
+    if (migration === '021_f10_support_lifecycle.sql') {
+      const partialSupportGrant = await readFile('db/migrations/024_f10_support_runtime_privileges.sql', 'utf8');
+      psql(partialSupportGrant);
+      const partialSupportMissing = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions')) expected(table_name), (VALUES ('SELECT'),('INSERT'),('UPDATE')) required(privilege) WHERE NOT has_table_privilege('nexo_runtime',format('public.%I',table_name),privilege)"));
+      const absentLifecycleTables = Number(psql("SELECT count(*) FROM (VALUES ('support_session_attempts'),('support_session_outbox')) expected(table_name) WHERE to_regclass(format('public.%I',table_name)) IS NOT NULL"));
+      const partialSupportDelete = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions')) expected(table_name) WHERE has_table_privilege('nexo_runtime',format('public.%I',table_name),'DELETE')"));
+      assert.equal(partialSupportMissing, 0, '024 must grant existing support tables when lifecycle tables are absent');
+      assert.equal(absentLifecycleTables, 0, 'partial fixture must omit lifecycle tables during the conditional-grant check');
+      assert.equal(partialSupportDelete, 0, '024 must not grant DELETE on existing support tables');
+    }
+    psql(await readFile(`db/migrations/${migration}`, 'utf8'));
+  }
 
   const resourceGrantMigrationMissing = Number(psql("SELECT count(*) FROM (VALUES ('SELECT'),('INSERT'),('UPDATE')) required(privilege) WHERE NOT has_table_privilege('nexo_runtime','public.resource_grants',privilege)"));
   const resourceGrantMigrationDelete = psql("SELECT has_table_privilege('nexo_runtime','public.resource_grants','DELETE')");
@@ -80,6 +93,7 @@ try {
   const resourceGrantMissing = Number(psql("SELECT count(*) FROM (VALUES ('resource_grants','SELECT,INSERT,UPDATE')) expected(table_name,privileges), LATERAL unnest(string_to_array(privileges,',')) privilege WHERE NOT has_table_privilege('nexo_runtime',format('public.%I',table_name),privilege)"));
   const resourceGrantRlsMissing = Number(psql("SELECT count(*) FROM pg_class WHERE relname='resource_grants' AND relnamespace='public'::regnamespace AND (NOT relrowsecurity OR NOT relforcerowsecurity)"));
   const supportMissing = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions'),('support_session_attempts'),('support_session_outbox')) expected(table_name), (VALUES ('SELECT'),('INSERT'),('UPDATE')) required(privilege) WHERE NOT has_table_privilege('nexo_runtime',format('public.%I',table_name),privilege)"));
+  const supportMigrationDelete = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions'),('support_session_attempts'),('support_session_outbox')) expected(table_name) WHERE has_table_privilege('nexo_runtime',format('public.%I',table_name),'DELETE')"));
   const supportRlsMissing = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions'),('support_session_attempts'),('support_session_outbox')) expected(table_name) LEFT JOIN pg_class c ON c.relname=table_name AND c.relnamespace='public'::regnamespace WHERE NOT coalesce(c.relrowsecurity,false) OR NOT coalesce(c.relforcerowsecurity,false)"));
   const publicCreate = psql("SELECT has_schema_privilege('public','public','CREATE')");
   const publicTableGrants = Number(psql("SELECT count(*) FROM information_schema.role_table_grants WHERE grantee='PUBLIC' AND table_schema='public'"));
@@ -103,12 +117,13 @@ try {
   assert.equal(resourceGrantMissing, 0);
   assert.equal(resourceGrantRlsMissing, 0);
   assert.equal(supportMissing, 0);
+  assert.equal(supportMigrationDelete, 0, '024 must not grant DELETE on support tables');
   assert.equal(supportRlsMissing, 0);
   assert.equal(publicCreate, 'f');
   assert.equal(publicTableGrants, 0);
   assert.equal(revisionFunctionRuntime, 't');
   assert.equal(revisionFunctionPublic, 'f');
-  console.log(JSON.stringify({ phase: 'runtime-grants', migrations: migrations.length, tables: tableCount, ownership: 'PASS', leastPrivilege: 'PASS', delete: 'ALLOWLISTED (2 TABLES)', f04: 'PASS', f06: 'PASS', f07: 'PASS', f08: 'PASS', f03ResourceGrantMigration: 'PASS', f03ResourceGrants: 'PASS', f10SupportConsent: 'PASS', f10SupportLifecycle: 'PASS', heartbeats: 'PASS', rls: 'PASS', image }));
+  console.log(JSON.stringify({ phase: 'runtime-grants', migrations: migrations.length, tables: tableCount, ownership: 'PASS', leastPrivilege: 'PASS', delete: 'ALLOWLISTED (2 TABLES)', f04: 'PASS', f06: 'PASS', f07: 'PASS', f08: 'PASS', f03ResourceGrantMigration: 'PASS', f03ResourceGrants: 'PASS', f10SupportPrivilegeMigration: 'PASS', f10SupportConsent: 'PASS', f10SupportLifecycle: 'PASS', heartbeats: 'PASS', rls: 'PASS', image }));
 } finally {
   spawnSync('docker', ['rm', '-f', name], { stdio: 'ignore' });
 }

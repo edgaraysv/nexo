@@ -38,6 +38,7 @@ const migrations = [
   '020_f10_support_consent.sql',
   '022_f11_wireguard.sql',
   '023_f03_resource_grants_runtime_privileges.sql',
+  '024_f10_support_runtime_privileges.sql',
 ];
 
 function run(command, args, options = {}) {

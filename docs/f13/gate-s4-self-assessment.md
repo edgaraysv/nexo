@@ -27,6 +27,7 @@
 | Ítem | Estado | Evidencia |
 |------|--------|-----------|
 | `nexo_runtime`: permisos mínimos sobre `resource_grants` | ⚠ PENDIENTE DE RECONCILIACIÓN | `db/migrations/019_f03_resource_grants.sql` crea la tabla sin grants; el parche local `db/migrations/023_f03_resource_grants_runtime_privileges.sql` concede `SELECT, INSERT, UPDATE`, no `DELETE`. `docs/migrations/README.md:57-60,91-105` dice que 023 no se aplicó al host AWS y advierte que la base carece de ledger. `docs/f13/gate-s3/GATE-S3-REPORTE-V3.md:20-25` reporta un grant manual vía SSM como workaround. Sin lectura independiente actual, no se afirma cuál es el privilegio efectivo hoy ni que la corrección sea persistente. |
+| `nexo_runtime`: permisos mínimos sobre tablas F10 de soporte | ⚠ PENDIENTE DE APLICACIÓN/RECONCILIACIÓN | `db/migrations/024_f10_support_runtime_privileges.sql` concede `SELECT, INSERT, UPDATE` solo en las tablas existentes (`support_sessions`, `support_consent`, `support_session_attempts`, `support_session_outbox`), sin `DELETE` ni cambios a RLS. La migración y su prueba local no demuestran privilegios efectivos en AWS; allí no se aplicó 024 y el historial sigue sin ledger. |
 | `nexo_runtime` vs `nexo_app`: separación de roles DB | NOT VERIFIED | `infra/aws/lab/nexo-runtime.sql:3-20,36-83` define `nexo_runtime` sin privilegios elevados y separa `nexo_migration`; el artefacto no define `nexo_app`. No se consultaron roles ni grants efectivos de la base remota en esta evaluación. |
 
 ## Red y TLS
@@ -39,7 +40,7 @@
 
 ## Gaps críticos antes de S5
 
-1. **Migration 023 y grants runtime:** 023 existe localmente, pero no se aplicó al host AWS según `docs/migrations/README.md:59-60,103-105`; la base tampoco tiene ledger. El reporte S3 v3 informa una corrección manual, por lo que primero se deben reconciliar el grant efectivo y el historial. No ejecutar migraciones ni SQL remoto sin autorización específica.
+1. **Migraciones 023/024 y grants runtime:** ambas existen localmente, pero no se aplicaron al host AWS según `docs/migrations/README.md:59-60,103-105`; la base tampoco tiene ledger. El reporte S3 v3 informa una corrección manual para `resource_grants`, por lo que primero se deben reconciliar los grants efectivos y el historial. No ejecutar migraciones ni SQL remoto sin autorización específica.
 2. **TLS F09:** verificar el certificado y la renovación antes del 2026-11-04; confirmar una dirección estable, pues la evidencia disponible indica que no hay Elastic IP asignada.
 3. **Motor de soporte remoto:** C9 no está integrado. `product/api/application.ts:420-433` puede responder `503 support_transport_disabled` al abrir la sesión; `product/api/postgres-support-repository.ts:76-77` permite que el transporte no esté configurado y restringe el transporte sintético a pruebas.
 4. **Revisión independiente (E4):** pendiente. Este documento lo prepara el implementador y no reemplaza el dictamen de un revisor distinto.
@@ -52,7 +53,7 @@
 ## Veredicto self-assessment
 
 **NO LISTO para gate S4** hasta resolver o validar independientemente:
-- los permisos efectivos y la reconciliación de migration 023 en AWS;
+- los permisos efectivos y la reconciliación de migrations 023/024 en AWS;
 - las reglas actuales del SG y la ausencia de exposición indebida a IMDS;
 - TLS y su renovación antes del vencimiento reportado;
 - el cierre formal de la revisión independiente E4;
