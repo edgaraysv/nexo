@@ -58,6 +58,7 @@ Evidencia generada en `artifacts/f01/` (ignorada por Git): resultados por candid
 ## Mapa
 
 - `docs/f01/`: alcance, decisiones, riesgos, responsabilidades y trazabilidad.
+- `docs/decisions/`: decisiones de producto y alcance que aplican entre fases.
 - `docs/l01/`: baseline exacta de trazabilidad y decisiones mínimas para el siguiente corte local.
 - `docs/l02/`: decisiones y límites del corte local de identidad, MFA, persistencia y RLS.
 - `docs/f02/`: preparación AWS, procedimiento de plan real y pruebas de recuperación pendientes.

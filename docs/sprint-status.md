@@ -4,6 +4,8 @@
 
 **Resultado del corte:** **F13 DEV NOT CLOSED.** La revisión cubre exclusivamente código, migraciones y scripts descritos o necesarios para el alcance F13 de *Sprint maestro de desarrollo de NEXO*, sección «F13 — Piloto real autorizado». No evalúa pruebas, aceptación de producto ni infraestructura AWS.
 
+> **Actualización de alcance — 2026-11-06:** este inventario histórico incluía soporte remoto dentro de F13. La decisión vigente de producto lo retira de v1; por tanto, la fila de soporte remoto ya no bloquea el piloto Disamed. Continúa siendo evidencia válida de una capacidad diferida y no operativa. Ver `decisions/2026-11-06-producto-y-alcance-v1.md` y `decisions/2026-11-06-priorizacion-bloqueos-v1.md`.
+
 ## Entregables de desarrollo faltantes
 
 | Entregable | Estado | Hallazgo verificable |

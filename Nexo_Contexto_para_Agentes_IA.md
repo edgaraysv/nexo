@@ -1,9 +1,9 @@
 # Proyecto Nexo — contexto para agentes de IA
 
-**Versión del contexto:** 1.0 · 20 de octubre de 2026  
+**Versión del contexto:** 1.1 · 6 de noviembre de 2026
 **Fuente principal:** `Analisis_Tecnico_Proyecto_Nexo.docx`, versión 1.2, 20 de octubre de 2026.  
 **Documento de producto complementario:** `Definicion_de_Producto_Nexo.docx`.  
-**Estado:** diseño y piloto por construir. El contenido describe objetivos y decisiones propuestas; no acredita funcionalidad implementada.
+**Estado:** alcance comercial v1 y piloto definidos; producción y uso de datos reales siguen sujetos a gates. El contenido no acredita funcionalidad implementada.
 
 ## Cómo usar este archivo
 
@@ -13,9 +13,9 @@ Al responder sobre Nexo, separa explícitamente: **hechos actuales**, **diseño 
 
 ## 1. Identidad y objetivo
 
-Nexo es el nombre clave de una plataforma propia para ofrecer conectividad privada, administración de equipos y soporte remoto a empresas independientes. La marca comercial final no está decidida. El proveedor administra infraestructura y contratos; cada empresa administra sus usuarios, sucursales y equipos dentro de permisos delegados. El objetivo es un producto multiempresa con un portal del proveedor, un portal del cliente y un cliente universal modular por plataforma.
+Nexo es un producto SaaS multiempresa para ofrecer conectividad privada y administración de equipos a empresas independientes. La marca comercial final no está decidida. El proveedor administra infraestructura y contratos; cada empresa administra sus usuarios, sucursales y equipos dentro de permisos delegados. La v1 usa un cliente VPN existente aprobado; el cliente universal propio queda como evolución posterior. Soporte remoto y backup comercial no forman parte de la v1.
 
-El servicio VPN conecta exclusivamente redes y recursos privados autorizados. **No ofrece salida general a Internet.** El dispositivo conserva su ruta predeterminada y su navegación local. Las ofertas pueden combinar VPN, soporte remoto de escritorio y, en una ampliación opcional, respaldo de archivos. El escritorio remoto puede contratarse como adicional a VPN o a respaldo, sin exigir una VPN activa.
+El servicio VPN conecta exclusivamente redes y recursos privados autorizados. **No ofrece salida general a Internet.** El dispositivo conserva su ruta predeterminada y su navegación local. La v1 comercializa conectividad VPN; soporte remoto y respaldo de archivos sólo podrán incorporarse después como productos o módulos independientes, sin exigir una VPN activa salvo que su diseño futuro lo requiera expresamente.
 
 ## 2. Punto de partida comprobado
 
@@ -42,14 +42,15 @@ El servicio VPN conecta exclusivamente redes y recursos privados autorizados. **
 | VPN empresarial | Núcleo inicial | Interconexión privada entre sucursales, gateways y equipos; OpenVPN Community primero y adaptador WireGuard según pruebas. |
 | Portal del proveedor | Núcleo inicial | Empresas, suscripciones, nodos, entornos, capacidad, operadores, auditoría y reportes. |
 | Portal de empresa | Núcleo inicial | Usuarios, sucursales, equipos, invitaciones, políticas y reportes dentro de su ámbito. |
-| Cliente universal de escritorio | Núcleo inicial, entrega por plataforma | Windows primero en piloto; macOS y Linux después de validación de instalación y permisos. |
-| Soporte remoto | Adicional del producto | Computadoras Windows, macOS y Linux según compatibilidad probada; sesiones asistidas o desatendidas con controles distintos. |
-| Respaldo de archivos | Ampliación opcional | Políticas, versiones, retención, cuota y restauración verificada; puede funcionar sin VPN. |
+| Cliente VPN existente | Núcleo inicial | Permite el piloto y la primera migración; cliente y plataformas exactos sujetos a prueba. |
+| Cliente universal propio | Evolución posterior | Tauri + servicio Go y protección nativa no bloquean la v1; requieren licencias, firma y mantenimiento aprobados. |
+| Soporte remoto | Fuera de v1 | Evaluar después como integración con un servicio independiente; no construir motor propio en v1. |
+| Respaldo de archivos | Después de la primera migración | Producto separado del backup operativo del control; no bloquea la v1. |
 | Cliente móvil propio | Evolución | Android e iOS/iPadOS para VPN y diagnóstico básico; sin control remoto de pantalla. |
 | Conexiones directas y relay | Evolución | Requieren coordinación, descubrimiento y pruebas NAT/CGNAT; no se asumen por usar WireGuard. |
 | Imagen de equipos, VM o recuperación instantánea | Fuera de primera etapa | Requieren proyectos e integraciones específicos; no se presentan como capacidades del backup de archivos. |
 
-El motor candidato para soporte remoto es MeshCentral/MeshAgent; la integración y el modelo de cifrado/transporte deben probarse. Restic y Kopia son candidatos para respaldo de archivos, no una selección definitiva. El backend modular, React/TypeScript, PHP/CodeIgniter 4, MySQL/PostgreSQL, Go y Tauri son opciones de referencia pendientes de decisión y validación.
+MeshCentral, RustDesk u otro motor de soporte remoto podrán evaluarse después de v1 como servicio independiente; no existe una selección comercial aprobada. Restic y Kopia siguen siendo candidatos para un futuro producto de respaldo. La API aprobada en F01 es un monolito modular TypeScript con NestJS/Fastify y PostgreSQL; Go/Tauri permanecen en los componentes nativos existentes y en la evolución del cliente propio.
 
 ## 5. Arquitectura del piloto
 
@@ -60,13 +61,11 @@ flowchart TB
     C --> B[Entorno VPN B aislado]
     EA[Gateway y equipos A] --> A
     EB[Gateway y equipos B] --> B
-    EA -. "Backup opcional sin VPN" .-> R[Repositorio externo]
-    EB -. "Backup opcional sin VPN" .-> R
 ```
 
-La unidad inicial es una EC2 compartida. Cada `TenantEnvironment` pertenece a una empresa y a un `Node`; tendrá namespace de red y motor VPN independientes. Además se necesitan aislamiento de procesos/archivos, límites de CPU/memoria/disco, firewall, secretos separados y autorización a nivel API. Los namespaces comparten kernel y host; la caída del host afecta a todos los entornos. Es posible que dos empresas usen la misma LAN privada porque sus dominios de rutas están separados; dos sucursales superpuestas de la **misma** empresa requieren resolución explícita.
+El modelo comercial de aislamiento es híbrido por plan. La oferta base puede usar una EC2 compartida: cada `TenantEnvironment` pertenece a una empresa y a un `Node`, con namespace de red y motor VPN independientes. También se necesitan aislamiento de procesos/archivos, límites de CPU/memoria/disco, firewall, secretos separados y autorización a nivel API. Los namespaces comparten kernel y host; la caída del host afecta a todos los entornos y este riesgo debe informarse. El aislamiento dedicado se cobra aparte; su topología exacta —EC2, VPC o cuenta separada— debe aprobarse y costearse antes de ofrecerlo. Es posible que dos empresas usen la misma LAN privada porque sus dominios de rutas están separados; dos sucursales superpuestas de la **misma** empresa requieren resolución explícita.
 
-En el piloto, la EC2 nueva puede alojar plano de control y datos persistentes en servicios separados, con EBS cifrado y copias externas verificadas. El repositorio **de respaldos de clientes** permanece fuera del nodo VPN. Su tecnología concreta, ubicación, estructura de buckets, claves, costos y retención siguen abiertos. S3 Object Lock se evaluará con el motor elegido. La copia del control de Nexo es diferente del servicio de backup vendido a clientes.
+En el piloto, la EC2 nueva puede alojar plano de control y datos persistentes en servicios separados, con EBS cifrado y copias externas verificadas. Si se desarrolla después el producto **de respaldos de clientes**, su repositorio permanecerá fuera del nodo VPN; tecnología, ubicación, estructura de buckets, claves, costos y retención siguen abiertos. La copia operativa del control de Nexo es obligatoria y diferente del eventual servicio de backup vendido a clientes.
 
 ## 6. Actores y permisos
 
@@ -105,7 +104,9 @@ La empresa contrata respaldo y asigna política de carpetas, horario, retención
 
 ## 8. Estados y reglas comerciales
 
-La suscripción puede estar pendiente, activa, en gracia, suspendida o cancelada. VPN, remoto y respaldo tienen capacidades, cuotas y estado por separado. La primera versión puede registrar pagos manuales; una pasarela de pago específica no es alcance inicial. Cupos de endpoints, redes, técnicos, sesiones y almacenamiento se validan atómicamente. Una reducción de plan muestra exceso y requiere regla explícita; no borra equipos arbitrariamente.
+La suscripción puede estar pendiente, activa, en gracia, suspendida o cancelada. VPN, remoto y respaldo tienen capacidades, cuotas y estado por separado, aunque remoto y respaldo no se comercializan en v1. La primera versión puede registrar pagos manuales; una pasarela de pago específica no es alcance inicial. El techo inicial aprobado de AWS es USD 100 mensuales y el precio parte de USD 45 por empresa, variable por sucursales; aislamiento dedicado se cobra aparte. La fórmula por sucursal y por endpoint móvil sigue pendiente. Cupos de endpoints, redes, técnicos, sesiones y almacenamiento se validan atómicamente. Una reducción de plan muestra exceso y requiere regla explícita; no borra equipos arbitrariamente.
+
+Al cancelar, se ofrece una exportación utilizable —inicialmente ZIP con formatos documentados—, se retienen los datos operativos durante 30 días y después se eliminan de forma verificable. La exportación y eliminación dejan evidencia auditable. El esquema exacto de exportación, tratamiento de copias y plazo de conservación de auditoría deben cerrarse antes de datos reales; no exportar secretos activos o claves privadas sin un mecanismo seguro específico.
 
 Los endpoints pasan por invitado, pendiente, activo, suspendido y retirado. Cada módulo indica por separado si está disponible, habilitado y operativo. La UI no debe confundir esos estados. Retirar un endpoint revoca credenciales y asignaciones activas y retiene historial según política. Reinstalar un equipo exige recuperación explícita o nueva identidad; evitar clones con claves repetidas.
 
@@ -117,7 +118,9 @@ API de referencia, **aún no implementada ni contractual**: `POST /v1/enrollment
 
 ## 10. Entrega y validación
 
-Secuencia de referencia del análisis: descubrimiento e inventario → prueba técnica en EC2 nueva con dos empresas ficticias → producto inicial de portal/suscripciones/operaciones → piloto real controlado → ampliación de plataformas → malla/relays según necesidad → respaldo opcional. No asignar fechas o SLAs sin estimación y evidencia.
+Secuencia aprobada: descubrimiento e inventario → prueba técnica en EC2 nueva con empresas ficticias → producto inicial de portal/suscripciones/operaciones → piloto controlado con Disamed → migración real y reversión → ampliación de plataformas → evaluación posterior de soporte remoto y respaldo. No asignar fechas o SLA sin estimación y evidencia.
+
+El caso piloto de Disamed son vendedores móviles sin sucursales que usan laptop, tablet o smartphone para acceder a recursos privados autorizados. El vertical slice debe cubrir invitación/configuración, conexión, acceso sólo al recurso permitido, auditoría, revocación y reversión al OpenVPN anterior. Las plataformas objetivo no equivalen a compatibilidad ya probada; la primera plataforma, cantidades y recurso se fijan con el inventario.
 
 Criterios críticos del piloto:
 
@@ -130,16 +133,28 @@ Criterios críticos del piloto:
 
 Las pruebas PV01 a PV21 del análisis técnico son el registro formal de aceptación. La incorporación de clientes reales exige evidencia de las pruebas aplicables, restauración del control y aceptación informada del riesgo de operar inicialmente en una sola EC2.
 
-## 11. Decisiones abiertas que un agente no debe inventar
+## 11. Bloqueos vigentes de v1
 
-- Nombre comercial, empaquetado de planes, precios, cuotas y política de gracia/cancelación.
+La priorización detallada está en `docs/decisions/2026-11-06-priorizacion-bloqueos-v1.md`.
+
+- **P0 AWS:** base sin ledger reconciliado, migraciones/grants incompletos, TLS vencido y drift de Security Groups/Terraform. No ejecutar `terraform apply` ni migraciones persistentes sin inventario, plan y autorización específicos.
+- **P0 migración F13:** faltan inventario/importación del servicio anterior, cohorte, cutover y switchback selectivo.
+- **P0 notificaciones:** `mail-sink`/sink nulo no sirven para invitaciones o recuperación reales; se necesita un canal operativo probado.
+- **Gate PV12:** la recuperación integral del control continúa abierta y bloquea datos reales.
+- **F08 condicionado por Disamed:** gateway, retorno/SNAT y split-DNS bloquean sólo si el recurso piloto los requiere; el inventario decide el trayecto mínimo.
+- **Diferidos:** F10/transporte remoto, F11/WireGuard y el updater/Authenticode/TPM del cliente propio no bloquean v1.
+
+## 12. Parámetros abiertos que un agente no debe inventar
+
+- Nombre comercial, cuotas, política de gracia, fórmula por sucursal/endpoint móvil y contenido final de cada plan.
 - Región, instancia EC2, costos, capacidad real, redes y cantidad de clientes/equipos/gateways.
-- Stack final de API y base de datos; motor de soporte; integración y empaquetado del cliente por plataforma.
+- Cliente VPN existente y primera plataforma exactos del piloto; integración, firma y empaquetado futuro del cliente propio.
+- Motor futuro de soporte remoto y repositorio futuro de backup; ambos están fuera de v1.
 - Vigencia de última política cuando se pierde control, objetivos de servicio y esquema de alta disponibilidad.
 - Autorizaciones delegadas exactas y condiciones de soporte desatendido.
-- Repositorio final de backup, ubicación, claves, retención, cuota, inmutabilidad y recuperación de claves.
-- Comportamiento de exportación y eliminación de datos al cancelar y retención de auditoría.
+- Topología y precio del aislamiento dedicado.
+- Esquema versionado del ZIP de salida, tratamiento de backups al cancelar y retención de la evidencia de auditoría.
 
-## 12. Instrucción recomendada para agentes
+## 13. Instrucción recomendada para agentes
 
 > Trabaja en Proyecto Nexo conforme a este contexto y al análisis técnico v1.2. Antes de implementar, inspecciona el repositorio, identifica decisiones abiertas y no conviertas propuestas en hechos. Conserva aislamiento por empresa, VPN sólo para recursos privados, un cliente e identidad por endpoint, permisos de soporte independientes y respaldos externos opcionales. Entrega cambios verificables con pruebas de aislamiento, provisión, revocación y recuperación según el alcance. Si un requisito necesita una decisión comercial o de infraestructura no definida, enumera opciones y consecuencias sin inventar una elección.
