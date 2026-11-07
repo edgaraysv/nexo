@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
+	goruntime "runtime"
 	"strings"
 	"testing"
 )
@@ -29,7 +29,7 @@ func TestWireGuardClientKeyIsLocalStableAndFailsClosed(t *testing.T) {
 	}
 	path := filepath.Join(directory, "vpn", clientRuntimeEnvironmentID, "wireguard", "client.key")
 	info, err := os.Stat(path)
-	if err != nil || runtime.GOOS != "windows" && info.Mode().Perm() != 0600 {
+	if err != nil || goruntime.GOOS != "windows" && info.Mode().Perm() != 0600 {
 		t.Fatalf("private key permissions are not 0600: %v", err)
 	}
 	state, err := os.ReadFile(filepath.Join(filepath.Dir(path), "keys.json"))
@@ -174,7 +174,7 @@ func TestWireGuardConfigIsNarrowAndAppliedWithoutClaimingHandshake(t *testing.T)
 		t.Fatalf("applied config mismatch: %v", err)
 	}
 	info, err := os.Stat(launcher.config)
-	if err != nil || runtime.GOOS != "windows" && info.Mode().Perm() != 0600 {
+	if err != nil || goruntime.GOOS != "windows" && info.Mode().Perm() != 0600 {
 		t.Fatal("transient configuration containing the private key is not protected")
 	}
 	if err = runtime.disconnect(environment.ID); err != nil {
