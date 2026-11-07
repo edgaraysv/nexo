@@ -4,6 +4,7 @@ artifacts/
 /release/
 target/
 product/agent/bin/
+product/agent/nexo-agent
 .env
 .env.*
 !.env.example

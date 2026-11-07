@@ -87,6 +87,11 @@ function supportSessionResponse(value:SupportSessionView):Record<string,unknown>
 class IdentityController {
   constructor(@Inject(IDENTITY_REPOSITORY) private readonly repository: IdentityRepository, @Inject(RECOVERY_SINK) private readonly recoverySink: RecoverySink, @Inject(PROVIDER_REPOSITORY) private readonly provider: ProviderRepository, @Inject(COMPANY_REPOSITORY) private readonly company: CompanyRepository, @Inject(INVITATION_SINK) private readonly invitationSink: InvitationSink,@Inject(DEVICE_REPOSITORY) private readonly devicesRepository:DeviceRepository,@Inject(CERTIFICATE_ISSUER) private readonly certificateIssuer:CertificateIssuer,@Inject(OPERATION_REPOSITORY) private readonly operations:OperationRepository,@Inject(NODE_REPOSITORY) private readonly nodes:NodeRepository,@Inject(VPN_ENVIRONMENT_REPOSITORY) private readonly vpnEnvironments:VpnEnvironmentRepository,@Inject(VPN_CREDENTIAL_REPOSITORY) private readonly vpnCredentials:VpnCredentialRepository,@Inject(PRIVATE_NETWORK_REPOSITORY) private readonly privateNetworks:PrivateNetworkRepository,@Inject(SUPPORT_REPOSITORY) private readonly support:SupportRepository,@Inject(WIREGUARD_PEER_REPOSITORY) private readonly wireguardPeers:WireGuardPeerRepository) {}
 
+  @Get('v1/health')
+  health(@Res() reply: FastifyReply): void {
+    reply.code(200).send({ status: 'ok' });
+  }
+
   @Post('v1/auth/login')
   async login(@Body() raw: unknown, @Res() reply: FastifyReply): Promise<void> {
     cleanExpired();

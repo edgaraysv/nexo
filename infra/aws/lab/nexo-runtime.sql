@@ -46,7 +46,7 @@ GRANT SELECT ON TABLE
   provider_audit_events, provider_company_assignments, provider_node_invitations, provider_nodes,
   permissions, provider_settings, provider_users, quota_counters, quota_exceptions, resource_grants,
   quota_reservations, recovery_tokens, role_permissions, roles, sessions, site_networks,
-  sites, subscription_modules, subscriptions, support_consent, support_sessions, tenants, users,
+  sites, subscription_modules, subscriptions, tenants, users,
   vpn_client_credentials, vpn_environment_revisions, vpn_environments,
   private_network_profiles, private_network_profile_revisions, private_network_device_observations, private_resources, private_network_policies
 TO nexo_runtime;
@@ -60,7 +60,7 @@ GRANT INSERT ON TABLE
   manual_payments, operation_results, operations, plans, provider_audit_events,
   provider_company_assignments, provider_node_invitations, provider_nodes,
   provider_settings, quota_counters, quota_exceptions, quota_reservations,
-  recovery_tokens, resource_grants, roles, sessions, site_networks, sites, subscription_modules, support_consent, support_sessions,
+  recovery_tokens, resource_grants, roles, sessions, site_networks, sites, subscription_modules,
   subscriptions, tenants, vpn_client_credentials, vpn_environment_revisions, vpn_environments,
   private_network_profiles, private_network_profile_revisions, private_network_device_observations, private_resources, private_network_policies
 TO nexo_runtime;
@@ -72,7 +72,7 @@ GRANT UPDATE ON TABLE
   node_operation_outbox, node_operations, node_sessions, operation_outbox,
   operations, provider_node_invitations, provider_nodes, provider_settings,
   quota_counters, quota_exceptions, recovery_tokens, roles, sessions,
-  subscription_modules, subscriptions, support_consent, support_sessions, users, vpn_client_credentials, vpn_environments,
+  subscription_modules, subscriptions, users, vpn_client_credentials, vpn_environments,
   private_network_profiles, private_network_device_observations
 TO nexo_runtime;
 
@@ -82,8 +82,18 @@ GRANT DELETE ON TABLE role_permissions, provider_company_assignments TO nexo_run
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO nexo_runtime;
 
--- These are local F10 lifecycle tables and are absent from earlier disposable
--- fixtures. Keep the shared runtime-grant fixture compatible with those cuts.
+-- F10 consent tables are absent from the independent GA-01 profile. Grant only
+-- when the F10 migration has created both tables.
+DO $$
+BEGIN
+  IF to_regclass('public.support_consent') IS NOT NULL
+     AND to_regclass('public.support_sessions') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT, INSERT, UPDATE ON TABLE support_consent, support_sessions TO nexo_runtime';
+  END IF;
+END $$;
+
+-- These F10 lifecycle tables are absent from earlier disposable fixtures.
+-- Keep the shared runtime-grant fixture compatible with those cuts.
 DO $$
 BEGIN
   IF to_regclass('public.support_session_outbox') IS NOT NULL

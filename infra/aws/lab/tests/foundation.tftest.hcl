@@ -37,6 +37,13 @@ mock_provider "aws" {
   mock_data "aws_ami" {
     defaults = { id = "ami-0123456789abcdef0" }
   }
+  mock_data "aws_iam_policy_document" {
+    # Syntax-only fallback for negative plans; secure_lab_plan uses the
+    # purpose-specific policy overrides below. This fixture is never applied.
+    defaults = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"PlanOnlyMock\",\"Effect\":\"Allow\",\"Action\":\"sts:AssumeRole\",\"Principal\":{\"AWS\":\"arn:aws:iam::123456789012:root\"},\"Resource\":\"*\"}]}"
+    }
+  }
 }
 
 variables {
@@ -47,6 +54,32 @@ variables {
 
 run "secure_lab_plan" {
   command = plan
+  # The mocked provider cannot synthesize aws_iam_policy_document.json. Use
+  # valid, purpose-specific fixtures while testing the rest of the plan.
+  override_data {
+    target = data.aws_iam_policy_document.agent_release_signer_trust
+    values = {
+      json = <<-JSON
+      {"Version":"2012-10-17","Statement":[{"Sid":"AllowCurrentLabOperatorToAssumeSignerRole","Effect":"Allow","Action":"sts:AssumeRole","Principal":{"AWS":"arn:aws:iam::123456789012:user/nexo-test-operator"}}]}
+      JSON
+    }
+  }
+  override_data {
+    target = data.aws_iam_policy_document.agent_release_signing_key
+    values = {
+      json = <<-JSON
+      {"Version":"2012-10-17","Statement":[{"Sid":"AccountRootKeyAdministrationWithoutSigning","Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:root"},"Action":["kms:CancelKeyDeletion","kms:CreateAlias","kms:DeleteAlias","kms:DescribeKey","kms:DisableKey","kms:EnableKey","kms:GetKeyPolicy","kms:GetPublicKey","kms:GetKeyRotationStatus","kms:ListResourceTags","kms:PutKeyPolicy","kms:ScheduleKeyDeletion","kms:TagResource","kms:UntagResource","kms:UpdateAlias","kms:UpdateKeyDescription"],"Resource":"*"},{"Sid":"SignerRoleEd25519SignAndVerifyOnly","Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:role/nexo-lab-signer"},"Action":["kms:Sign","kms:Verify"],"Resource":"*","Condition":{"StringEquals":{"kms:SigningAlgorithm":"ED25519_SHA_512"}}}]}
+      JSON
+    }
+  }
+  override_data {
+    target = data.aws_iam_policy_document.agent_release_signer_permissions
+    values = {
+      json = <<-JSON
+      {"Version":"2012-10-17","Statement":[{"Sid":"SignAndVerifyOnlyWithLabReleaseKey","Effect":"Allow","Action":["kms:Sign","kms:Verify"],"Resource":"arn:aws:kms:us-east-1:123456789012:key/11111111-1111-4111-8111-111111111111","Condition":{"StringEquals":{"kms:SigningAlgorithm":"ED25519_SHA_512"}}}]}
+      JSON
+    }
+  }
   assert {
     condition     = aws_instance.node.root_block_device[0].encrypted && aws_instance.node.metadata_options[0].http_endpoint == "enabled" && aws_instance.node.metadata_options[0].http_tokens == "required" && aws_instance.node.metadata_options[0].http_put_response_hop_limit == 1
     error_message = "Disco cifrado, IMDSv2 y hop limit 1 son obligatorios en esta declaración de laboratorio."

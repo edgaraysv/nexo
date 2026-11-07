@@ -65,15 +65,49 @@ resource "aws_security_group" "node" {
   description = "Sin entrada. No habilita API, SSH, VPN ni administracion remota."
   vpc_id      = aws_vpc.lab.id
   # Las reglas dedicadas de ingreso/egreso se declaran como recursos separados.
+
+  tags = { Name = "NEXO" }
+}
+
+resource "aws_security_group" "web" {
+  name        = "nexo-lab-f09-web-20261029"
+  description = "Nexo lab F09 HTTPS ingress; temporary HTTP-01 and public TLS only"
+  vpc_id      = aws_vpc.lab.id
+
+  # Preservar ownership y fase existentes del grupo web de F09.
+  tags = {
+    ManagedBy   = "OpenCode"
+    Project     = "NEXO"
+    Environment = "lab"
+    Phase       = "F09"
+  }
 }
 
 resource "aws_vpc_security_group_ingress_rule" "webmin" {
   security_group_id = aws_security_group.node.id
-  description       = "Webmin; solo desde el CIDR administrativo aprobado."
+  description       = "Webmin"
   cidr_ipv4         = var.webmin_admin_cidr
   ip_protocol       = "tcp"
   from_port         = 10000
   to_port           = 10000
+}
+
+resource "aws_vpc_security_group_ingress_rule" "web_http" {
+  security_group_id = aws_security_group.web.id
+  description       = "ACME HTTP-01 and HTTP to HTTPS redirect"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 80
+  to_port           = 80
+}
+
+resource "aws_vpc_security_group_ingress_rule" "web_https" {
+  security_group_id = aws_security_group.web.id
+  description       = "Nexo lab HTTPS"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
 }
 
 resource "aws_vpc_security_group_egress_rule" "https" {
@@ -85,11 +119,20 @@ resource "aws_vpc_security_group_egress_rule" "https" {
   to_port           = 443
 }
 
+resource "aws_vpc_security_group_egress_rule" "zeptomail_smtp" {
+  security_group_id = aws_security_group.node.id
+  description       = "Nexo transactional SMTP STARTTLS ZeptoMail"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 587
+  to_port           = 587
+}
+
 resource "aws_instance" "node" {
   ami                         = data.aws_ami.node.id
   instance_type               = var.instance_type
   subnet_id                   = aws_subnet.node.id
-  vpc_security_group_ids      = [aws_security_group.node.id]
+  vpc_security_group_ids      = [aws_security_group.node.id, aws_security_group.web.id]
   associate_public_ip_address = true
   # Sin key_pair, perfil IAM, secretos, provisioner ni user_data.
   # IMDS deshabilitado hasta diseñar y probar su aislamiento de los tenants.

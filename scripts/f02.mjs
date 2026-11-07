@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { chmod, cp, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
 import { assertMockPlansOnly } from './f02-safety.mjs';
 
 // Exclusivamente validacion local con mocks. No acepta comandos OpenTofu arbitrarios.
@@ -47,7 +47,16 @@ try {
   assert.equal(version.terraform_version, tool.version);
   report.toolchain = { ...toolchain, archiveSha256Verified: true };
   // No heredar AWS_*, TF_VAR_*, TF_CLI_ARGS*, endpoints, config ni credenciales del host.
-  const work = resolve('infra/aws/lab');
+  const sourceLab = resolve('infra/aws/lab');
+  const work = resolve(directory, 'lab');
+  await cp(sourceLab, work, {
+    recursive: true,
+    filter: source => {
+      const relative = source.slice(sourceLab.length).split(sep).filter(Boolean);
+      return !relative.includes('.terraform') && !relative.some(part => part.endsWith('.tfstate') || part.endsWith('.tfstate.backup'));
+    },
+  });
+  await copyFile(resolve(sourceLab, 'opentofu-provider.lock.hcl'), resolve(work, '.terraform.lock.hcl'));
   for (const args of [
     ['fmt', '-check', '-recursive'],
     ['init', '-backend=false', '-input=false', '-lockfile=readonly', '-no-color'],
