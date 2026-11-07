@@ -11,15 +11,37 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.20.0
           cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci --ignore-scripts
+          cache-dependency-path: |
+            package-lock.json
+            product/portal/package-lock.json
+      - run: npm ci --workspaces=false --ignore-scripts
+      - name: Install portal dependencies from its lockfile
+        run: npm ci --prefix product/portal --workspaces=false --ignore-scripts
+      - name: Typecheck the portal workspace
+        run: npm run typecheck --workspace=product/portal
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: product/agent/go.mod
+          cache-dependency-path: product/agent/go.sum
+      - run: go test ./...
+        working-directory: product/agent
+      - run: go vet ./...
+        working-directory: product/agent
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: spikes/api/go/go.mod
+          cache-dependency-path: spikes/api/go/go.sum
+      - run: go test ./...
+        working-directory: spikes/api/go
+      - run: go vet ./...
+        working-directory: spikes/api/go
       - run: npm run verify
       - name: Archive the tagged source tree
         if: startsWith(github.ref, 'refs/tags/v')
@@ -33,7 +55,7 @@ jobs:
           path: release/source/nexo-source.tar.gz
           if-no-files-found: error
 
-  migrations-and-postgres:
+  postgres:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     services:
@@ -42,16 +64,14 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: nexo
+          POSTGRES_DB: nexo_ci
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d nexo"
+          --health-cmd "pg_isready -U postgres -d nexo_ci"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nexo
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -59,17 +79,54 @@ jobs:
           node-version: 22.20.0
           cache: npm
           cache-dependency-path: package-lock.json
-      - run: npm ci --ignore-scripts
-      - name: Apply F09 profile and verify idempotent replay
+      - run: npm ci --workspaces=false --ignore-scripts
+      - name: Create isolated disposable databases for each migration profile
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nexo_ci
+        run: |
+          node --input-type=module -e '
+            import { Client } from "pg";
+            const client = new Client({ connectionString: process.env.DATABASE_URL });
+            await client.connect();
+            try {
+              for (const database of ["nexo_f09", "nexo_f10", "nexo_f08", "nexo_ga01"]) {
+                await client.query(`CREATE DATABASE "${database}"`);
+              }
+            } finally {
+              await client.end();
+            }
+          '
+      - name: Apply F09 profile and verify idempotent replay in its own database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nexo_f09
         run: |
           npm run db:migrate -- --profile f09-local --initialize
           npm run db:migrate -- --profile f09-local
-      - name: Add GA-01 only to disposable local PostgreSQL
+          node scripts/check-migration-history.mjs f09-local
+      - name: Apply F10 migrations 020/021 in an independent database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nexo_f10
         run: |
-          npm run db:migrate -- --profile ga01-local
+          npm run db:migrate -- --profile f10-local --initialize
+          npm run db:migrate -- --profile f10-local
+          node scripts/check-migration-history.mjs f10-local
+      - name: Apply F08 profile, including 016, in its own database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nexo_f08
+        run: |
+          npm run db:migrate -- --profile f08-local --initialize
+          npm run db:migrate -- --profile f08-local
+          node scripts/check-migration-history.mjs f08-local
+      - name: Apply GA-01 only to its own disposable database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nexo_ga01
+        run: |
+          npm run db:migrate -- --profile ga01-local --initialize
           npm run db:migrate -- --profile ga01-local
           node scripts/check-migration-history.mjs ga01-local
-      - name: Reject mixing the F08/016 profile into the GA-01 database
+      - name: Reject mixing F08/016 into GA-01 without changing either profile history
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nexo_ga01
         run: |
           if npm run db:migrate -- --profile f08-local; then
             echo 'Expected the runner to reject migration-profile mixing.' >&2
@@ -83,30 +140,8 @@ jobs:
       - run: node scripts/f09-postgres.mjs
       - run: node scripts/ga01-postgres.mjs
 
-  go:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - module: product/agent
-            go-mod: product/agent/go.mod
-          - module: spikes/api/go
-            go-mod: spikes/api/go/go.mod
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
-        with:
-          go-version-file: ${{ matrix.go-mod }}
-          cache-dependency-path: ${{ matrix.module }}/go.sum
-      - run: go test ./...
-        working-directory: ${{ matrix.module }}
-      - run: go vet ./...
-        working-directory: ${{ matrix.module }}
-
   windows:
-    runs-on: windows-2025
+    runs-on: windows-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -147,6 +182,36 @@ jobs:
       - name: Build the Windows NSIS installer
         run: npm run tauri -- build
         working-directory: product/client
+      - name: Install pinned OpenVPN Community test prerequisite
+        shell: pwsh
+        run: |
+          choco install openvpn --version=2.7.9.1 --exact --yes --no-progress --package-parameters="/NoStartMenu"
+          if ($LASTEXITCODE -ne 0) { throw "OpenVPN setup failed with exit code $LASTEXITCODE." }
+          $openVpn = Join-Path $env:ProgramFiles 'OpenVPN\bin\openvpn.exe'
+          if (-not (Test-Path -LiteralPath $openVpn -PathType Leaf)) { throw 'OpenVPN Community CLI was not installed at the expected path.' }
+          $version = & $openVpn --version | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch '^OpenVPN 2\.7\.9') { throw "Unexpected OpenVPN version: $version" }
+          Write-Output $version
+      - name: Execute the installer integration test on the real Windows runner
+        shell: pwsh
+        run: |
+          $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'windows-latest runner must run this installer integration test elevated.' }
+          $installerDir = Join-Path $env:GITHUB_WORKSPACE 'product/client/src-tauri/target/release/bundle/nsis'
+          $installer = Get-ChildItem -LiteralPath $installerDir -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $installer) { throw "No NSIS installer found in $installerDir" }
+          Write-Output 'Executing scripts/l07-installer-test.ps1 on windows-latest'
+          & (Join-Path $env:GITHUB_WORKSPACE 'scripts/l07-installer-test.ps1') -InstallerPath $installer.FullName -Elevated
+      - name: Assert installer integration result
+        shell: pwsh
+        run: |
+          $resultPath = Join-Path $env:RUNNER_TEMP 'nexo-l07-installer-result.json'
+          if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) { throw 'l07-installer-test.ps1 did not write its result file.' }
+          $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+          foreach ($property in @('nsis_install', 'installed_ui', 'scm_restart', 'ipc_after_ui_close', 'nsis_uninstall', 'identity_preserved')) {
+            if ($result.$property -ne 'PASS') { throw "Installer integration assertion failed: $property" }
+          }
+          Write-Output ('l07-installer-test.ps1 PASS: ' + ($result | ConvertTo-Json -Compress))
       - name: Stage tagged Windows artifacts
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -183,19 +248,25 @@ jobs:
           mkdir -p "$RUNNER_TEMP/terraform-bin"
           unzip -oq "$archive" -d "$RUNNER_TEMP/terraform-bin"
           echo "$RUNNER_TEMP/terraform-bin" >> "$GITHUB_PATH"
+      - name: Prepare an isolated Terraform workspace with its provider lock
+        run: |
+          set -euo pipefail
+          lab="$RUNNER_TEMP/nexo-terraform-lab"
+          mkdir -p "$lab"
+          cp -a "$GITHUB_WORKSPACE/infra/aws/lab/." "$lab/"
       - run: terraform fmt -check -recursive
-        working-directory: infra/aws/lab
+        working-directory: ${{ runner.temp }}/nexo-terraform-lab
       - run: terraform init -backend=false -input=false -lockfile=readonly
-        working-directory: infra/aws/lab
+        working-directory: ${{ runner.temp }}/nexo-terraform-lab
       - run: terraform validate -no-color
-        working-directory: infra/aws/lab
+        working-directory: ${{ runner.temp }}/nexo-terraform-lab
       - name: Run mock-provider plans only (no AWS credentials or apply)
         run: terraform test -no-color
-        working-directory: infra/aws/lab
+        working-directory: ${{ runner.temp }}/nexo-terraform-lab
 
   attest-release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [verify, migrations-and-postgres, go, windows, iac]
+    needs: [verify, postgres, windows, iac]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

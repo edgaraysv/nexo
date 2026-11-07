@@ -5,8 +5,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $scriptPath = $MyInvocation.MyCommand.Path
-$resultPath = 'C:\laragon\tmp\nexo-l07-installer-result.json'
-$errorPath = 'C:\laragon\tmp\nexo-l07-installer-error.txt'
+$resultDirectory = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { 'C:\laragon\tmp' }
+New-Item -ItemType Directory -Force -Path $resultDirectory | Out-Null
+$resultPath = Join-Path $resultDirectory 'nexo-l07-installer-result.json'
+$errorPath = Join-Path $resultDirectory 'nexo-l07-installer-error.txt'
 trap {
   if ($Elevated) { ($_ | Out-String) | Set-Content -LiteralPath $errorPath -Encoding UTF8 }
   exit 1
