@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -77,7 +78,7 @@ func TestManagedVPNConnectDisconnectAndSanitizedState(t *testing.T) {
 	}
 	tlsKeyPath := filepath.Join(directory, "vpn", environment.ID, "runtime", "tls-crypt.key")
 	tlsKeyInfo, err := os.Stat(tlsKeyPath)
-	if err != nil || tlsKeyInfo.Mode().Perm() != 0600 {
+	if err != nil || runtime.GOOS != "windows" && tlsKeyInfo.Mode().Perm() != 0600 {
 		t.Fatal("transient tls-crypt key is not protected")
 	}
 	tlsKey, err := os.ReadFile(tlsKeyPath)
