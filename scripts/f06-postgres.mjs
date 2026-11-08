@@ -39,6 +39,8 @@ const migrations = [
   '022_f11_wireguard.sql',
   '023_f03_resource_grants_runtime_privileges.sql',
   '024_f10_support_runtime_privileges.sql',
+  '025_f08_icmp_echo_policies.sql',
+  '026_l06_node_credential_rotation.sql',
 ];
 
 function run(command, args, options = {}) {

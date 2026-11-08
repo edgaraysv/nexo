@@ -55,7 +55,7 @@ func initCA(dir string) error {
 	}
 	now := time.Now().UTC()
 	serial, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 120))
-	tmpl := &x509.Certificate{SerialNumber: serial, Subject: pkix.Name{CommonName: "NEXO Local Development CA"}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(30 * 24 * time.Hour), IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign}
+	tmpl := &x509.Certificate{SerialNumber: serial, Subject: pkix.Name{CommonName: "NEXO Local Development CA"}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(365 * 24 * time.Hour), IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign}
 	cert, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
 	if err != nil {
 		return err
@@ -74,7 +74,11 @@ func issue(dir string) error {
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return err
 	}
-	if (req.Audience != "endpoint" && req.Audience != "node") || req.ValidHours < 1 || req.ValidHours > 24 {
+	maxValidHours := 24
+	if req.Audience == "node" {
+		maxValidHours = 720
+	}
+	if (req.Audience != "endpoint" && req.Audience != "node") || req.ValidHours < 1 || req.ValidHours > maxValidHours {
 		return fmt.Errorf("invalid certificate request")
 	}
 	caPEM, err := os.ReadFile(filepath.Join(dir, "ca-cert.pem"))
@@ -98,7 +102,11 @@ func issue(dir string) error {
 	if err != nil {
 		return err
 	}
-	caKey := rawKey.(*ecdsa.PrivateKey)
+	caKey, ok := rawKey.(*ecdsa.PrivateKey)
+	caPublic, publicOK := ca.PublicKey.(*ecdsa.PublicKey)
+	if !ok || !publicOK || !ca.IsCA || caKey.Curve != elliptic.P256() || caPublic.Curve != elliptic.P256() || caKey.PublicKey.X.Cmp(caPublic.X) != 0 || caKey.PublicKey.Y.Cmp(caPublic.Y) != 0 {
+		return fmt.Errorf("invalid ca key")
+	}
 	publicBlock, _ := pem.Decode([]byte(req.PublicKeyPEM))
 	if publicBlock == nil {
 		return fmt.Errorf("invalid public key")
@@ -114,7 +122,14 @@ func issue(dir string) error {
 	serial, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	now := time.Now().UTC()
 	until := now.Add(time.Duration(req.ValidHours) * time.Hour)
-	tmpl := &x509.Certificate{SerialNumber: serial, Subject: pkix.Name{CommonName: req.DeviceID, OrganizationalUnit: []string{req.TenantID}}, NotBefore: now.Add(-time.Minute), NotAfter: until, KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, DNSNames: []string{req.Audience + ".devices.nexo.local"}}
+	if now.Before(ca.NotBefore) || !now.Before(ca.NotAfter) || until.After(ca.NotAfter) {
+		return fmt.Errorf("ca validity insufficient")
+	}
+	notBefore := now.Add(-time.Minute)
+	if notBefore.Before(ca.NotBefore) {
+		notBefore = ca.NotBefore
+	}
+	tmpl := &x509.Certificate{SerialNumber: serial, Subject: pkix.Name{CommonName: req.DeviceID, OrganizationalUnit: []string{req.TenantID}}, NotBefore: notBefore, NotAfter: until, KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, DNSNames: []string{req.Audience + ".devices.nexo.local"}}
 	cert, err := x509.CreateCertificate(rand.Reader, tmpl, ca, ec, caKey)
 	if err != nil {
 		return err

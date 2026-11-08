@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"syscall"
 	"time"
@@ -51,7 +52,7 @@ func main() {
 		return
 	}
 	if len(os.Args) < 4 {
-		fail(fmt.Errorf("usage: nexo-agent enroll|claim|authenticate|run-once|node-reconcile-once|node-service|service <base-url> <state-dir> [arguments]"))
+		fail(fmt.Errorf("usage: nexo-agent enroll|claim|authenticate|rotate-node-credential|run-once|node-reconcile-once|node-service|service <base-url> <state-dir> [arguments]"))
 	}
 	cmd, base, dir := os.Args[1], os.Args[2], os.Args[3]
 	if err := validateBaseURL(base); err != nil {
@@ -74,6 +75,11 @@ func main() {
 		err = enroll(base, dir, key, os.Args[4], os.Args[5], "node", os.Stdout)
 	case "claim":
 		err = claim(base, dir, os.Stdout)
+	case "rotate-node-credential":
+		if len(os.Args) != 5 {
+			fail(fmt.Errorf("rotate-node-credential requires a rotation id"))
+		}
+		err = rotateNodeCredential(base, dir, key, os.Args[4], os.Stdout)
 	case "authenticate":
 		err = authenticate(base, dir, key)
 	case "renew":
@@ -342,6 +348,46 @@ func claim(base, dir string, output io.Writer) error {
 	}
 	return json.NewEncoder(output).Encode(map[string]any{"device_id": s.DeviceID, "serial": s.Serial, "status": "approved"})
 }
+
+var nodeCredentialRotationID = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+func rotateNodeCredential(base, dir string, key *ecdsa.PrivateKey, rotationID string, output io.Writer) error {
+	if !nodeCredentialRotationID.MatchString(rotationID) {
+		return fmt.Errorf("invalid rotation id")
+	}
+	s, err := readState(dir)
+	if err != nil {
+		return err
+	}
+	if s.Audience != "node" || !nodeCredentialRotationID.MatchString(s.DeviceID) {
+		return fmt.Errorf("node identity required")
+	}
+	signature, err := signPayload(key, "nexo-node-credential-rotation-v1\n"+s.DeviceID+"\n"+rotationID)
+	if err != nil {
+		return err
+	}
+	var certificate struct {
+		CertificatePEM string `json:"certificate_pem"`
+		Serial         string `json:"serial"`
+		NotBefore      string `json:"not_before"`
+		NotAfter       string `json:"not_after"`
+	}
+	path := "/v1/node-credential-rotations/" + rotationID + "/complete"
+	if err = post(base, path, map[string]string{"node_id": s.DeviceID, "signature": signature}, &certificate); err != nil {
+		return err
+	}
+	if certificate.Serial == "" || certificate.CertificatePEM == "" || certificate.NotBefore == "" || certificate.NotAfter == "" {
+		return fmt.Errorf("invalid rotation certificate response")
+	}
+	oldSerial := s.Serial
+	s.Serial = certificate.Serial
+	s.CertificatePEM = certificate.CertificatePEM
+	if err = writeState(dir, s); err != nil {
+		return err
+	}
+	return json.NewEncoder(output).Encode(map[string]any{"device_id": s.DeviceID, "old_serial": oldSerial, "serial": s.Serial, "status": "rotated"})
+}
+
 func authenticate(base, dir string, key *ecdsa.PrivateKey) error {
 	s, session, err := authenticateSession(base, dir, key)
 	if err != nil {

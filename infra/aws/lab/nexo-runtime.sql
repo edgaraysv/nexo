@@ -117,6 +117,14 @@ BEGIN
   END IF;
 END $$;
 
+-- L06 node credential rotation is absent from older lab migration profiles.
+DO $$
+BEGIN
+  IF to_regclass('public.node_credential_rotations') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT, INSERT, UPDATE ON TABLE node_credential_rotations TO nexo_runtime';
+  END IF;
+END $$;
+
 -- SECURITY DEFINER revision allocation intentionally bypasses device-scoped
 -- RLS. Keep execution limited to the application runtime, including when this
 -- role is provisioned after migrations have already run.

@@ -29,6 +29,8 @@ const migrations = [
   '021_f10_support_lifecycle.sql',
   '023_f03_resource_grants_runtime_privileges.sql',
   '024_f10_support_runtime_privileges.sql',
+  '025_f08_icmp_echo_policies.sql',
+  '026_l06_node_credential_rotation.sql',
 ];
 
 function run(command, args, options = {}) {
@@ -95,12 +97,15 @@ try {
   const supportMissing = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions'),('support_session_attempts'),('support_session_outbox')) expected(table_name), (VALUES ('SELECT'),('INSERT'),('UPDATE')) required(privilege) WHERE NOT has_table_privilege('nexo_runtime',format('public.%I',table_name),privilege)"));
   const supportMigrationDelete = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions'),('support_session_attempts'),('support_session_outbox')) expected(table_name) WHERE has_table_privilege('nexo_runtime',format('public.%I',table_name),'DELETE')"));
   const supportRlsMissing = Number(psql("SELECT count(*) FROM (VALUES ('support_consent'),('support_sessions'),('support_session_attempts'),('support_session_outbox')) expected(table_name) LEFT JOIN pg_class c ON c.relname=table_name AND c.relnamespace='public'::regnamespace WHERE NOT coalesce(c.relrowsecurity,false) OR NOT coalesce(c.relforcerowsecurity,false)"));
+  const nodeRotationMissing = Number(psql("SELECT count(*) FROM (VALUES ('SELECT'),('INSERT'),('UPDATE')) required(privilege) WHERE NOT has_table_privilege('nexo_runtime','public.node_credential_rotations',privilege)"));
+  const nodeRotationDelete = psql("SELECT has_table_privilege('nexo_runtime','public.node_credential_rotations','DELETE')");
+  const nodeRotationRlsMissing = Number(psql("SELECT count(*) FROM pg_class WHERE relname='node_credential_rotations' AND relnamespace='public'::regnamespace AND (NOT relrowsecurity OR NOT relforcerowsecurity)"));
   const publicCreate = psql("SELECT has_schema_privilege('public','public','CREATE')");
   const publicTableGrants = Number(psql("SELECT count(*) FROM information_schema.role_table_grants WHERE grantee='PUBLIC' AND table_schema='public'"));
   const revisionFunctionRuntime = psql("SELECT has_function_privilege('nexo_runtime','public.nexo_node_latest_revision(uuid)','EXECUTE')");
   const revisionFunctionPublic = psql("SELECT has_function_privilege('public','public.nexo_node_latest_revision(uuid)','EXECUTE')");
 
-  assert.equal(tableCount, 60);
+  assert.equal(tableCount, 61);
   assert.equal(wrongOwners, 0);
   assert.equal(unsafeRole, 'f');
   assert.equal(deleteGrants, 2, 'DELETE must remain limited to role_permissions and provider_company_assignments');
@@ -119,11 +124,14 @@ try {
   assert.equal(supportMissing, 0);
   assert.equal(supportMigrationDelete, 0, '024 must not grant DELETE on support tables');
   assert.equal(supportRlsMissing, 0);
+  assert.equal(nodeRotationMissing, 0);
+  assert.equal(nodeRotationDelete, 'f');
+  assert.equal(nodeRotationRlsMissing, 0);
   assert.equal(publicCreate, 'f');
   assert.equal(publicTableGrants, 0);
   assert.equal(revisionFunctionRuntime, 't');
   assert.equal(revisionFunctionPublic, 'f');
-  console.log(JSON.stringify({ phase: 'runtime-grants', migrations: migrations.length, tables: tableCount, ownership: 'PASS', leastPrivilege: 'PASS', delete: 'ALLOWLISTED (2 TABLES)', f04: 'PASS', f06: 'PASS', f07: 'PASS', f08: 'PASS', f03ResourceGrantMigration: 'PASS', f03ResourceGrants: 'PASS', f10SupportPrivilegeMigration: 'PASS', f10SupportConsent: 'PASS', f10SupportLifecycle: 'PASS', heartbeats: 'PASS', rls: 'PASS', image }));
+  console.log(JSON.stringify({ phase: 'runtime-grants', migrations: migrations.length, tables: tableCount, ownership: 'PASS', leastPrivilege: 'PASS', delete: 'ALLOWLISTED (2 TABLES)', f04: 'PASS', f06: 'PASS', f07: 'PASS', f08: 'PASS', f03ResourceGrantMigration: 'PASS', f03ResourceGrants: 'PASS', f10SupportPrivilegeMigration: 'PASS', f10SupportConsent: 'PASS', f10SupportLifecycle: 'PASS', nodeCredentialRotation: 'PASS', heartbeats: 'PASS', rls: 'PASS', image }));
 } finally {
   spawnSync('docker', ['rm', '-f', name], { stdio: 'ignore' });
 }

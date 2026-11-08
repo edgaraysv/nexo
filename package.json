@@ -29,6 +29,7 @@
     "test:l05-postgres": "npm run build && node scripts/l05-postgres.mjs",
     "verify:l06": "npm run build && node scripts/l06.mjs",
     "test:l06-postgres": "npm run build && node scripts/l05-postgres.mjs",
+    "test:l06-node-rotation-postgres": "npm run build && node scripts/l06-node-rotation-postgres.mjs",
     "test:l06-restore": "node scripts/l06-restore.mjs",
     "verify:l07": "node scripts/l07.mjs",
     "test:l07-flow": "npm run build && node scripts/l07-flow.mjs",
