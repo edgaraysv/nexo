@@ -46,6 +46,8 @@ type PrivateAccessRule struct {
 	Protocol  string `json:"protocol"`
 	PortStart int    `json:"portStart"`
 	PortEnd   int    `json:"portEnd"`
+	IcmpType  int    `json:"icmpType,omitempty"`
+	IcmpCode  int    `json:"icmpCode,omitempty"`
 }
 
 type Result struct {
@@ -244,7 +246,19 @@ func validate(environment DesiredEnvironment) error {
 	byService := map[string][]PrivateAccessRule{}
 	for _, rule := range environment.PrivateAccess {
 		address, parseErr := netip.ParseAddr(rule.Address)
-		if parseErr != nil || !address.Is4() || !privateIPv4(address) || rule.Protocol != "tcp" && rule.Protocol != "udp" || rule.PortStart < 1 || rule.PortEnd < rule.PortStart || rule.PortEnd > 65535 {
+		if parseErr != nil || !address.Is4() || !privateIPv4(address) {
+			return errors.New("invalid private access rule")
+		}
+		switch rule.Protocol {
+		case "tcp", "udp":
+			if rule.PortStart < 1 || rule.PortEnd < rule.PortStart || rule.PortEnd > 65535 || rule.IcmpType != 0 || rule.IcmpCode != 0 {
+				return errors.New("invalid private access rule")
+			}
+		case "icmp":
+			if environment.Engine != "openvpn" || rule.PortStart != 0 || rule.PortEnd != 0 || rule.IcmpType != 8 || rule.IcmpCode != 0 {
+				return errors.New("invalid private access rule")
+			}
+		default:
 			return errors.New("invalid private access rule")
 		}
 		if _, duplicate := seen[rule]; duplicate {

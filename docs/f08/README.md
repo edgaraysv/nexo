@@ -9,7 +9,7 @@ El plano de control F08 y el **primer corte de runtime directo IPv4** están imp
 - `gateway` exige un agente gateway aprobado de la misma sede y permite retorno `routed` o `snat`. El SNAT queda limitado a los CIDR privados declarados para la sede; no se generan rutas por defecto.
 - DNS `local` no cambia resolvedores ni sufijos. DNS `split` exige de uno a cuatro resolvedores privados y de uno a ocho sufijos explícitos.
 - Los recursos son destinos cerrados (`ipv4` dentro de la sede o `hostname` bajo un sufijo split-DNS). No se aceptan URL, rutas, comandos ni destinos libres.
-- Las políticas relacionan origen (`any_endpoint` o un endpoint aprobado), recurso, protocolo (`tcp`/`udp`) y rango de puertos. La ausencia de una regla activa produce `default_deny`; una denegación coincidente prevalece.
+- Las políticas relacionan origen (`any_endpoint` o un endpoint aprobado), recurso y protocolo. TCP/UDP usan rangos de puertos; ICMP se limita a echo request (tipo 8/código 0), sin puertos. La ausencia de una regla activa produce `default_deny`; una denegación coincidente prevalece.
 - Cada cambio de recurso o política incrementa la revisión del perfil y lo devuelve a `pending`.
 - Un gateway obtiene únicamente perfiles asignados a su identidad. Un endpoint obtiene perfiles directos y no recibe políticas específicas de otros endpoints.
 - El contrato deseado incluye los CIDR de sede (`siteNetworks`) para poder planificar rutas de retorno sin inventar agregados.
@@ -21,7 +21,7 @@ El plano de control F08 y el **primer corte de runtime directo IPv4** están imp
 - Se preserva el aislamiento por `tenant_id` con RLS forzado en las cinco tablas F08.
 - El rol runtime no recibe `DELETE`; el retorno previsto es una revisión posterior, no borrado de historial.
 - El agente no recibe shell, URL, ejecutable ni directiva OpenVPN arbitraria.
-- El runtime VPN acepta reglas node-scoped de destino IPv4 exacto, protocolo y puertos; empuja únicamente rutas `/32`, filtra por defecto y agrega retorno al pool VPN.
+- El runtime VPN acepta reglas node-scoped de destino IPv4 exacto: TCP/UDP con puertos o solo ICMP echo request (tipo 8/código 0); empuja únicamente rutas `/32` y admite únicamente sus respuestas con estado conntrack. El tráfico hacia recursos enrutados usa `forward`; si el destino es la propia EC2, hooks `input`/`output` limitados al veth de ese entorno aplican las mismas tuplas y deniegan el resto de ese veth.
 - La ruta de retorno no reemplaza rutas preexistentes: una ruta no acreditada como propia produce conflicto. Suspender o retirar elimina la ruta administrada; se conservan contadores de drops y no hay aceptación `established` genérica en el trayecto de datos que pueda mantener una autorización retirada.
 - Las reglas `source_kind=device` no tienen traducción positiva en este corte; se omiten completamente (fail-closed). Reglas duplicadas/solapadas se rechazan en el agente y los rangos de política se normalizan antes de entregarlos.
 - Solo se ejecuta el trayecto directo IPv4. Gateway, SNAT y split-DNS no se aplican por este runtime.
@@ -48,3 +48,10 @@ La API y la migración aditiva 013 permanecen desplegadas en loopback; no se hiz
 El P1 local posterior corrigió y probó la reemisión con historial (migración 016, PostgreSQL local), el reporte de observación de solo lectura y el reintento de cleanup. **Nada de eso está desplegado**: la base desplegada conserva el unique total hasta aplicar 016, el binario instalado `AADE7DD196A5A3C8AA02369E844445D1F926D999E77BC08133016E4B563E7CFB` conserva el bug de serial y la observación Windows live no se ejecutó. El build local `48eaa85d0f36299af391aa591363cd9e441e9d96976c6ea01e6a571167cd694e` no se instaló. El restore no se validó (`NOT RUN`); F07 (reconexión, multitenant de aceptación y rechazo CRL real) sigue `NOT RUN`; este corte no la amplía.
 
 Evidencia detallada: [`evidence.md`](evidence.md). Estado local, límites y planes P0/P2/P3: [`p1-local.md`](p1-local.md). Registro de despliegue y retirada: [`deployment-plan.md`](deployment-plan.md).
+
+## Preparación local de ICMP echo — 2026-11-07
+
+- Se prepara el contrato API/DB/runtime para una política de recurso IPv4 exacto que permita solo echo request ICMP (8/0). Echo reply se admite únicamente como respuesta conntrack; otros tipos/códigos, puertos en ICMP y políticas ICMP para el runtime WireGuard se rechazan.
+- Para un recurso alojado en la propia EC2, la regla de `forward` no coincide con el recorrido local del kernel. El renderer también filtra `input`/`output` por el veth exclusivo del entorno: destino/protocolo/tipo exactos y respuesta conntrack; lo demás que entra o sale por ese veth se descarta.
+- La migración aditiva `025_f08_icmp_echo_policies.sql` mantiene TCP/UDP y agrega las columnas y restricciones para ICMP. Se incluye en los perfiles locales F08 y en el baseline production, pero **no se aplicó a ninguna base real ni AWS**. El perfil `f09-lab` queda sin cambios.
+- La preparación local y las pruebas del renderer no prueban el dataplane sobre AWS ni que el SG controle el tráfico destinado a la misma EC2 que termina OpenVPN. La aceptación real de Windows sigue separada y pendiente.

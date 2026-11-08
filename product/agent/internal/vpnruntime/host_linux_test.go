@@ -53,6 +53,15 @@ func TestNativeRendererPushesOnlyExactF08ResourceAndFiltersByTuple(t *testing.T)
 	if !strings.Contains(forwardChain(bundle.namespaceFirewall), `iifname "tun0" oifname "`+linkFor(env.ID).NamespaceInterface+`" ip saddr 10.90.0.0/24 counter drop`) {
 		t.Fatal("default-deny rule has no counter for packet-level evidence")
 	}
+	link := linkFor(env.ID)
+	for _, want := range []string{
+		`chain input { type filter hook input priority filter; policy accept; iifname "` + link.HostInterface + `" ip saddr 10.90.0.0/24 ip daddr 10.240.0.78 tcp dport 18443-18443 accept; iifname "` + link.HostInterface + `" counter drop; }`,
+		`chain output { type filter hook output priority filter; policy accept; oifname "` + link.HostInterface + `" ct state established,related ip saddr 10.240.0.78 tcp sport 18443-18443 ip daddr 10.90.0.0/24 accept; oifname "` + link.HostInterface + `" counter drop; }`,
+	} {
+		if !strings.Contains(bundle.hostFirewall, want) {
+			t.Fatalf("host-local resource policy missing exact rule %q: %s", want, bundle.hostFirewall)
+		}
+	}
 	for _, forbidden := range []string{"10.240.0.0/24", "0.0.0.0/0", "redirect-gateway"} {
 		if strings.Contains(bundle.openvpn+bundle.namespaceFirewall, forbidden) {
 			t.Fatalf("unexpected broad route/directive %q", forbidden)
@@ -60,6 +69,37 @@ func TestNativeRendererPushesOnlyExactF08ResourceAndFiltersByTuple(t *testing.T)
 	}
 	if strings.Contains(forwardChain(bundle.namespaceFirewall)+forwardChain(bundle.hostFirewall), "ct state established,related accept") {
 		t.Fatal("generic established conntrack rule could preserve revoked access")
+	}
+}
+
+func TestNativeRendererLimitsF08ICMPToEchoRequestAndTrackedReply(t *testing.T) {
+	host := &NativeHost{root: "/var/lib/nexo-node/environments", units: "/run/systemd/system"}
+	env := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	env.PrivateAccess = []PrivateAccessRule{{Address: "10.240.0.78", Protocol: "icmp", IcmpType: 8, IcmpCode: 0}}
+	bundle, err := host.render(env, linkFor(env.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	link := linkFor(env.ID)
+	for _, check := range []struct {
+		where string
+		text  string
+	}{
+		{"OpenVPN config", `push "route 10.240.0.78 255.255.255.255"`},
+		{"namespace forward", `ip saddr 10.90.0.0/24 ip daddr 10.240.0.78 icmp type echo-request accept`},
+		{"namespace return", `ct state established,related ip saddr 10.240.0.78 icmp type echo-reply ip daddr 10.90.0.0/24 accept`},
+		{"host forward", `iifname "` + link.HostInterface + `" ip saddr 10.90.0.0/24 ip daddr 10.240.0.78 icmp type echo-request accept`},
+		{"host return", `oifname "` + link.HostInterface + `" ct state established,related ip saddr 10.240.0.78 icmp type echo-reply ip daddr 10.90.0.0/24 accept`},
+		{"host local input and default deny", `chain input { type filter hook input priority filter; policy accept; iifname "` + link.HostInterface + `" ip saddr 10.90.0.0/24 ip daddr 10.240.0.78 icmp type echo-request accept; iifname "` + link.HostInterface + `" counter drop; }`},
+		{"host local output and default deny", `chain output { type filter hook output priority filter; policy accept; oifname "` + link.HostInterface + `" ct state established,related ip saddr 10.240.0.78 icmp type echo-reply ip daddr 10.90.0.0/24 accept; oifname "` + link.HostInterface + `" counter drop; }`},
+	} {
+		combined := bundle.openvpn + bundle.namespaceFirewall + bundle.hostFirewall
+		if !strings.Contains(combined, check.text) {
+			t.Fatalf("missing %s rule %q: %s", check.where, check.text, combined)
+		}
+	}
+	if strings.Contains(bundle.namespaceFirewall+bundle.hostFirewall, "icmp accept") || strings.Contains(bundle.namespaceFirewall+bundle.hostFirewall, "icmpv6") {
+		t.Fatal("renderer added broad ICMP or IPv6 access")
 	}
 }
 

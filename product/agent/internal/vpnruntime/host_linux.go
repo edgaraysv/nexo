@@ -507,18 +507,31 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 	var returnRules strings.Builder
 	var hostAccessRules strings.Builder
 	var hostReturnRules strings.Builder
+	var hostLocalInputRules strings.Builder
+	var hostLocalOutputRules strings.Builder
 	for _, rule := range accessRules {
 		address := netip.MustParseAddr(rule.Address)
 		if environment.Engine == "openvpn" {
 			openvpn += fmt.Sprintf("push \"route %s 255.255.255.255\"\n", address.String())
 		}
+		if rule.Protocol == "icmp" {
+			forwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s icmp type echo-request accept; ", interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, address.String()))
+			returnRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ct state established,related ip saddr %s icmp type echo-reply ip daddr %s accept; ", link.NamespaceInterface, interfaceName, address.String(), environment.TunnelIPv4CIDR))
+			hostAccessRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s icmp type echo-request accept; ", link.HostInterface, environment.TunnelIPv4CIDR, address.String()))
+			hostReturnRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s icmp type echo-reply ip daddr %s accept; ", link.HostInterface, address.String(), environment.TunnelIPv4CIDR))
+			hostLocalInputRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s icmp type echo-request accept; ", link.HostInterface, environment.TunnelIPv4CIDR, address.String()))
+			hostLocalOutputRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s icmp type echo-reply ip daddr %s accept; ", link.HostInterface, address.String(), environment.TunnelIPv4CIDR))
+			continue
+		}
 		forwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd))
 		returnRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ct state established,related ip saddr %s %s sport %d-%d ip daddr %s accept; ", link.NamespaceInterface, interfaceName, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd, environment.TunnelIPv4CIDR))
 		hostAccessRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", link.HostInterface, environment.TunnelIPv4CIDR, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd))
 		hostReturnRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s %s sport %d-%d ip daddr %s accept; ", link.HostInterface, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd, environment.TunnelIPv4CIDR))
+		hostLocalInputRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", link.HostInterface, environment.TunnelIPv4CIDR, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd))
+		hostLocalOutputRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s %s sport %d-%d ip daddr %s accept; ", link.HostInterface, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd, environment.TunnelIPv4CIDR))
 	}
 	namespaceFirewall := fmt.Sprintf("table inet nexo_env {\n chain input { type filter hook input priority 0; policy drop; iifname \"lo\" accept; ct state established,related accept; iifname \"%s\" udp dport %d accept; }\n chain forward { type filter hook forward priority 0; policy drop; %s%s iifname \"%s\" oifname \"%s\" ip saddr %s counter drop; }\n chain output { type filter hook output priority 0; policy drop; oifname \"lo\" accept; ct state established,related accept; ip daddr 169.254.169.254 drop; oifname \"%s\" udp sport %d accept; }\n}\n", link.NamespaceInterface, environment.ListenerPort, forwardRules.String(), returnRules.String(), interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, link.NamespaceInterface, environment.ListenerPort)
-	hostFirewall := fmt.Sprintf("table inet %s {\n chain prerouting { type nat hook prerouting priority dstnat; policy accept; fib daddr type local udp dport %d dnat ip to %s:%d; }\n chain forward { type filter hook forward priority filter; policy accept; %s%s oifname \"%s\" ip daddr %s udp dport %d accept; iifname \"%s\" ip saddr %s udp sport %d accept; iifname \"%s\" counter drop; oifname \"%s\" counter drop; }\n}\n", tableName(environment), environment.ListenerPort, link.NamespaceAddress, environment.ListenerPort, hostReturnRules.String(), hostAccessRules.String(), link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.HostInterface)
+	hostFirewall := fmt.Sprintf("table inet %s {\n chain prerouting { type nat hook prerouting priority dstnat; policy accept; fib daddr type local udp dport %d dnat ip to %s:%d; }\n chain input { type filter hook input priority filter; policy accept; %siifname \"%s\" counter drop; }\n chain output { type filter hook output priority filter; policy accept; %soifname \"%s\" counter drop; }\n chain forward { type filter hook forward priority filter; policy accept; %s%s oifname \"%s\" ip daddr %s udp dport %d accept; iifname \"%s\" ip saddr %s udp sport %d accept; iifname \"%s\" counter drop; oifname \"%s\" counter drop; }\n}\n", tableName(environment), environment.ListenerPort, link.NamespaceAddress, environment.ListenerPort, hostLocalInputRules.String(), link.HostInterface, hostLocalOutputRules.String(), link.HostInterface, hostReturnRules.String(), hostAccessRules.String(), link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.HostInterface)
 	unit := renderUnit(environment, directory, serverAddressForUnit(environment), interfaceName)
 	canonical, _ := json.Marshal(environment)
 	sum := sha256.New()

@@ -128,6 +128,31 @@ func TestPrivateAccessAcceptsOnlyExactPrivateDestinationTuples(t *testing.T) {
 	}
 }
 
+func TestPrivateAccessAllowsOnlyICMPEchoRequestForOpenVPN(t *testing.T) {
+	item := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	item.PrivateAccess = []PrivateAccessRule{{Address: "10.240.0.78", Protocol: "icmp", IcmpType: 8, IcmpCode: 0}}
+	if err := validate(item); err != nil {
+		t.Fatalf("valid echo-request rule rejected: %v", err)
+	}
+	for _, rule := range []PrivateAccessRule{
+		{Address: "10.240.0.78", Protocol: "icmp", IcmpType: 3, IcmpCode: 0},
+		{Address: "10.240.0.78", Protocol: "icmp", IcmpType: 8, IcmpCode: 1},
+		{Address: "10.240.0.78", Protocol: "icmp", IcmpType: 8, IcmpCode: 0, PortStart: 1},
+	} {
+		bad := item
+		bad.PrivateAccess = []PrivateAccessRule{rule}
+		if err := validate(bad); err == nil {
+			t.Fatalf("non-echo or malformed ICMP rule accepted: %+v", rule)
+		}
+	}
+	badWireGuard := item
+	badWireGuard.Engine = "wireguard"
+	badWireGuard.WireGuard = &WireGuardConfiguration{MTU: 1420}
+	if err := validate(badWireGuard); err == nil {
+		t.Fatal("ICMP policy was accepted for the unsupported WireGuard private-access runtime")
+	}
+}
+
 func TestReconcileRejectsOverlappingTunnelRoutesForPrivateAccess(t *testing.T) {
 	host := &fakeHost{}
 	first := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
