@@ -28,6 +28,7 @@
 - **Evaluación de Apertura (2026-11-07):** **VALIDADA / ABIERTA** con criterio ICMP entonces vigente. La decisión del responsable del 2026-11-08 sustituye el criterio P1a sin cambiar P1b.
 - **Evaluaciones independientes:** primera revisión de `nexo-apertura` (sesión `ses_e4748a7feffewxKGfiSXlD3MFA`) observó el conflicto ICMP frente al contrato F08 y datos del lab faltantes. La reevaluación posterior a la primera aclaración (sesión `ses_e4737c5c9ffeDQXgspUWyYfWT0`) señaló que el gateway no probaba acceso al recurso privado y solicitó confirmación de producto; ese dictamen fue anterior a la decisión final del responsable. La revalidación independiente final (sesión `ses_e472bc85fffeLn2M9UMa7087Ev`, 2026-11-07) consideró que la IP privada de EC2/API definida por el responsable resuelve la ambigüedad y permite validar la apertura. No consultó AWS/Windows ni ejecutó pruebas.
 - **Contrato validado:** sí; la definición vigente de P1a/P1b incorpora la decisión TCP del 2026-11-08. Las pruebas reales siguen pendientes.
+- **Nota de lectura (2026-11-09):** las dos filas siguientes conservan el contrato original y el resultado de esa fecha; el criterio vigente (TCP/18443 y CA cliente ajena) y el resultado final constan en «Cierre final» al pie.
 
 | ID | Obligatoria | Tipo | Comando exacto o pasos | Resultado esperado | Evidencia requerida y actor |
 |---|---|---|---|---|---|
@@ -93,7 +94,7 @@
 - La lectura live encontró cuatro identidades endpoint del tenant —dos `pending`, dos `revoked`— y ninguna credencial VPN emitida para Gamma; no hay endpoint aprobado confirmado para P1a. También comprobó que antes de crear el servicio temporal no había listener TCP/18443 (nginx sí escucha 80/443). El responsable autorizó el listener temporal; aún no se creó.
 - **P1a/P1b:** `NOT_RUN`. P1a depende de recuperar la autenticación del nodo, provisionar Gamma, habilitar el listener TCP temporal y seleccionar/autorizar un endpoint Windows con credencial OpenVPN válida. P1b tampoco se ejecutó. La recuperación de identidad del nodo afecta al nodo compartido y requiere autorización/plan independiente; no se cambió ningún tenant distinto del indicado.
 
-## Cierre
+## Cierre (histórico del 2026-11-08; superado por «Cierre final» al pie)
 
 - **Fecha y zona horaria:** cierre pendiente; ejecución parcial registrada el 2026-11-08 (UTC para evidencia AWS).
 - **Versión evaluada:** HEAD `0380501601b2ac1d62046f9b84fe8209d59ac137` más cambios locales sin commit en `infra/aws/lab/main.tf` y este registro; no se hizo push.
@@ -183,4 +184,52 @@ El responsable autorizó ejecutar en orden: ACL de solo tránsito para la CRL (P
 - **Limpieza:** SSM `c739ac68-054f-48d9-bf97-7e8f5c742c1d` detuvo el listener y confirmó ausencia de `:18443`. En Windows, tras cerrar el responsable la ventana elevada, se confirmó estado `revoked` por API, se retiraron `client.key`, `client.ovpn`, `tls-crypt.key`, `client.csr`, `client.crt`, `ca.crt` y `tls-crypt.envelope`; quedaron cero IP `10.247.43.x`, cero rutas `/32` y `NexoEndpoint=Stopped`. Se conservaron logs de cliente, journal y artefactos públicos de P1b. `nexo-node-agent` inactivo, Gamma activo, migración 025 ausente, Alpha/Beta sin cambios.
 - **Observaciones residuales:** (1) el journal muestra en cada conexión un par `CRL: cannot read CRL from file … PEM routines::no start line` seguido de `CRL: loaded 1 CRLs from file`; el resultado neto carga la CRL y el rechazo por revocación funciona, pero el mensaje conviene revisarlo en el runtime. (2) Persiste un proceso `openvpn.exe` PID 28612 creado el 2026-11-04, sin IP de túnel ni ruta y sin línea de comandos legible desde una sesión no elevada; es anterior a esta campaña y no se detuvo por requerir elevación. (3) La ACL es operacional: si se recrean esos directorios se perderá y no está representada en el código.
 - **Veredicto de la campaña:** P1a **PASS** y P1b **PASS (criterio revisado)** con evidencia real de cliente y servidor; P1b original sin `cert`/`key` permanece **NO PASA** como intento histórico. Falta el dictamen independiente final para convertir esto en cierre `VERIFICADO`.
+
+## Cierre final — dictamen independiente (2026-11-09)
+
+- **Versión evaluada:** `master`, commit `9d7c8c66f574fa01fd8eaca71204dad10612a87f`, igual a `origin/master`. El commit contiene solo este registro y `infra/aws/lab/main.tf`. El árbol de trabajo tiene 16 archivos modificados sin commit (F08/ICMP y portal) ajenos al hito; no se evaluaron ni se tocaron.
+- **Dictamen independiente:** `nexo-cierre`, sesión `ses_e41ede401ffeAhKETEgkXn08XA`, en solo lectura sobre el repositorio (sin AWS, SSM, Windows ni PostgreSQL). Contrastó el commit, `main.tf` y el registro; aceptó las sustituciones de criterio (destino `10.240.0.250` → `10.240.0.78`, ICMP → TCP/18443, perfil sin `cert`/`key` → CA cliente ajena) y no detectó simulación.
+  - **P1a — PENDIENTE:** el resultado funcional es favorable y real (5/5 TCP, `Initialization Sequence Completed`, IP y ruta, journal con `MULTI_sva` desde `190.120.26.244`), pero faltan los artefactos que exige el contrato: `ipconfig /all` saneado, los cinco resultados TCP y la ruta efectiva no tienen ubicación ni copia; el log de cliente de la corrida Admin no consta; y se ejecutó `TcpClient` en lugar de las cinco `Test-NetConnection` del procedimiento.
+  - **P1b — PASS:** rechazo server-side por CA cliente ajena a los 0,667 s (<15 s), con `VERIFY ERROR … unable to get local issuer certificate`, `unknown CA`, `certificate verify failed`, `TLS_ERROR` y `TLS handshake failed`, correlacionado por serial e IP de origen. Salvedad formal: el log de cliente no está en el repositorio.
+  - **Dictamen global:** PENDIENTE; ningún gate obligatorio falló, pero falta evidencia obligatoria de P1a.
+- **Veredicto final para `9d7c8c6`:** no PASS. El mensaje del commit («cerrar M-VPN-04 PASS») excede lo que la evidencia conservada sostiene.
+- **Estado del hito:** **EN CURSO**. No `VERIFICADO` (evidencia obligatoria de P1a no conservada); no `BLOQUEADO` (ninguna dependencia impide ya la ejecución); no `FAIL` (no hay fallo confirmado).
+- **Evidencia faltante para `VERIFICADO`:**
+  1. Salida saneada de `ipconfig /all` del adaptador del túnel en la sesión de `01:28:50Z`.
+  2. Los cinco resultados TCP (salida o registro) correlacionados con `10.240.0.78:18443` y `10.247.43.2`.
+  3. Salida de `route print 10.240.0.78`.
+  4. Copia y ruta del log de cliente OpenVPN de la corrida Admin, y prueba del éxito de `NETSH`.
+  5. Copia local (no solo ID SSM) del journal `51860240-aba3-48f5-8a1d-7764fce0b5f6` y de `p1b-client.log` si se auditan sin acceso a AWS/Windows.
+- **Nota operativa:** el log de cliente de la corrida Admin ya no está en `%LOCALAPPDATA%\NEXO\MVPN03-20261107\vpn\d888126a-…\runtime\` (directorio vacío al 2026-11-09). Se conservan el log de la corrida fallida en `…\logs\mvpn04-positive.log` y el del rechazo por revocación en `…\logs\crl-enforcement.log`.
+- **Dependencias revisoradas sin cambio:** recuperación del mismo `device_id` (SSM `921d336d…`, auditoría `11596`, `/v1/device/me` 200, credencial previa 401), ACL de CRL (SSM `251113c0…`, no representada en IaC), enforcement de revocación (SSM `82148e4c…`), ciclo del listener (`5b5ef711…` / `c739ac68…`) y cierre del ingress a `138.97.142.254/32`.
+- **Fuera del criterio de cierre:** la renovación de identidad quedó en `not_after=2026-11-10T01:54:47Z` (+24 h) porque `product/api/application.ts` y `product/agent/cmd/nexo-issuer/main.go` limitan `endpoint` a 24 h.
+- **Para declarar `VERIFICADO`:** nueva ventana autorizada que repita P1a conservando esos artefactos, o una decisión explícita del responsable que acepte los valores registrados como evidencia suficiente; en ambos casos se requiere una nueva evaluación independiente.
+
+## Decisión del responsable — evidencia de P1a (2026-11-09)
+
+- **Criterio original (se conserva):** el contrato exigía log OpenVPN fechado, `ipconfig /all` saneado, ruta efectiva y los cinco resultados TCP correlacionados, con su ubicación. El dictamen independiente del 2026-11-09 los dio por faltantes y dejó P1a en PENDIENTE.
+- **Decisión autorizada:** el responsable acepta como evidencia suficiente de P1a los valores ya registrados en este documento —`Initialization Sequence Completed` a `2026-11-09T01:28:50Z`, `ifconfig 10.247.43.2/24`, ruta `10.240.0.78/32 via 10.247.43.1 if=12` y **5/5** conexiones TCP a `10.240.0.78:18443` a `2026-11-09T01:31:08Z`— junto con el journal del servidor (SSM `51860240-aba3-48f5-8a1d-7764fce0b5f6`) y la limpieza del listener (SSM `c739ac68-054f-48d9-bf97-7e8f5c742c1d`). No se exige copia de `ipconfig /all`, de `route print` ni de la salida de los cinco sondeos, ni el log de cliente de la corrida Admin.
+- **Motivo:** la corrida fue real y bilateral; la ausencia detectada es de retención de artefactos, no una duda sobre el resultado. Repetir la ventana reabriría el ingress sin aportar información nueva sobre el gate.
+- **Alcance:** solo afecta a la formalidad de evidencia de P1a. No cambia el criterio TCP/18443, no altera P1b y no convierte en superados los intentos históricos fallidos.
+- **Consecuencia:** al ser un cambio de criterio material, se requiere una nueva evaluación independiente de cierre antes de declarar `VERIFICADO`; el dictamen anterior se conserva.
+- **Actor y fecha:** responsable del hito (Edgar Garay), 2026-11-09, por elección explícita en la interfaz de la sesión.
+
+## Cierre vigente — reevaluación independiente (2026-11-09)
+
+- **Dictamen independiente con el criterio revisado:** `nexo-cierre`, sesión `ses_e41e676a0ffe050pntaFhVyRl1`, solo lectura. Consideró el cambio de evidencia correctamente documentado (cambio, motivo, alcance, actor) y admisible sin vaciar los gates; confirmó que no altera P1b ni promueve los intentos históricos fallidos.
+  - **P1a — PASS:** túnel conectado, IP `10.247.43.2/24`, ruta `10.240.0.78/32 via 10.247.43.1`, 5/5 TCP, journal del servidor y limpieza del listener.
+  - **P1b — PASS:** rechazo server-side por CA ajena a 0,667 s; descartó error local, red, `tls-crypt` y caducidad como causa.
+  - **Dictamen global:** PASS-CON-PENDIENTES; sin fallo obligatorio ni evidencia obligatoria faltante bajo la decisión del 2026-11-09.
+- **Veredicto final:** PASS-CON-PENDIENTES.
+- **Estado del hito:** **VERIFICADO**, con los pendientes declarados abajo y fuera del criterio de cierre.
+- **Pendientes declarados (no bloquean):**
+  1. Mensaje doble de CRL en el journal (`cannot read CRL` seguido de `loaded 1 CRLs`).
+  2. ACL de solo tránsito no representada en IaC.
+  3. `openvpn.exe` PID 28612 residual, sin túnel ni ruta.
+  4. Identidad API con vigencia de 24 h; renovación recurrente sin procedimiento aprobado.
+  5. Evidencia de P1a sostenida en valores registrados e IDs SSM, sin copia local (dispensado por la decisión del 2026-11-09).
+  6. Migración 025 y soporte ICMP/F08 sin desplegar.
+  7. Árbol de trabajo con cambios ajenos sin commit.
+- **Observaciones del revisor aceptadas:** la tabla contractual conserva el criterio original y se lee con la nota de apertura; el instrumento fue `TcpClient` y no `Test-NetConnection`, sin alterar el gate semántico; la elevación se infiere del éxito de `NETSH`.
+- **Alcance del veredicto:** vale para el recorrido y entorno demostrados (Windows 2.7.7 ↔ Gamma 2.6.12, `10.240.0.78:18443`). No acredita forwarding a una carga separada, enforcement de la política F08 ni el resto de F08.
 
