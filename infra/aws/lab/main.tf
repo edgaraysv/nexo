@@ -25,7 +25,10 @@ data "aws_ami" "node" {
 }
 
 locals {
-  name = "nexo-lab-${var.account_id}-${var.region}"
+  name                     = "nexo-lab-${var.account_id}-${var.region}"
+  openvpn_client_cidr      = "138.97.142.254/32"
+  openvpn_tunnel_ipv4_cidr = "10.247.43.0/24"
+  openvpn_listener_port    = 21603
 }
 
 resource "aws_vpc" "lab" {
@@ -92,6 +95,24 @@ resource "aws_vpc_security_group_ingress_rule" "webmin" {
   to_port           = 10000
 }
 
+resource "aws_vpc_security_group_ingress_rule" "openvpn_listener" {
+  security_group_id = aws_security_group.node.id
+  description       = "OpenVPN M-VPN-04 UDP/21603 desde el egress Windows confirmado"
+  cidr_ipv4         = local.openvpn_client_cidr
+  ip_protocol       = "udp"
+  from_port         = local.openvpn_listener_port
+  to_port           = local.openvpn_listener_port
+}
+
+resource "aws_vpc_security_group_ingress_rule" "openvpn_icmp" {
+  security_group_id = aws_security_group.node.id
+  description       = "ICMP desde el pool privado OpenVPN M-VPN-04"
+  cidr_ipv4         = local.openvpn_tunnel_ipv4_cidr
+  ip_protocol       = "icmp"
+  from_port         = -1
+  to_port           = -1
+}
+
 resource "aws_vpc_security_group_ingress_rule" "web_http" {
   security_group_id = aws_security_group.web.id
   description       = "ACME HTTP-01 and HTTP to HTTPS redirect"
@@ -135,13 +156,11 @@ resource "aws_instance" "node" {
   vpc_security_group_ids      = [aws_security_group.node.id, aws_security_group.web.id]
   associate_public_ip_address = true
   # Sin key_pair, perfil IAM, secretos, provisioner ni user_data.
-  # IMDS deshabilitado hasta diseñar y probar su aislamiento de los tenants.
-  # IMDSv2 obligatorio. hop_limit=1: solo procesos del host alcanzan IMDS;
-  # el tráfico de namespaces VPN requiere saltos adicionales y no llega.
+  # IMDSv2 está habilitado y es obligatorio; conservar el hop limit observado en AWS.
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
-    http_put_response_hop_limit = 1
+    http_put_response_hop_limit = 2
   }
   root_block_device {
     encrypted             = true
