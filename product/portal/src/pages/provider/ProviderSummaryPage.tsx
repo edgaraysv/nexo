@@ -55,12 +55,12 @@ export default function ProviderSummaryPage() {
       <p className="nx-lede">El alcance depende del rol y las asignaciones del servidor. Registro, configuración y conectividad son señales distintas.</p>
       <div className="nx-grid">
         {metrics.map((metric) => (
-          <Card heading={metric.title} key={metric.title}>
-            {metric.state.status === 'loading' && <p className="nx-muted">Cargando…</p>}
-            {metric.state.status === 'ready' && <h3>{metric.state.count}</h3>}
-            {metric.state.status === 'forbidden' && <p>Sin permiso.</p>}
-            {metric.state.status === 'error' && <p role="status">{metric.state.code}</p>}
-            <p className="nx-muted">El registro no demuestra conectividad.</p>
+          <Card className="nx-metric-card" heading={metric.title} key={metric.title}>
+            {metric.state.status === 'loading' && <p className="nx-muted" role="status" aria-busy="true">Cargando registros…</p>}
+            {metric.state.status === 'ready' && <h3 aria-label={`${metric.state.count} registros devueltos`}>{metric.state.count}</h3>}
+            {metric.state.status === 'forbidden' && <p role="status">Sin permiso para consultar este recurso.</p>}
+            {metric.state.status === 'error' && <p role="status">No fue posible cargar el recuento. Código: {metric.state.code}</p>}
+            <p className="nx-muted">Registros devueltos por la API; no indican conectividad.</p>
           </Card>
         ))}
       </div>

@@ -1,0 +1,47 @@
+# M-VPN-05 Capa D - corroboracion de servidor (compilada de salidas live)
+# generado: 2026-11-10T09:39:19Z
+
+## pcap
+5f6574cfc11760ba962f0e50c6d2aeba0e0e00ae81e076222fa72b5b2a12a60b  /root/mvpn05/evidence/gateway-9090.pcap
+packets=35
+403d8316b1c99cbebd2d897b3897b0aef0efab236544abcdc1442880ac2732ce  /root/mvpn05/evidence/server-9090.pcap
+packets=70
+
+## muestras pcap
+09:19:10.873103 IP 10.247.43.3.60873 > 10.250.0.1.9090: Flags [S], seq 349658434, win 65535, options [mss 1400,nop,wscale 8,nop,nop,sackOK], length 0
+09:19:10.873136 IP 10.247.43.1.60873 > 10.250.0.1.9090: Flags [S], seq 349658434, win 65535, options [mss 1400,nop,wscale 8,nop,nop,sackOK], length 0
+09:19:10.873543 IP 10.250.0.1.9090 > 10.247.43.1.60873: Flags [S.], seq 2253557136, ack 349658435, win 64240, options [mss 1400,nop,nop,sackOK,nop,wscale 7], length 0
+09:19:10.873552 IP 10.250.0.1.9090 > 10.247.43.3.60873: Flags [S.], seq 2253557136, ack 349658435, win 64240, options [mss 1400,nop,nop,sackOK,nop,wscale 7], length 0
+09:19:10.873465 IP 10.247.43.1.60873 > 10.250.0.1.9090: Flags [S], seq 349658434, win 65535, options [mss 1400,nop,wscale 8,nop,nop,sackOK], length 0
+09:19:10.873492 IP 10.250.0.1.9090 > 10.247.43.1.60873: Flags [S.], seq 2253557136, ack 349658435, win 64240, options [mss 1460,nop,nop,sackOK,nop,wscale 7], length 0
+09:19:10.929412 IP 10.247.43.1.60873 > 10.250.0.1.9090: Flags [.], ack 1, win 255, length 0
+
+## nft postrouting Gamma
+
+## artefacto API desplegado
+application.js=9e684fda47b835fa39d8b9977176225b6644fd6227c86763419e9db77af332a9
+postgres-company-repository.js=b9078b427674a407f0773ccaedcc23414e6d395a8b4b8bc02240aa910fd62906
+postgres-vpn-credential-repository.js=e85570516f914ca4908ed3d982da97fc31a3d5385caedd58f5de6044b3182e68
+advisory_lock_matches=1
+nextNodeRevision_matches=4
+diagnostic_matches=0
+
+## estado final DB
+profile|retired|retired|4|4
+resource|retired
+policy|retired
+gateway|revoked
+gateway_credential|revoked
+site|archived
+grants_active|0
+audit_cleanup|3
+audit_recovery|17999
+
+## topologia final
+ns=nexo-d888126ad410 (id: 2),nexo-85cee1d4b464 (id: 1),nexo-43e1790578e0 (id: 0)
+routes_10250=none
+veth_gw=none
+listener_9090=none
+ccd_files=0
+services=active,active,active,active
+health={"status":"ok"}

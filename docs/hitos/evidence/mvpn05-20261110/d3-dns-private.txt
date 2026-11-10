@@ -1,0 +1,6 @@
+# M-VPN-05 D3 - salida de consola transcrita de la ejecucion live (tunel activo)
+# comando: Resolve-DnsName test.corp.internal -Server 10.240.0.78 -DnsOnly
+# ejecutado 2026-11-10T09:20Z aprox., con tunel 10.247.43.3/24 activo
+Name               Type IPAddress  TTL
+----               ---- ---------  ---
+test.corp.internal    A 10.250.0.1   0

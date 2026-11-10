@@ -14,17 +14,26 @@ import (
 )
 
 type DesiredEnvironment struct {
-	ID             string                  `json:"id"`
-	Engine         string                  `json:"engine"`
-	Protocol       string                  `json:"protocol"`
-	ListenerPort   int                     `json:"listenerPort"`
-	TunnelIPv4CIDR string                  `json:"tunnelIpv4Cidr"`
-	IPv6Enabled    bool                    `json:"ipv6Enabled"`
-	NamespaceName  string                  `json:"namespaceName"`
-	DesiredState   string                  `json:"desiredState"`
-	Revision       int64                   `json:"revision"`
-	PrivateAccess  []PrivateAccessRule     `json:"privateAccess,omitempty"`
-	WireGuard      *WireGuardConfiguration `json:"wireguard,omitempty"`
+	ID              string                  `json:"id"`
+	Engine          string                  `json:"engine"`
+	Protocol        string                  `json:"protocol"`
+	ListenerPort    int                     `json:"listenerPort"`
+	TunnelIPv4CIDR  string                  `json:"tunnelIpv4Cidr"`
+	IPv6Enabled     bool                    `json:"ipv6Enabled"`
+	NamespaceName   string                  `json:"namespaceName"`
+	DesiredState    string                  `json:"desiredState"`
+	Revision        int64                   `json:"revision"`
+	PrivateAccess   []PrivateAccessRule     `json:"privateAccess,omitempty"`
+	OpenVPNGateways []OpenVPNGateway        `json:"openvpnGateways,omitempty"`
+	WireGuard       *WireGuardConfiguration `json:"wireguard,omitempty"`
+}
+
+type OpenVPNGateway struct {
+	DeviceID    string   `json:"deviceId"`
+	Networks    []string `json:"networks"`
+	ReturnMode  string   `json:"returnMode"`
+	DNSServers  []string `json:"dnsServers"`
+	DNSSuffixes []string `json:"dnsSuffixes"`
 }
 
 type WireGuardConfiguration struct {
@@ -120,7 +129,7 @@ func (r *Reconciler) Reconcile(desired []DesiredEnvironment, progress Progress) 
 		if environment.DesiredState != "active" {
 			continue
 		}
-		if len(environment.PrivateAccess) > 0 {
+		if requiresHostTransit(environment) {
 			for _, previous := range accessEnvironments {
 				if tunnelPrefixesOverlap(environment.TunnelIPv4CIDR, previous.TunnelIPv4CIDR) {
 					invalid[previous.ID], invalid[environment.ID] = "transit_collision", "transit_collision"
@@ -232,12 +241,59 @@ func validate(environment DesiredEnvironment) error {
 	if environment.Engine == "openvpn" && environment.WireGuard != nil || environment.Engine == "wireguard" && (environment.WireGuard == nil || environment.WireGuard.MTU != 1420 || len(environment.WireGuard.Peers) > 4096) {
 		return errors.New("invalid wireguard settings")
 	}
+	if environment.Engine != "openvpn" && len(environment.OpenVPNGateways) > 0 || len(environment.OpenVPNGateways) > 64 {
+		return errors.New("invalid openvpn gateway settings")
+	}
 	if environment.DesiredState != "active" && environment.DesiredState != "suspended" && environment.DesiredState != "retired" {
 		return errors.New("invalid desired state")
 	}
 	prefix, err := netip.ParsePrefix(environment.TunnelIPv4CIDR)
 	if err != nil || !prefix.Addr().Is4() || prefix.Bits() < 16 || prefix.Bits() > 30 || prefix != prefix.Masked() || !privateIPv4(prefix.Addr()) {
 		return errors.New("invalid tunnel cidr")
+	}
+	seenGateways := map[string]struct{}{}
+	var gatewayNetworks []netip.Prefix
+	for _, gateway := range environment.OpenVPNGateways {
+		if !uuidPattern.MatchString(gateway.DeviceID) || len(gateway.Networks) < 1 || len(gateway.Networks) > 8 || gateway.ReturnMode != "routed" && gateway.ReturnMode != "snat" || len(gateway.DNSServers) > 4 || len(gateway.DNSSuffixes) > 8 || len(gateway.DNSServers) == 0 != (len(gateway.DNSSuffixes) == 0) {
+			return errors.New("invalid openvpn gateway")
+		}
+		if _, duplicate := seenGateways[gateway.DeviceID]; duplicate {
+			return errors.New("duplicate openvpn gateway")
+		}
+		seenGateways[gateway.DeviceID] = struct{}{}
+		seenDNS := map[string]struct{}{}
+		seenSuffixes := map[string]struct{}{}
+		for _, raw := range gateway.Networks {
+			network, parseErr := netip.ParsePrefix(raw)
+			if parseErr != nil || !network.Addr().Is4() || network.Bits() < 16 || network.Bits() > 30 || network != network.Masked() || !privateIPv4(network.Addr()) || prefixesOverlap(prefix, network) {
+				return errors.New("invalid gateway network")
+			}
+			for _, previous := range gatewayNetworks {
+				if prefixesOverlap(previous, network) {
+					return errors.New("overlapping gateway network")
+				}
+			}
+			gatewayNetworks = append(gatewayNetworks, network)
+		}
+		for _, raw := range gateway.DNSServers {
+			address, parseErr := netip.ParseAddr(raw)
+			if parseErr != nil || !address.Is4() || !privateIPv4(address) {
+				return errors.New("invalid gateway dns server")
+			}
+			if _, duplicate := seenDNS[raw]; duplicate {
+				return errors.New("duplicate gateway dns server")
+			}
+			seenDNS[raw] = struct{}{}
+		}
+		for _, suffix := range gateway.DNSSuffixes {
+			if suffix != strings.ToLower(suffix) || !validDNSSuffix(suffix) {
+				return errors.New("invalid gateway dns suffix")
+			}
+			if _, duplicate := seenSuffixes[suffix]; duplicate {
+				return errors.New("duplicate gateway dns suffix")
+			}
+			seenSuffixes[suffix] = struct{}{}
+		}
 	}
 	if len(environment.PrivateAccess) > 64 {
 		return errors.New("too many private access rules")
@@ -248,6 +304,11 @@ func validate(environment DesiredEnvironment) error {
 		address, parseErr := netip.ParseAddr(rule.Address)
 		if parseErr != nil || !address.Is4() || !privateIPv4(address) {
 			return errors.New("invalid private access rule")
+		}
+		for _, network := range gatewayNetworks {
+			if network.Contains(address) {
+				return errors.New("private access overlaps gateway network")
+			}
 		}
 		switch rule.Protocol {
 		case "tcp", "udp":
@@ -354,6 +415,39 @@ func wireGuardServerAddress(cidr string) (string, error) {
 
 func privateIPv4(address netip.Addr) bool {
 	return netip.MustParsePrefix("10.0.0.0/8").Contains(address) || netip.MustParsePrefix("172.16.0.0/12").Contains(address) || netip.MustParsePrefix("192.168.0.0/16").Contains(address)
+}
+
+func requiresHostTransit(environment DesiredEnvironment) bool {
+	if len(environment.PrivateAccess) > 0 {
+		return true
+	}
+	for _, gateway := range environment.OpenVPNGateways {
+		if len(gateway.DNSServers) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func prefixesOverlap(left, right netip.Prefix) bool {
+	return left.Contains(right.Addr()) || right.Contains(left.Addr())
+}
+
+func validDNSSuffix(value string) bool {
+	if len(value) < 3 || len(value) > 253 || strings.HasPrefix(value, ".") || strings.HasSuffix(value, ".") {
+		return false
+	}
+	for _, label := range strings.Split(value, ".") {
+		if len(label) < 1 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+			return false
+		}
+		for _, character := range label {
+			if character != '-' && (character < 'a' || character > 'z') && (character < '0' || character > '9') {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func linkFor(id string) Link {

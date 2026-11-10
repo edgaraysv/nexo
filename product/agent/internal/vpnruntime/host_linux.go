@@ -73,7 +73,10 @@ type diskManifest struct {
 	Environment DesiredEnvironment `json:"environment"`
 	Digest      string             `json:"digest"`
 }
-type runtimeBundle struct{ openvpn, wireguard, namespaceFirewall, hostFirewall, unit, digest string }
+type runtimeBundle struct {
+	openvpn, wireguard, namespaceFirewall, hostFirewall, unit, digest string
+	ccd                                                               map[string]string
+}
 
 func NewNativeHost() *NativeHost {
 	return &NativeHost{root: nativeRoot, units: transientUnits, forwardingPath: "/proc/sys/net/ipv4/ip_forward", runner: execRunner{}}
@@ -89,7 +92,14 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 		return "", ErrWireGuardPrivateAccessUnsupported
 	}
 	directory := filepath.Join(host.root, environment.ID)
-	if err := os.MkdirAll(directory, 0700); err != nil {
+	directoryMode := os.FileMode(0700)
+	if len(environment.OpenVPNGateways) > 0 {
+		directoryMode = 0711
+	}
+	if err := os.MkdirAll(directory, directoryMode); err != nil {
+		return "", err
+	}
+	if err := os.Chmod(directory, directoryMode); err != nil {
 		return "", err
 	}
 	if environment.Engine == "wireguard" {
@@ -127,6 +137,9 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 		if err = atomicWrite(directory, name, []byte(value), 0600); err != nil {
 			return "", err
 		}
+	}
+	if err = syncCCD(directory, bundle.ccd); err != nil {
+		return "", err
 	}
 	if err = atomicJSON(directory, "manifest.json", diskManifest{Environment: environment, Digest: bundle.digest}); err != nil {
 		return "", err
@@ -167,7 +180,7 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 	if _, err = host.runner.Run([]byte(bundle.hostFirewall), "nft", "-f", "-"); err != nil {
 		return "", err
 	}
-	if len(environment.PrivateAccess) > 0 {
+	if requiresHostTransit(environment) {
 		if _, err = host.runner.Run(nil, "ip", "route", "add", environment.TunnelIPv4CIDR, "via", link.NamespaceAddress, "dev", link.HostInterface); err != nil {
 			return "", err
 		}
@@ -287,6 +300,9 @@ func (host *NativeHost) healthy(environment DesiredEnvironment, bundle runtimeBu
 			return false
 		}
 	}
+	if !ccdHealthy(filepath.Join(host.root, environment.ID), bundle.ccd) {
+		return false
+	}
 	unit, err := os.ReadFile(filepath.Join(host.units, unitName(environment)))
 	if err != nil || string(unit) != bundle.unit {
 		return false
@@ -308,7 +324,7 @@ func (host *NativeHost) healthy(environment DesiredEnvironment, bundle runtimeBu
 	if err != nil || !strings.Contains(hostAddress, link.HostAddress) {
 		return false
 	}
-	if len(environment.PrivateAccess) > 0 {
+	if requiresHostTransit(environment) {
 		route, routeErr := host.runner.Run(nil, "ip", "route", "show", "exact", environment.TunnelIPv4CIDR)
 		if routeErr != nil || !strings.Contains(route, "via "+link.NamespaceAddress) || !strings.Contains(route, "dev "+link.HostInterface) {
 			return false
@@ -359,7 +375,7 @@ func (host *NativeHost) cleanupRuntime(environment DesiredEnvironment) error {
 		unmarshalErr := json.Unmarshal(manifestRaw, &manifest)
 		validateErr := validate(manifest.Environment)
 		if unmarshalErr == nil && manifest.Environment.ID == environment.ID && validateErr == nil {
-			if len(manifest.Environment.PrivateAccess) > 0 {
+			if requiresHostTransit(manifest.Environment) {
 				previous := manifest.Environment
 				route, routeErr := host.runner.Run(nil, "ip", "route", "show", "exact", previous.TunnelIPv4CIDR)
 				if routeErr != nil {
@@ -436,7 +452,7 @@ func nftTableListed(tables, name string) bool {
 }
 
 func (host *NativeHost) checkRouteAvailable(environment DesiredEnvironment, link Link) error {
-	if len(environment.PrivateAccess) == 0 {
+	if !requiresHostTransit(environment) {
 		return nil
 	}
 	route, err := host.runner.Run(nil, "ip", "route", "show", "exact", environment.TunnelIPv4CIDR)
@@ -451,7 +467,7 @@ func (host *NativeHost) checkRouteAvailable(environment DesiredEnvironment, link
 		return ErrRouteConflict
 	}
 	var manifest diskManifest
-	if json.Unmarshal(manifestRaw, &manifest) != nil || manifest.Environment.ID != environment.ID || validate(manifest.Environment) != nil || len(manifest.Environment.PrivateAccess) == 0 || manifest.Environment.TunnelIPv4CIDR != environment.TunnelIPv4CIDR {
+	if json.Unmarshal(manifestRaw, &manifest) != nil || manifest.Environment.ID != environment.ID || validate(manifest.Environment) != nil || !requiresHostTransit(manifest.Environment) || manifest.Environment.TunnelIPv4CIDR != environment.TunnelIPv4CIDR {
 		return ErrRouteConflict
 	}
 	if !strings.Contains(route, "via "+link.NamespaceAddress) || !strings.Contains(route, "dev "+link.HostInterface) {
@@ -509,10 +525,80 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 	var hostReturnRules strings.Builder
 	var hostLocalInputRules strings.Builder
 	var hostLocalOutputRules strings.Builder
+	var gatewayForwardRules strings.Builder
+	var gatewayReturnRules strings.Builder
+	var masqueradeRules strings.Builder
+	ccd := map[string]string{}
+	pushedRoutes := map[string]struct{}{}
+	gateways := append([]OpenVPNGateway(nil), environment.OpenVPNGateways...)
+	sort.Slice(gateways, func(i, j int) bool { return gateways[i].DeviceID < gateways[j].DeviceID })
+	dnsServers := map[string]struct{}{}
+	dnsSuffixes := map[string]struct{}{}
+	if len(gateways) > 0 {
+		openvpn += fmt.Sprintf("client-config-dir %s/ccd\n", directory)
+	}
+	for _, gateway := range gateways {
+		networks := append([]string(nil), gateway.Networks...)
+		sort.Strings(networks)
+		var config strings.Builder
+		for _, raw := range networks {
+			networkAddress, network, parseErr := net.ParseCIDR(raw)
+			if parseErr != nil {
+				return runtimeBundle{}, parseErr
+			}
+			mask := net.IP(network.Mask).String()
+			canonical := network.String()
+			fmt.Fprintf(&config, "iroute %s %s\n", networkAddress.Mask(network.Mask), mask)
+			openvpn += fmt.Sprintf("route %s %s\n", networkAddress.Mask(network.Mask), mask)
+			openvpn += fmt.Sprintf("push \"route %s %s\"\n", networkAddress.Mask(network.Mask), mask)
+			pushedRoutes[canonical] = struct{}{}
+			gatewayForwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s accept; ", interfaceName, interfaceName, environment.TunnelIPv4CIDR, canonical))
+			gatewayReturnRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ct state established,related ip saddr %s ip daddr %s accept; ", interfaceName, interfaceName, canonical, environment.TunnelIPv4CIDR))
+			if gateway.ReturnMode == "snat" {
+				masqueradeRules.WriteString(fmt.Sprintf("ip saddr %s ip daddr %s masquerade; ", environment.TunnelIPv4CIDR, canonical))
+			}
+		}
+		ccd["nexo:"+gateway.DeviceID] = config.String()
+		for _, server := range gateway.DNSServers {
+			dnsServers[server] = struct{}{}
+		}
+		for _, suffix := range gateway.DNSSuffixes {
+			dnsSuffixes[suffix] = struct{}{}
+		}
+	}
+	suffixes := make([]string, 0, len(dnsSuffixes))
+	for suffix := range dnsSuffixes {
+		suffixes = append(suffixes, suffix)
+	}
+	sort.Strings(suffixes)
+	for _, suffix := range suffixes {
+		openvpn += fmt.Sprintf("push \"dhcp-option DOMAIN %s\"\n", suffix)
+	}
+	servers := make([]string, 0, len(dnsServers))
+	for server := range dnsServers {
+		servers = append(servers, server)
+	}
+	sort.Strings(servers)
+	for _, server := range servers {
+		openvpn += fmt.Sprintf("push \"route %s 255.255.255.255\"\n", server)
+		openvpn += fmt.Sprintf("push \"dhcp-option DNS %s\"\n", server)
+		pushedRoutes[server+"/32"] = struct{}{}
+		for _, protocol := range []string{"tcp", "udp"} {
+			forwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s %s dport 53 accept; ", interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, server, protocol))
+			returnRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ct state established,related ip saddr %s %s sport 53 ip daddr %s accept; ", link.NamespaceInterface, interfaceName, server, protocol, environment.TunnelIPv4CIDR))
+			hostAccessRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s %s dport 53 accept; ", link.HostInterface, environment.TunnelIPv4CIDR, server, protocol))
+			hostReturnRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s %s sport 53 ip daddr %s accept; ", link.HostInterface, server, protocol, environment.TunnelIPv4CIDR))
+			hostLocalInputRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s %s dport 53 accept; ", link.HostInterface, environment.TunnelIPv4CIDR, server, protocol))
+			hostLocalOutputRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s %s sport 53 ip daddr %s accept; ", link.HostInterface, server, protocol, environment.TunnelIPv4CIDR))
+		}
+	}
 	for _, rule := range accessRules {
 		address := netip.MustParseAddr(rule.Address)
 		if environment.Engine == "openvpn" {
-			openvpn += fmt.Sprintf("push \"route %s 255.255.255.255\"\n", address.String())
+			if _, exists := pushedRoutes[address.String()+"/32"]; !exists {
+				openvpn += fmt.Sprintf("push \"route %s 255.255.255.255\"\n", address.String())
+				pushedRoutes[address.String()+"/32"] = struct{}{}
+			}
 		}
 		if rule.Protocol == "icmp" {
 			forwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s icmp type echo-request accept; ", interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, address.String()))
@@ -530,7 +616,11 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 		hostLocalInputRules.WriteString(fmt.Sprintf("iifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", link.HostInterface, environment.TunnelIPv4CIDR, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd))
 		hostLocalOutputRules.WriteString(fmt.Sprintf("oifname \"%s\" ct state established,related ip saddr %s %s sport %d-%d ip daddr %s accept; ", link.HostInterface, address.String(), rule.Protocol, rule.PortStart, rule.PortEnd, environment.TunnelIPv4CIDR))
 	}
-	namespaceFirewall := fmt.Sprintf("table inet nexo_env {\n chain input { type filter hook input priority 0; policy drop; iifname \"lo\" accept; ct state established,related accept; iifname \"%s\" udp dport %d accept; }\n chain forward { type filter hook forward priority 0; policy drop; %s%s iifname \"%s\" oifname \"%s\" ip saddr %s counter drop; }\n chain output { type filter hook output priority 0; policy drop; oifname \"lo\" accept; ct state established,related accept; ip daddr 169.254.169.254 drop; oifname \"%s\" udp sport %d accept; }\n}\n", link.NamespaceInterface, environment.ListenerPort, forwardRules.String(), returnRules.String(), interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, link.NamespaceInterface, environment.ListenerPort)
+	postrouting := ""
+	if masqueradeRules.Len() > 0 {
+		postrouting = fmt.Sprintf(" chain postrouting { type nat hook postrouting priority srcnat; policy accept; %s}\n", masqueradeRules.String())
+	}
+	namespaceFirewall := fmt.Sprintf("table inet nexo_env {\n chain input { type filter hook input priority 0; policy drop; iifname \"lo\" accept; ct state established,related accept; iifname \"%s\" udp dport %d accept; }\n chain forward { type filter hook forward priority 0; policy drop; %s%s%s%s iifname \"%s\" oifname \"%s\" ip saddr %s counter drop; }\n chain output { type filter hook output priority 0; policy drop; oifname \"lo\" accept; ct state established,related accept; ip daddr 169.254.169.254 drop; oifname \"%s\" udp sport %d accept; }\n%s}\n", link.NamespaceInterface, environment.ListenerPort, gatewayForwardRules.String(), gatewayReturnRules.String(), forwardRules.String(), returnRules.String(), interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, link.NamespaceInterface, environment.ListenerPort, postrouting)
 	hostFirewall := fmt.Sprintf("table inet %s {\n chain prerouting { type nat hook prerouting priority dstnat; policy accept; fib daddr type local udp dport %d dnat ip to %s:%d; }\n chain input { type filter hook input priority filter; policy accept; %siifname \"%s\" counter drop; }\n chain output { type filter hook output priority filter; policy accept; %soifname \"%s\" counter drop; }\n chain forward { type filter hook forward priority filter; policy accept; %s%s oifname \"%s\" ip daddr %s udp dport %d accept; iifname \"%s\" ip saddr %s udp sport %d accept; iifname \"%s\" counter drop; oifname \"%s\" counter drop; }\n}\n", tableName(environment), environment.ListenerPort, link.NamespaceAddress, environment.ListenerPort, hostLocalInputRules.String(), link.HostInterface, hostLocalOutputRules.String(), link.HostInterface, hostReturnRules.String(), hostAccessRules.String(), link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.HostInterface)
 	unit := renderUnit(environment, directory, serverAddressForUnit(environment), interfaceName)
 	canonical, _ := json.Marshal(environment)
@@ -539,8 +629,19 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 		sum.Write(part)
 		sum.Write([]byte{0})
 	}
+	ccdNames := make([]string, 0, len(ccd))
+	for name := range ccd {
+		ccdNames = append(ccdNames, name)
+	}
+	sort.Strings(ccdNames)
+	for _, name := range ccdNames {
+		sum.Write([]byte(name))
+		sum.Write([]byte{0})
+		sum.Write([]byte(ccd[name]))
+		sum.Write([]byte{0})
+	}
 	digest := hex.EncodeToString(sum.Sum(nil))
-	return runtimeBundle{openvpn: openvpn, wireguard: wireguard, namespaceFirewall: namespaceFirewall, hostFirewall: hostFirewall, unit: unit, digest: digest}, nil
+	return runtimeBundle{openvpn: openvpn, wireguard: wireguard, namespaceFirewall: namespaceFirewall, hostFirewall: hostFirewall, unit: unit, ccd: ccd, digest: digest}, nil
 }
 
 func bundleFiles(environment DesiredEnvironment, bundle runtimeBundle) map[string]string {
@@ -840,6 +941,91 @@ func validatePKI(directory string) error {
 		return errors.New("invalid static key")
 	}
 	return nil
+}
+
+func syncCCD(directory string, desired map[string]string) error {
+	path := filepath.Join(directory, "ccd")
+	info, err := os.Lstat(path)
+	if err == nil && (!info.IsDir() || info.Mode()&os.ModeSymlink != 0) {
+		return errors.New("invalid ccd directory")
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	entries, err := os.ReadDir(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
+			return errors.New("invalid ccd entry")
+		}
+		if _, keep := desired[entry.Name()]; !keep {
+			if err = os.Remove(filepath.Join(path, entry.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	if len(desired) == 0 {
+		if err = os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		return nil
+	}
+	if err = os.MkdirAll(path, 0755); err != nil {
+		return err
+	}
+	if err = os.Chmod(path, 0755); err != nil {
+		return err
+	}
+	for name, content := range desired {
+		if !strings.HasPrefix(name, "nexo:") || !uuidPattern.MatchString(strings.TrimPrefix(name, "nexo:")) {
+			return errors.New("invalid ccd name")
+		}
+		if err = atomicWrite(path, name, []byte(content), 0644); err != nil {
+			return err
+		}
+	}
+	return os.Chmod(path, 0755)
+}
+
+func ccdHealthy(directory string, desired map[string]string) bool {
+	root, err := os.Stat(directory)
+	wantRootMode := os.FileMode(0700)
+	if len(desired) > 0 {
+		wantRootMode = 0711
+	}
+	if err != nil || root.Mode().Perm() != wantRootMode {
+		return false
+	}
+	path := filepath.Join(directory, "ccd")
+	ccdInfo, lstatErr := os.Lstat(path)
+	if lstatErr == nil && (!ccdInfo.IsDir() || ccdInfo.Mode()&os.ModeSymlink != 0) {
+		return false
+	}
+	entries, err := os.ReadDir(path)
+	if len(desired) == 0 {
+		return errors.Is(err, os.ErrNotExist)
+	}
+	if err != nil {
+		return false
+	}
+	directoryInfo, err := os.Stat(path)
+	if err != nil || directoryInfo.Mode().Perm() != 0755 || len(entries) != len(desired) {
+		return false
+	}
+	for _, entry := range entries {
+		expected, exists := desired[entry.Name()]
+		if !exists || entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
+			return false
+		}
+		info, infoErr := entry.Info()
+		value, readErr := os.ReadFile(filepath.Join(path, entry.Name()))
+		if infoErr != nil || readErr != nil || info.Mode().Perm() != 0644 || string(value) != expected {
+			return false
+		}
+	}
+	return true
 }
 
 func atomicJSON(directory, name string, value any) error {

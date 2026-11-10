@@ -44,7 +44,7 @@ func TestNodeVPNReconciliationUsesAuthenticatedClosedContract(t *testing.T) {
 			}
 			response.WriteHeader(http.StatusNoContent)
 		case "/v1/node/vpn-environments/reconcile":
-			json.NewEncoder(response).Encode(map[string]any{"items": []map[string]any{{"id": id, "engine": "openvpn", "protocol": "udp", "listenerPort": 21194, "tunnelIpv4Cidr": "10.90.0.0/24", "ipv6Enabled": false, "namespaceName": "nexo-aaaaaaaaaaaa", "desiredState": "active", "revision": 3}}})
+			json.NewEncoder(response).Encode(map[string]any{"items": []map[string]any{{"id": id, "engine": "openvpn", "protocol": "udp", "listenerPort": 21194, "tunnelIpv4Cidr": "10.247.43.0/24", "ipv6Enabled": false, "namespaceName": "nexo-aaaaaaaaaaaa", "desiredState": "active", "revision": 3, "openvpnGateways": []map[string]any{{"deviceId": "22222222-2222-4222-8222-222222222228", "networks": []string{"10.250.0.0/24"}, "returnMode": "snat", "dnsServers": []string{"10.240.0.78"}, "dnsSuffixes": []string{"corp.internal"}}}}}})
 		case "/v1/node/vpn-environments/" + id + "/report":
 			var report map[string]any
 			_ = json.NewDecoder(request.Body).Decode(&report)
@@ -73,6 +73,10 @@ func TestNodeVPNReconciliationUsesAuthenticatedClosedContract(t *testing.T) {
 	}
 	if reports[0]["observed_state"] != "active" {
 		t.Fatalf("unexpected reports %#v", reports)
+	}
+	gateway := reconciler.items[0].OpenVPNGateways
+	if len(gateway) != 1 || gateway[0].DeviceID != "22222222-2222-4222-8222-222222222228" || len(gateway[0].Networks) != 1 || gateway[0].Networks[0] != "10.250.0.0/24" || gateway[0].ReturnMode != "snat" || len(gateway[0].DNSServers) != 1 || gateway[0].DNSServers[0] != "10.240.0.78" || len(gateway[0].DNSSuffixes) != 1 || gateway[0].DNSSuffixes[0] != "corp.internal" {
+		t.Fatalf("gateway contract was not decoded: %#v", gateway)
 	}
 }
 

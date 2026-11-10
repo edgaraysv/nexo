@@ -52,7 +52,7 @@ func main() {
 		return
 	}
 	if len(os.Args) < 4 {
-		fail(fmt.Errorf("usage: nexo-agent enroll|claim|authenticate|rotate-node-credential|run-once|node-reconcile-once|node-service|service <base-url> <state-dir> [arguments]"))
+		fail(fmt.Errorf("usage: nexo-agent enroll|enroll-gateway|claim|authenticate|rotate-node-credential|run-once|node-reconcile-once|node-service|service <base-url> <state-dir> [arguments]"))
 	}
 	cmd, base, dir := os.Args[1], os.Args[2], os.Args[3]
 	if err := validateBaseURL(base); err != nil {
@@ -68,6 +68,11 @@ func main() {
 			fail(fmt.Errorf("enroll requires token and name"))
 		}
 		err = enroll(base, dir, key, os.Args[4], os.Args[5], "endpoint", os.Stdout)
+	case "enroll-gateway":
+		if len(os.Args) != 6 {
+			fail(fmt.Errorf("enroll-gateway requires token and name"))
+		}
+		err = enroll(base, dir, key, os.Args[4], os.Args[5], "gateway", os.Stdout)
 	case "enroll-node":
 		if len(os.Args) != 6 {
 			fail(fmt.Errorf("enroll-node requires token and name"))

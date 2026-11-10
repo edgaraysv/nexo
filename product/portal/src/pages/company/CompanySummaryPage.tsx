@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiError, useApi } from '../../api';
-import { Card, Table } from '../../components';
+import { Badge, Card, Table } from '../../components';
 
 interface CompanySummary {
   sites: number;
@@ -21,6 +21,7 @@ interface DeviceView {
   id: string;
   tenantId?: string;
   siteId?: string;
+  site_id?: string;
   name: string;
   platform?: string;
   deviceKind?: 'endpoint' | 'gateway';
@@ -39,6 +40,7 @@ interface CompanyUser {
 interface ItemsResponse<T> {
   items: T[];
   total?: number;
+  page?: { total?: number };
 }
 
 type LoadState<T> =
@@ -53,9 +55,9 @@ function failed<T>(error: unknown): LoadState<T> {
 }
 
 function statusMessage<T>(state: LoadState<T>) {
-  if (state.status === 'loading') return <p className="nx-muted">Cargando…</p>;
-  if (state.status === 'forbidden') return <p>Sin permiso.</p>;
-  if (state.status === 'error') return <p role="status">{state.code}</p>;
+  if (state.status === 'loading') return <p className="nx-muted" role="status" aria-busy="true">Cargando datos…</p>;
+  if (state.status === 'forbidden') return <p role="status">Sin permiso para consultar este recurso.</p>;
+  if (state.status === 'error') return <p role="alert">No fue posible cargar esta información. Código: {state.code}</p>;
   return null;
 }
 
@@ -71,7 +73,7 @@ export default function CompanySummaryPage() {
     void Promise.allSettled([
       api.get<CompanySummary>('/v1/company/summary'),
       api.get<ItemsResponse<Site>>('/v1/company/sites'),
-      api.get<ItemsResponse<DeviceView>>('/v1/company/devices'),
+      api.get<ItemsResponse<DeviceView>>('/v1/company/agents?page_size=10'),
       api.get<ItemsResponse<CompanyUser>>('/v1/company/users'),
     ]).then(([summaryResult, sitesResult, devicesResult, usersResult]) => {
       if (!current) return;
@@ -89,6 +91,7 @@ export default function CompanySummaryPage() {
     { title: 'Usuarios', value: 'users' },
     { title: 'Políticas activas', value: 'activePolicies' },
   ];
+  const siteNetworks = new Map(sites.status === 'ready' ? sites.data.items.map((site) => [site.id, site.networks]) : []);
 
   return (
     <section aria-labelledby="page-title">
@@ -101,8 +104,8 @@ export default function CompanySummaryPage() {
             ? { status: 'ready', data: summary.data[metric.value] }
             : summary;
           return (
-            <Card heading={metric.title} key={metric.title}>
-              {state.status === 'ready' && <h3>{state.data}</h3>}
+            <Card className="nx-metric-card" heading={metric.title} key={metric.title}>
+              {state.status === 'ready' && <h3 aria-label={`${state.data} ${metric.title.toLowerCase()}`}>{state.data}</h3>}
               {statusMessage(state)}
             </Card>
           );
@@ -121,17 +124,36 @@ export default function CompanySummaryPage() {
         )}
       </Card>
 
-      <Card heading="Dispositivos (primeras 10 filas)">
+      <Card heading="Dispositivos enrolados (primeras 10 filas)">
         {statusMessage(devices)}
         {devices.status === 'ready' && (
           <>
             <Table
-              headers={['Nombre', 'Plataforma', 'Tipo', 'Estado']}
+              headers={['Nombre', 'Plataforma', 'Tipo', 'Estado', 'Detalle']}
               rows={devices.data.items.slice(0, 10)}
-              renderRow={(device) => [device.name, device.platform ?? '—', device.deviceKind ?? device.device_kind ?? '—', device.status]}
-              empty="No hay dispositivos declarados."
+              renderRow={(device) => {
+                const kind = device.deviceKind ?? device.device_kind ?? 'endpoint';
+                const networks = siteNetworks.get(device.siteId ?? device.site_id ?? '') ?? [];
+                return [
+                  device.name,
+                  device.platform ?? '—',
+                  <Badge variant={kind === 'gateway' ? 'info' : 'neu'}>{kind}</Badge>,
+                  device.status,
+                  kind === 'gateway'
+                    ? (
+                      <div>
+                        <strong>LAN declaradas</strong>
+                        {networks.length > 0
+                          ? <ul>{networks.map((network) => <li key={network}>{network}</li>)}</ul>
+                          : <p className="nx-muted">Sin LAN declarada en la sede.</p>}
+                      </div>
+                    )
+                    : '—',
+                ];
+              }}
+              empty="No hay dispositivos enrolados."
             />
-            {devices.data.total !== undefined && <p className="nx-muted">Mostrando hasta 10 de {devices.data.total} dispositivos.</p>}
+            {(devices.data.page?.total ?? devices.data.total) !== undefined && <p className="nx-muted">Mostrando hasta 10 de {devices.data.page?.total ?? devices.data.total} dispositivos.</p>}
           </>
         )}
       </Card>

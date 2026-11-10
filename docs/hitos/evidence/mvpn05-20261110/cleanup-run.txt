@@ -1,0 +1,19 @@
+# M-VPN-05 - cleanup live (transcripcion de la salida de consola)
+# SSM command_id: 67a29b53-994a-4d7e-953b-d050e30f8e5b
+# comando: sudo -u postgres psql -X -d nexo_mvpn01 -v ON_ERROR_STOP=1 -v tenant_id=... -v actor_user_id=... -v gateway_device_id=... -v profile_id=... -v site_id=... < /root/mvpn05/mvpn05-cleanup.sql
+# script sha256: 09d56a7a839bb1f58f1c6ef3f407a73d222e720260b6654e6ca859586449c53f
+# script bytes: 9969
+BEGIN
+SET
+SET
+SET
+CREATE TABLE
+INSERT 0 1
+LOCK TABLE
+DO
+    result     |              tenant_id               |              profile_id              | desired_state | observed_state | revision | applied_revision |          gateway_device_id           | gateway_status |               site_id                | site_status
+---------------+--------------------------------------+--------------------------------------+---------------+----------------+----------+------------------+--------------------------------------+----------------+--------------------------------------+-------------
+ cleanup_ready | e4186fac-0dd4-4aaa-8f0f-e4342e19af8a | ab3cb5e7-15d2-41dd-86dd-e1e801d58c85 | retired       | retired        |        4 |                4 | 58ed5e5e-837e-4330-8061-fa66077f22a8 | revoked        | c7680984-5808-44d0-9ccb-5c6b7f478391 | archived
+(1 row)
+
+COMMIT

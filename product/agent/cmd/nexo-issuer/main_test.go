@@ -43,6 +43,39 @@ func TestIssueRejectsLongEndpointTTL(t *testing.T) {
 	}
 }
 
+func TestIssueGatewayCredentialUsesGatewayAudience(t *testing.T) {
+	dir := t.TempDir()
+	if err := initCA(dir); err != nil {
+		t.Fatal(err)
+	}
+	issued := runIssuerRequest(t, dir, testIssuerRequest(t, "gateway", 24))
+	block, _ := pem.Decode([]byte(issued.CertificatePEM))
+	if block == nil {
+		t.Fatal("issuer returned invalid certificate PEM")
+	}
+	certificate, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certificate.DNSNames) != 1 || certificate.DNSNames[0] != "gateway.devices.nexo.local" {
+		t.Fatalf("unexpected gateway audience: %v", certificate.DNSNames)
+	}
+}
+
+func TestIssueRejectsLongGatewayTTL(t *testing.T) {
+	err := runIssuerError(t, t.TempDir(), testIssuerRequest(t, "gateway", 25))
+	if err == nil || !strings.Contains(err.Error(), "invalid certificate request") {
+		t.Fatalf("expected extended gateway TTL rejection, got %v", err)
+	}
+}
+
+func TestIssueRejectsUnknownAudience(t *testing.T) {
+	err := runIssuerError(t, t.TempDir(), testIssuerRequest(t, "unknown", 24))
+	if err == nil || !strings.Contains(err.Error(), "invalid certificate request") {
+		t.Fatalf("expected unknown audience rejection, got %v", err)
+	}
+}
+
 func TestIssueRejectsLeafBeyondCARemainingValidity(t *testing.T) {
 	dir := t.TempDir()
 	if err := writeTestCA(dir, 7*24*time.Hour); err != nil {

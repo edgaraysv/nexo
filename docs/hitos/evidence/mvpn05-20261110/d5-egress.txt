@@ -1,0 +1,3 @@
+# M-VPN-05 D5 - egress Windows re-verificado (lectura)
+# ejecutado 2026-11-10T09:45:43Z
+egress=190.120.26.242

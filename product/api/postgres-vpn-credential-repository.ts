@@ -19,7 +19,7 @@ export class PostgresVpnCredentialRepository implements VpnCredentialRepository 
       // requests must not both try to create an active row.
       const concurrent=await this.active(c,input.tenantId,input.deviceId,input.environmentId);
       if(concurrent){if(!concurrent.csr_sha256.equals(hash))throw Error('credential_conflict');return this.view(concurrent);}
-      const id=randomUUID(),operationId=randomUUID(),latest=Number((await c.query<{r:string}>('SELECT nexo_node_latest_revision($1) AS r',[target.node_id])).rows[0]!.r)+1;
+      const id=randomUUID(),operationId=randomUUID(),latest=await this.nextNodeRevision(c,target.node_id);
       const args={request_id:id,environment_id:input.environmentId,tenant_id:input.tenantId,device_id:input.deviceId,csr_pem:input.csrPem};
       try{await c.query(`INSERT INTO node_operations(id,target_node_id,type,arguments,idempotency_key,expires_at,requested_device_id,revision) VALUES($1,$2,'vpn.client_certificate.issue.v1',$3,$4,to_timestamp($5/1000.0),$6,$7)`,[operationId,target.node_id,args,input.idempotencyKey,input.expiresAt,input.deviceId,latest]);}catch(error){if(error instanceof Error&&String((error as {code?:string}).code)==='23505')throw Error('idempotency_conflict');throw error;}
       await c.query('INSERT INTO node_operation_outbox(operation_id) VALUES($1)',[operationId]);
@@ -37,7 +37,7 @@ export class PostgresVpnCredentialRepository implements VpnCredentialRepository 
       if(!row||!['issued','revocation_pending','revoked'].includes(row.state))return undefined;
       if(row.state!=='issued')return this.view(row);
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[row.node_id]);
-      const operationId=randomUUID(),latest=Number((await c.query<{r:string}>('SELECT nexo_node_latest_revision($1) AS r',[row.node_id])).rows[0]!.r)+1,args={request_id:row.id,environment_id:row.environment_id,tenant_id:input.tenantId,device_id:input.deviceId,serial:input.serial};
+      const operationId=randomUUID(),latest=await this.nextNodeRevision(c,row.node_id),args={request_id:row.id,environment_id:row.environment_id,tenant_id:input.tenantId,device_id:input.deviceId,serial:input.serial};
       try{await c.query(`INSERT INTO node_operations(id,target_node_id,type,arguments,idempotency_key,expires_at,requested_device_id,revision) VALUES($1,$2,'vpn.client_certificate.revoke.v1',$3,$4,to_timestamp($5/1000.0),$6,$7)`,[operationId,row.node_id,args,input.idempotencyKey,input.expiresAt,input.deviceId,latest]);}catch(error){if(error instanceof Error&&String((error as {code?:string}).code)==='23505')throw Error('idempotency_conflict');throw error;}
       await c.query('INSERT INTO node_operation_outbox(operation_id) VALUES($1)',[operationId]);
       const updated=(await c.query<Row>("UPDATE vpn_client_credentials SET state='revocation_pending',revoke_operation_id=$2,updated_at=now() WHERE id=$1 RETURNING *",[row.id,operationId])).rows[0]!;
@@ -50,7 +50,7 @@ export class PostgresVpnCredentialRepository implements VpnCredentialRepository 
     const rows=(await c.query<Row&{node_id:string}>(`SELECT cr.*,e.node_id FROM vpn_client_credentials cr JOIN vpn_environments e ON e.id=cr.environment_id AND e.tenant_id=cr.tenant_id WHERE cr.tenant_id=$1 AND cr.device_id=$2 AND cr.state='issued' FOR UPDATE OF cr`,[tenantId,deviceId])).rows;
     for(const row of rows){
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[row.node_id]);
-      const operationId=randomUUID(),revision=Number((await c.query<{r:string}>('SELECT nexo_node_latest_revision($1) AS r',[row.node_id])).rows[0]!.r)+1,args={request_id:row.id,environment_id:row.environment_id,tenant_id:tenantId,device_id:deviceId,serial:row.serial};
+      const operationId=randomUUID(),revision=await this.nextNodeRevision(c,row.node_id),args={request_id:row.id,environment_id:row.environment_id,tenant_id:tenantId,device_id:deviceId,serial:row.serial};
       await c.query(`INSERT INTO node_operations(id,target_node_id,type,arguments,idempotency_key,expires_at,requested_device_id,revision) VALUES($1,$2,'vpn.client_certificate.revoke.v1',$3,$4,to_timestamp($5/1000.0),$6,$7)`,[operationId,row.node_id,args,`device-revoke-${row.id}`,expiresAt,deviceId,revision]);
       await c.query('INSERT INTO node_operation_outbox(operation_id) VALUES($1)',[operationId]);
       await c.query("UPDATE vpn_client_credentials SET state='revocation_pending',revoke_operation_id=$2,updated_at=now() WHERE id=$1",[row.id,operationId]);
@@ -68,6 +68,7 @@ export class PostgresVpnCredentialRepository implements VpnCredentialRepository 
   });}
 
   private async active(c:PoolClient,tenantId:string,deviceId:string,environmentId:string){return (await c.query<Row>("SELECT * FROM vpn_client_credentials WHERE tenant_id=$1 AND device_id=$2 AND environment_id=$3 AND state IN ('pending','issued','revocation_pending') ORDER BY created_at DESC,id DESC FOR UPDATE",[tenantId,deviceId,environmentId])).rows[0];}
+  private async nextNodeRevision(c:PoolClient,nodeId:string){await c.query('SELECT set_config($1,$2,true)',['app.node_id',nodeId]);try{return Number((await c.query<{r:string}>('SELECT nexo_node_latest_revision($1) AS r',[nodeId])).rows[0]!.r)+1;}finally{await c.query('SELECT set_config($1,$2,true)',['app.node_id','']);}}
   private async context(c:PoolClient,tenantId:string,deviceId:string){await c.query('SELECT set_config($1,$2,true)',['app.tenant_id',tenantId]);await c.query('SELECT set_config($1,$2,true)',['app.device_id',deviceId]);}
   private view(row:Row):VpnCredentialView{return{id:row.id,environmentId:row.environment_id,state:row.state,...(row.serial?{serial:row.serial}:{}),...(row.certificate_pem?{certificatePem:row.certificate_pem}:{}),...(row.ca_certificate_pem?{caCertificatePem:row.ca_certificate_pem}:{}),...(row.state==='issued'&&row.tls_crypt_key_envelope?{tlsCryptKeyEnvelope:row.tls_crypt_key_envelope}:{}),...(row.not_before?{notBefore:new Date(row.not_before).toISOString()}:{}),...(row.not_after?{notAfter:new Date(row.not_after).toISOString()}:{}),...(row.error_code?{errorCode:row.error_code}:{})};}
   private async tx<T>(f:(c:PoolClient)=>Promise<T>){const c=await this.pool.connect();try{await c.query('BEGIN');const value=await f(c);await c.query('COMMIT');return value;}catch(error){await c.query('ROLLBACK').catch(()=>{});throw error;}finally{c.release();}}

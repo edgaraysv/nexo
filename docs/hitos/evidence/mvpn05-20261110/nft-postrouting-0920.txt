@@ -1,0 +1,11 @@
+# M-VPN-05 - SNAT de Gamma capturado durante D2
+# SSM command_id: 1f5cf4c7-3a03-4f19-bb45-2f126e8cf9fd
+# capturado 2026-11-10T09:20Z aprox., con el perfil aun activo
+# comando: ip netns exec nexo-d888126ad410 nft list table inet nexo_env | sed -n '/postrouting/,/}/p'
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 masquerade
+	}
+
+# Nota: tras retirar el perfil, node-reconcile-once elimino esta regla; por eso el
+# bloque correspondiente en server-corroboration.txt (generado despues) esta vacio.

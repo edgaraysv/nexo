@@ -1,9 +1,9 @@
 import { execFile } from 'node:child_process';
-import type { CertificateIssuer, IssuedCertificate } from './device-repository.js';
+import type { CertificateIssuer, DeviceAudience, IssuedCertificate } from './device-repository.js';
 
 export class GoCertificateIssuer implements CertificateIssuer {
   constructor(private readonly binary: string, private readonly caDirectory: string) {}
-  async issue(input: { deviceId: string; tenantId: string; audience: 'endpoint'|'node'; publicKeyPem: string; validHours: number }): Promise<IssuedCertificate> {
+  async issue(input: { deviceId: string; tenantId: string; audience: DeviceAudience|'node'; publicKeyPem: string; validHours: number }): Promise<IssuedCertificate> {
     const request = JSON.stringify({ device_id: input.deviceId, tenant_id: input.tenantId, audience: input.audience, public_key_pem: input.publicKeyPem, valid_hours: input.validHours });
     const output = await new Promise<string>((resolve, reject) => {
       const child = execFile(this.binary, ['issue', this.caDirectory], { timeout: 10_000, maxBuffer: 64 * 1024 }, (error, stdout) => error ? reject(new Error('certificate_issuance_failed')) : resolve(stdout));

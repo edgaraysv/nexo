@@ -46,6 +46,16 @@ func environment(id, state string, port int) DesiredEnvironment {
 	return DesiredEnvironment{ID: id, Engine: "openvpn", Protocol: "udp", ListenerPort: port, TunnelIPv4CIDR: "10.90.0.0/24", NamespaceName: "nexo-" + id[:8] + id[9:13], DesiredState: state, Revision: 1}
 }
 
+func openVPNGatewayFixture() OpenVPNGateway {
+	return OpenVPNGateway{
+		DeviceID:    "22222222-2222-4222-8222-222222222228",
+		Networks:    []string{"10.250.0.0/24"},
+		ReturnMode:  "snat",
+		DNSServers:  []string{"10.240.0.78"},
+		DNSSuffixes: []string{"corp.internal"},
+	}
+}
+
 func TestReconcileAppliesClosedLifecycleAndOverlappingTenantCIDR(t *testing.T) {
 	host := &fakeHost{}
 	items := []DesiredEnvironment{
@@ -153,6 +163,44 @@ func TestPrivateAccessAllowsOnlyICMPEchoRequestForOpenVPN(t *testing.T) {
 	}
 }
 
+func TestOpenVPNGatewayContractRejectsUnsafeOrAmbiguousValues(t *testing.T) {
+	valid := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	valid.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+	if err := validate(valid); err != nil {
+		t.Fatalf("valid OpenVPN gateway rejected: %v", err)
+	}
+	mutations := map[string]func(*DesiredEnvironment){
+		"unsafe network": func(item *DesiredEnvironment) { item.OpenVPNGateways[0].Networks = []string{"0.0.0.0/0"} },
+		"tunnel overlap": func(item *DesiredEnvironment) { item.OpenVPNGateways[0].Networks = []string{"10.90.0.0/24"} },
+		"duplicate network": func(item *DesiredEnvironment) {
+			item.OpenVPNGateways[0].Networks = []string{"10.250.0.0/24", "10.250.0.0/24"}
+		},
+		"public dns": func(item *DesiredEnvironment) { item.OpenVPNGateways[0].DNSServers = []string{"8.8.8.8"} },
+		"duplicate dns": func(item *DesiredEnvironment) {
+			item.OpenVPNGateways[0].DNSServers = []string{"10.240.0.78", "10.240.0.78"}
+		},
+		"unsafe suffix": func(item *DesiredEnvironment) { item.OpenVPNGateways[0].DNSSuffixes = []string{"../../internal"} },
+		"duplicate suffix": func(item *DesiredEnvironment) {
+			item.OpenVPNGateways[0].DNSSuffixes = []string{"corp.internal", "corp.internal"}
+		},
+		"invalid return mode": func(item *DesiredEnvironment) { item.OpenVPNGateways[0].ReturnMode = "forward-all" },
+		"duplicate gateway": func(item *DesiredEnvironment) {
+			item.OpenVPNGateways = append(item.OpenVPNGateways, item.OpenVPNGateways[0])
+		},
+		"direct overlap": func(item *DesiredEnvironment) {
+			item.PrivateAccess = []PrivateAccessRule{{Address: "10.250.0.1", Protocol: "tcp", PortStart: 443, PortEnd: 443}}
+		},
+	}
+	for name, mutate := range mutations {
+		invalid := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+		invalid.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+		mutate(&invalid)
+		if err := validate(invalid); err == nil {
+			t.Fatalf("%s was accepted: %#v", name, invalid)
+		}
+	}
+}
+
 func TestReconcileRejectsOverlappingTunnelRoutesForPrivateAccess(t *testing.T) {
 	host := &fakeHost{}
 	first := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
@@ -162,6 +210,21 @@ func TestReconcileRejectsOverlappingTunnelRoutesForPrivateAccess(t *testing.T) {
 	results := New(host).Reconcile([]DesiredEnvironment{first, second}, nil)
 	if len(host.active) != 0 || len(results) != 2 || results[0].ErrorCode != "transit_collision" || results[1].ErrorCode != "transit_collision" {
 		t.Fatalf("overlapping VPN return routes were not rejected: %#v", results)
+	}
+}
+
+func TestReconcileRejectsOverlappingTunnelRoutesForSplitDNS(t *testing.T) {
+	host := &fakeHost{}
+	first := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	second := environment("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb6", "active", 21195)
+	first.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+	secondGateway := openVPNGatewayFixture()
+	secondGateway.DeviceID = "33333333-3333-4333-8333-333333333338"
+	secondGateway.Networks = []string{"10.251.0.0/24"}
+	second.OpenVPNGateways = []OpenVPNGateway{secondGateway}
+	results := New(host).Reconcile([]DesiredEnvironment{first, second}, nil)
+	if len(host.active) != 0 || len(results) != 2 || results[0].ErrorCode != "transit_collision" || results[1].ErrorCode != "transit_collision" {
+		t.Fatalf("overlapping split-DNS return routes were not rejected: %#v", results)
 	}
 }
 

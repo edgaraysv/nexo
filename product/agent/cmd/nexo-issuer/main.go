@@ -78,7 +78,7 @@ func issue(dir string) error {
 	if req.Audience == "node" {
 		maxValidHours = 720
 	}
-	if (req.Audience != "endpoint" && req.Audience != "node") || req.ValidHours < 1 || req.ValidHours > maxValidHours {
+	if (req.Audience != "endpoint" && req.Audience != "gateway" && req.Audience != "node") || req.ValidHours < 1 || req.ValidHours > maxValidHours {
 		return fmt.Errorf("invalid certificate request")
 	}
 	caPEM, err := os.ReadFile(filepath.Join(dir, "ca-cert.pem"))

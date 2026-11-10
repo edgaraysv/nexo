@@ -34,6 +34,47 @@ func TestNativeRendererContainsOnlyFixedOpenVPNFirewallAndUnitDirectives(t *test
 	}
 }
 
+func TestNativeRendererBuildsGatewayCCDRouteSNATAndSplitDNS(t *testing.T) {
+	host := &NativeHost{root: "/var/lib/nexo-node/environments", units: "/run/systemd/system"}
+	env := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	env.TunnelIPv4CIDR = "10.247.43.0/24"
+	env.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+	bundle, err := host.render(env, linkFor(env.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bundle.ccd["nexo:22222222-2222-4222-8222-222222222228"]; got != "iroute 10.250.0.0 255.255.255.0\n" {
+		t.Fatalf("unexpected CCD: %q", got)
+	}
+	for _, required := range []string{
+		"client-config-dir /var/lib/nexo-node/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/ccd",
+		"route 10.250.0.0 255.255.255.0",
+		`push "route 10.250.0.0 255.255.255.0"`,
+		`push "route 10.240.0.78 255.255.255.255"`,
+		`push "dhcp-option DOMAIN corp.internal"`,
+		`push "dhcp-option DNS 10.240.0.78"`,
+	} {
+		if !strings.Contains(bundle.openvpn, required) {
+			t.Fatalf("missing OpenVPN directive %q: %s", required, bundle.openvpn)
+		}
+	}
+	for _, required := range []string{
+		`iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 accept`,
+		`ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 masquerade`,
+		`ip daddr 10.240.0.78 udp dport 53 accept`,
+		`ip daddr 10.240.0.78 tcp dport 53 accept`,
+	} {
+		if !strings.Contains(bundle.namespaceFirewall, required) {
+			t.Fatalf("missing nftables rule %q: %s", required, bundle.namespaceFirewall)
+		}
+	}
+	for _, forbidden := range []string{"0.0.0.0/0", "redirect-gateway", "client-to-client", "ip saddr 10.247.43.0/24 masquerade"} {
+		if strings.Contains(bundle.openvpn+bundle.namespaceFirewall, forbidden) {
+			t.Fatalf("unexpected broad gateway rule %q", forbidden)
+		}
+	}
+}
+
 func TestNativeRendererPushesOnlyExactF08ResourceAndFiltersByTuple(t *testing.T) {
 	host := &NativeHost{root: "/var/lib/nexo-node/environments", units: "/run/systemd/system"}
 	env := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
@@ -348,6 +389,57 @@ func nativeHostFixture(t *testing.T, runner *statefulRunner) (*NativeHost, Desir
 	desired := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
 	runner.link, runner.port = linkFor(desired.ID), desired.ListenerPort
 	return &NativeHost{root: root, units: units, forwardingPath: forwarding, runner: runner}, desired
+}
+
+func TestNativeHostPersistsAndRepairsGatewayCCDWithClosedPermissions(t *testing.T) {
+	runner := &statefulRunner{}
+	host, desired := nativeHostFixture(t, runner)
+	desired.TunnelIPv4CIDR = "10.247.43.0/24"
+	desired.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+	if _, err := host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(host.root, desired.ID)
+	ccdPath := filepath.Join(root, "ccd", "nexo:22222222-2222-4222-8222-222222222228")
+	for path, mode := range map[string]os.FileMode{root: 0711, filepath.Join(root, "ccd"): 0755, ccdPath: 0644, filepath.Join(root, "pki"): 0700, filepath.Join(root, "pki", "server.key"): 0600} {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("cannot stat %s: %v", path, err)
+		}
+		if info.Mode().Perm() != mode {
+			t.Fatalf("unexpected mode for %s: got=%o want=%o", path, info.Mode().Perm(), mode)
+		}
+	}
+	if runner.route == "" {
+		t.Fatal("split-DNS did not install the tunnel return route")
+	}
+	if err := os.WriteFile(ccdPath, []byte("iroute 10.1.0.0 255.255.255.0\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	bundle, err := host.render(desired, linkFor(desired.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if host.healthy(desired, bundle) {
+		t.Fatal("drifted CCD was accepted as healthy")
+	}
+	if _, err = host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	value, err := os.ReadFile(ccdPath)
+	if err != nil || string(value) != "iroute 10.250.0.0 255.255.255.0\n" {
+		t.Fatalf("CCD was not repaired: %q err=%v", value, err)
+	}
+	desired.OpenVPNGateways = nil
+	if _, err = host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = os.Stat(filepath.Join(root, "ccd")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("revoked gateway left CCD behind: %v", err)
+	}
+	if runner.route != "" {
+		t.Fatalf("revoked split-DNS left return route behind: %q", runner.route)
+	}
 }
 
 func TestNativeHostCleansInterruptedProvisionAndRetries(t *testing.T) {

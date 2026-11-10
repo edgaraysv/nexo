@@ -1,0 +1,5 @@
+# M-VPN-05 D4 - salida live
+# comando: Resolve-DnsName test.corp.internal -Server 8.8.8.8 -DnsOnly
+# ejecucion original durante la ventana: 2026-11-10T09:20Z (tunel activo)
+# re-ejecucion read-only de consolidacion de evidencia: 2026-11-10T09:37:41Z
+ERROR: test.corp.internal : DNS name does not exist

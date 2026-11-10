@@ -63,9 +63,11 @@ interface NetworkPolicy {
   sourceKind: 'any_endpoint' | 'device';
   sourceDeviceId?: string;
   resourceId: string;
-  protocol: 'tcp' | 'udp';
-  portStart: number;
-  portEnd: number;
+  protocol: 'tcp' | 'udp' | 'icmp';
+  portStart?: number;
+  portEnd?: number;
+  icmpType?: number;
+  icmpCode?: number;
   status: 'draft' | 'active' | 'retired';
   revision: number;
 }
@@ -135,6 +137,8 @@ export default function CompanyNetworksPage() {
   const [dnsServersText, setDnsServersText] = useState('');
   const [dnsSuffixesText, setDnsSuffixesText] = useState('');
   const [policySourceKind, setPolicySourceKind] = useState<'any_endpoint' | 'device'>('any_endpoint');
+  const [policyProtocol, setPolicyProtocol] = useState<'tcp' | 'udp' | 'icmp'>('tcp');
+  const [diagnosticProtocol, setDiagnosticProtocol] = useState<'tcp' | 'udp' | 'icmp'>('tcp');
   const [policyProfileId, setPolicyProfileId] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -266,14 +270,16 @@ export default function CompanyNetworksPage() {
         source_kind: policySourceKind,
         ...(sourceDeviceId ? { source_device_id: sourceDeviceId } : {}),
         resource_id: String(values.get('resource_id') ?? ''),
-        protocol: String(values.get('protocol') ?? 'tcp'),
-        port_start: Number(values.get('port_start')),
-        port_end: Number(values.get('port_end')),
+        protocol: policyProtocol,
+        ...(policyProtocol === 'icmp'
+          ? { icmp_type: 8, icmp_code: 0 }
+          : { port_start: Number(values.get('port_start')), port_end: Number(values.get('port_end')) }),
         status: String(values.get('status') ?? 'draft'),
       });
       setNotice('Política de red creada.');
       form.reset();
       setPolicySourceKind('any_endpoint');
+      setPolicyProtocol('tcp');
       setRefresh((value) => value + 1);
     } catch (reason) {
       setError(reason instanceof ApiError ? reason.code : 'request_failed');
@@ -294,8 +300,8 @@ export default function CompanyNetworksPage() {
       const result = await api.post<NetworkDiagnostic>('/v1/company/network-diagnostics', {
         source_device_id: String(values.get('source_device_id') ?? ''),
         resource_id: String(values.get('resource_id') ?? ''),
-        protocol: String(values.get('protocol') ?? 'tcp'),
-        port: Number(values.get('port')),
+        protocol: diagnosticProtocol,
+        ...(diagnosticProtocol === 'icmp' ? {} : { port: Number(values.get('port')) }),
       });
       setDiagnosticResult(result);
       setNotice('Evaluación de política completada; la conectividad real no fue probada.');
@@ -443,7 +449,7 @@ export default function CompanyNetworksPage() {
         {statusMessage(policies)}
         {policies.status === 'ready' && (
           <Table
-            headers={['Nombre', 'Efecto', 'Origen', 'Recurso', 'Protocolo', 'Puertos', 'Estado']}
+            headers={['Nombre', 'Efecto', 'Origen', 'Recurso', 'Protocolo', 'Puerto o tipo', 'Estado']}
             rows={policies.data}
             renderRow={(policy) => [
               policy.name,
@@ -451,7 +457,7 @@ export default function CompanyNetworksPage() {
               policy.sourceKind === 'any_endpoint' ? 'Cualquier endpoint' : endpointNames.get(policy.sourceDeviceId ?? '') ?? policy.sourceDeviceId ?? 'Endpoint',
               resourceNames.get(policy.resourceId) ?? policy.resourceId,
               policy.protocol,
-              `${policy.portStart}–${policy.portEnd}`,
+              policy.protocol === 'icmp' ? 'Echo request · tipo 8/código 0' : `${policy.portStart}–${policy.portEnd}`,
               policy.status,
             ]}
             empty="No hay políticas de red."
@@ -509,13 +515,20 @@ export default function CompanyNetworksPage() {
             </label>
             <label className="nx-field">
               <span>Protocolo</span>
-              <select className="nx-select" name="protocol" defaultValue="tcp">
-                <option value="tcp">tcp</option>
-                <option value="udp">udp</option>
-              </select>
-            </label>
-            <Input label="Puerto inicio" name="port_start" type="number" min={1} max={65535} step={1} required />
-            <Input label="Puerto fin" name="port_end" type="number" min={1} max={65535} step={1} required />
+                <select className="nx-select" name="protocol" value={policyProtocol} onChange={(event) => setPolicyProtocol(event.target.value as 'tcp' | 'udp' | 'icmp')}>
+                  <option value="tcp">tcp</option>
+                  <option value="udp">udp</option>
+                  <option value="icmp">icmp · solo echo request</option>
+                </select>
+              </label>
+            {policyProtocol === 'icmp' ? (
+              <p className="nx-muted">La política ICMP solo permite echo request (tipo 8, código 0); no habilita otros tipos ICMP.</p>
+            ) : (
+              <>
+                <Input label="Puerto inicio" name="port_start" type="number" min={1} max={65535} step={1} required />
+                <Input label="Puerto fin" name="port_end" type="number" min={1} max={65535} step={1} required />
+              </>
+            )}
             <label className="nx-field">
               <span>Estado inicial</span>
               <select className="nx-select" name="status" defaultValue="draft">
@@ -552,12 +565,13 @@ export default function CompanyNetworksPage() {
               </label>
               <label className="nx-field">
                 <span>Protocolo</span>
-                <select className="nx-select" name="protocol" defaultValue="tcp">
+                <select className="nx-select" name="protocol" value={diagnosticProtocol} onChange={(event) => setDiagnosticProtocol(event.target.value as 'tcp' | 'udp' | 'icmp')}>
                   <option value="tcp">TCP</option>
                   <option value="udp">UDP</option>
+                  <option value="icmp">ICMP · echo request</option>
                 </select>
               </label>
-              <Input label="Puerto" name="port" type="number" min={1} max={65535} step={1} required />
+              {diagnosticProtocol !== 'icmp' && <Input label="Puerto" name="port" type="number" min={1} max={65535} step={1} required />}
               <Button type="submit" disabled={busy || approvedEndpoints.length === 0 || resourceItems.length === 0}>
                 {busy ? 'Evaluando…' : 'Evaluar política y configuración'}
               </Button>

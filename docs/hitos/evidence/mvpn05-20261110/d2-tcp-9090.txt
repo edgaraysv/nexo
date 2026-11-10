@@ -1,0 +1,5 @@
+﻿attempt=1|tcp=True|remote=10.250.0.1:9090|local=MSFT_NetIPAddress (Name = ";:8??A8??8?55??55;55;", CreationClassName = "", SystemCreationClassName = "", SystemName = "")|at=2026-11-10T09:19:30Z
+attempt=2|tcp=True|remote=10.250.0.1:9090|local=MSFT_NetIPAddress (Name = ";:8??A8??8?55??55;55;", CreationClassName = "", SystemCreationClassName = "", SystemName = "")|at=2026-11-10T09:19:40Z
+attempt=3|tcp=True|remote=10.250.0.1:9090|local=MSFT_NetIPAddress (Name = ";:8??A8??8?55??55;55;", CreationClassName = "", SystemCreationClassName = "", SystemName = "")|at=2026-11-10T09:19:50Z
+attempt=4|tcp=True|remote=10.250.0.1:9090|local=MSFT_NetIPAddress (Name = ";:8??A8??8?55??55;55;", CreationClassName = "", SystemCreationClassName = "", SystemName = "")|at=2026-11-10T09:19:59Z
+attempt=5|tcp=True|remote=10.250.0.1:9090|local=MSFT_NetIPAddress (Name = ";:8??A8??8?55??55;55;", CreationClassName = "", SystemCreationClassName = "", SystemName = "")|at=2026-11-10T09:20:09Z
