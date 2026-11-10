@@ -1,0 +1,73 @@
+# apply 2026-11-10 (post-verificacion)
+
+checked_at_utc=2026-11-10T16:57:12Z
+
+-------------------------------------------------------------------------------------------------------------
+|                                             DescribeInstances                                             |
++---------------------+-----------------------------+--------------+-----------------+----------+-----------+
+|         id          |            name             |    priv      |       pub       |  state   |   type    |
++---------------------+-----------------------------+--------------+-----------------+----------+-----------+
+|  i-0d438d2bb29aafcc9|  nexo-lab-mvpn05-endpoint2  |  10.240.0.14 |  None           |  running |  t3.nano  |
+|  i-0ba636b1464179333|  nexo-lab-mt-a-host-lan     |  10.250.0.68 |  None           |  running |  t3.nano  |
+|  i-08ad5939ce6bd5064|  nexo-lab-mt-b-gateway      |  10.250.0.10 |  100.28.58.184  |  running |  t3.nano  |
+|  i-004d32fd26ed6b83e|  nexo-lab-mt-b-host-lan     |  10.250.0.68 |  None           |  running |  t3.nano  |
+|  i-0c23589d00439a62d|  nexo-lab-mt-a-gateway      |  10.250.0.10 |  54.198.131.185 |  running |  t3.nano  |
++---------------------+-----------------------------+--------------+-----------------+----------+-----------+
+
+# apply 2026-11-10 16:55:14Z
+
+
+--- EIPs ---
+--------------------------------------------------------------------
+|                         DescribeAddresses                        |
++-----------------------+-----------------------+------------------+
+|          eni          |       instance        |       ip         |
++-----------------------+-----------------------+------------------+
+|  eni-06615e5154edd52fa|  i-08ad5939ce6bd5064  |  100.28.58.184   |
+|  eni-003e6132b4670169f|  i-06e7a7c669eabd74a  |  44.195.11.234   |
+|  eni-0fd506b06581cc181|  i-006cda6fdc86af7a5  |  44.223.165.66   |
+|  eni-03aafa4e1e8bba2ce|  i-0c23589d00439a62d  |  54.198.131.185  |
++-----------------------+-----------------------+------------------+
+
+--- peering ---
+0
+
+--- SG nodo UDP ---
+[
+    {
+        "IpProtocol": "udp",
+        "FromPort": 21603,
+        "ToPort": 21603,
+        "UserIdGroupPairs": [],
+        "IpRanges": [
+            {
+                "Description": "OpenVPN M-VPN-04 UDP/21603 desde el egress Windows confirmado",
+                "CidrIp": "190.120.26.242/32"
+            },
+            {
+                "Description": "OpenVPN M-VPN-05 tenant A UDP/21603 desde la EIP del gateway A",
+                "CidrIp": "54.198.131.185/32"
+            }
+        ],
+        "Ipv6Ranges": [],
+        "PrefixListIds": []
+    },
+    {
+        "IpProtocol": "udp",
+        "FromPort": 21604,
+        "ToPort": 21604,
+        "UserIdGroupPairs": [],
+        "IpRanges": [
+            {
+                "Description": "OpenVPN tenant B UDP/21604 desde el egress confirmado del operador",
+                "CidrIp": "190.120.26.242/32"
+            },
+            {
+                "Description": "OpenVPN M-VPN-05 tenant B UDP/21604 desde la EIP del gateway B",
+                "CidrIp": "100.28.58.184/32"
+            }
+        ],
+        "Ipv6Ranges": [],
+        "PrefixListIds": []
+    }
+]

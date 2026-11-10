@@ -578,3 +578,10 @@ No hay evidencia de listener `9090`, peer OpenVPN gateway, D1–D4 ni rollback d
 - CloudTrail registra tres `AuthorizeSecurityGroupIngress` a las 23:24:37Z sobre `sg-0cc6a1e19439c3e89`, con `ManagedBy=OpenTofu` y `Phase=F02`: UDP/21603 desde `54.198.131.185/32` y UDP/21604 desde `100.28.58.184/32` y desde `138.97.142.254/32`. Origen: `nexo-lab-admin`, desde `190.120.26.243` y `138.97.142.254`.
 - Esas tres reglas están declaradas en `infra/aws/lab/multitenant.tf` (no versionado en este commit), por lo que la limpieza por API es inestable frente a un `apply`. El SG quedó con 6 reglas ingress tras el evento; sin `/0`.
 - La regla Webmin se actualizó a `138.97.142.254/32` (23:25:25Z). No se aplicó Terraform desde esta sesión; queda decisión de corregir el HCL o retirar por API asumiendo reaplicación.
+
+### Cierre del hallazgo (2026-11-10, autorizado por el responsable)
+
+- **Decisión:** el HCL es la fuente de verdad del lab multitenant. Las tres reglas UDP se restauraron con `terraform apply` autorizado (`3 to add, 1 to change, 0 to destroy`) y el modulo quedo commiteado en `45ed66b`, de modo que la limpieza por API ya no es estable frente a un `apply` por diseno, no por accidente.
+- **Webmin:** `webmin_admin_cidr` se alineo a `138.97.142.254/32` en `lab.tfvars` (no versionado) y se aplico el unico cambio pendiente. `terraform plan` posterior: **No changes**.
+- **SG final:** seis reglas de ingreso — UDP/21603 desde `138.97.142.254/32` y `54.198.131.185/32`; UDP/21604 desde `138.97.142.254/32` y `100.28.58.184/32`; ICMP desde `10.247.43.0/24`; TCP/10000 desde `138.97.142.254/32`. Ninguna a `/0`.
+- **Instancias:** las cinco t3.nano siguen `stopped` por orden del responsable; las dos EIP permanecen asociadas. Evidencia en `docs/hitos/evidence/mvpn05-lab/`.
