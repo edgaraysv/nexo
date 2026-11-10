@@ -572,3 +572,9 @@ No hay evidencia de listener `9090`, peer OpenVPN gateway, D1–D4 ni rollback d
 - **AWS:** SG reducido a 3 reglas — UDP/21603 desde `138.97.142.254/32` (egress vigente), ICMP desde `10.247.43.0/24` (M-VPN-04) y Webmin; sin `/0`. EIP de endpoint2 liberada. `SourceDestCheck=true` restaurado en ambos gateways. NAT y `ip_forward` revertidos en los gateways; `p7epb`, `veth-p7` y `p7nat` eliminados.
 - **Estado inesperado:** las cinco instancias t3.nano aparecieron **stopped** a las 23:19Z sin que esta sesión emitiera `StopInstances`; el nodo t3.small sigue running. Consecuencia: sin listeners 9090 ni clientes VPN activos. Causa no determinada; revisar antes de reutilizarlas.
 - Detalle completo en `docs/hitos/evidence/mvpn05-p6-p7-p9/cleanup.txt`.
+
+### Hallazgo de cierre: reaparición de reglas por OpenTofu (2026-11-10T23:24:37Z)
+
+- CloudTrail registra tres `AuthorizeSecurityGroupIngress` a las 23:24:37Z sobre `sg-0cc6a1e19439c3e89`, con `ManagedBy=OpenTofu` y `Phase=F02`: UDP/21603 desde `54.198.131.185/32` y UDP/21604 desde `100.28.58.184/32` y desde `138.97.142.254/32`. Origen: `nexo-lab-admin`, desde `190.120.26.243` y `138.97.142.254`.
+- Esas tres reglas están declaradas en `infra/aws/lab/multitenant.tf` (no versionado en este commit), por lo que la limpieza por API es inestable frente a un `apply`. El SG quedó con 6 reglas ingress tras el evento; sin `/0`.
+- La regla Webmin se actualizó a `138.97.142.254/32` (23:25:25Z). No se aplicó Terraform desde esta sesión; queda decisión de corregir el HCL o retirar por API asumiendo reaplicación.
