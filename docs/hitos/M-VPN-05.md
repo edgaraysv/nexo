@@ -585,3 +585,25 @@ No hay evidencia de listener `9090`, peer OpenVPN gateway, D1–D4 ni rollback d
 - **Webmin:** `webmin_admin_cidr` se alineo a `138.97.142.254/32` en `lab.tfvars` (no versionado) y se aplico el unico cambio pendiente. `terraform plan` posterior: **No changes**.
 - **SG final:** seis reglas de ingreso — UDP/21603 desde `138.97.142.254/32` y `54.198.131.185/32`; UDP/21604 desde `138.97.142.254/32` y `100.28.58.184/32`; ICMP desde `10.247.43.0/24`; TCP/10000 desde `138.97.142.254/32`. Ninguna a `/0`.
 - **Instancias:** las cinco t3.nano siguen `stopped` por orden del responsable; las dos EIP permanecen asociadas. Evidencia en `docs/hitos/evidence/mvpn05-lab/`.
+
+## Veredicto formal de cierre — M-VPN-05 (2026-11-10T23:58Z)
+
+**Veredicto: PASS-CON-PENDIENTES.**
+
+| Prueba | Resultado | Evidencia |
+|---|---|---|
+| P9 — portal con gateway operativo | PASS | `docs/hitos/evidence/mvpn05-p9/p9-summary.{txt,png}`, `p9-networks.{txt,png}` |
+| P6 — aislamiento intra-tenant | PASS | `mvpn05-p6-p7-p9/p6-allow.txt`, `p6-deny.txt` (drop 27→30), `p6-correlation.txt` |
+| P7 — aislamiento inter-tenant (criterio corregido) | PASS | `p7-isolation.txt`, `p7-controlplane.txt`, `p7-node.txt`, `p7-no-degradation.txt` |
+| Limpieza de la ventana | PASS | `cleanup.txt` |
+| Trazabilidad | PASS con notas | `audit-cloudtrail.txt` |
+
+- **SG aceptado como estado permanente:** las 6 reglas ingress actuales son todas `/32` o el pool de M-VPN-04 y definen la infraestructura del lab declarada en `infra/aws/lab/multitenant.tf`. No son artefactos de ventana y no se revierten. Sin `0.0.0.0/0`.
+- **Auditoría:** el apply de 23:24:37Z y el de 23:53:50Z son `Terraform/1.13.2` desde `190.120.26.243/.244`, no esta sesión; el `StopInstances` de las cinco t3.nano es un evento API explícito de 23:07:37Z (`aws-mcp`), tampoco de esta sesión. Detalle en `audit-cloudtrail.txt`.
+- **Pendientes documentados (no bloqueantes de este alcance):**
+  1. NRPT / resolución por nombre en Windows (diferido).
+  2. LAN física real fuera de AWS (diferido; el lab usa hosts EC2).
+  3. Causa raíz de la caída del cliente OpenVPN de Windows durante P7: se recuperó y A volvió a `TCP=True`/`TENANT-A`, pero la causalidad no está demostrada.
+  4. Auditoría del acceso al factor MFA almacenado (método TOTP elegido en lugar del bypass descartado) y de la sesión provider owner usada para crear el entorno 21604.
+  5. Trazabilidad de la sesión/operador que ejecutó Terraform y del `StopInstances` de las t3.nano (coordinación de ventanas).
+  6. Antes de reutilizar el lab: arrancar las cinco t3.nano y revalidar red, SG y ausencia de residuos.

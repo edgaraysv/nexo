@@ -63,3 +63,11 @@
 - La regla Webmin (tcp/10000) se actualizo de 190.5.151.74/32 a 138.97.142.254/32 a las 23:25:25Z.
 - Pendiente de decision: corregir el HCL y aplicar (limpieza estable) o retirar por API aceptando que otro apply
   las reponga. No se aplico Terraform desde esta sesion.
+
+## Corrección de la sección "Estado inesperado"
+- El apagado de las cinco t3.nano SÍ tiene un evento API explícito: `StopInstances` 2026-11-10T23:07:37Z
+  (`force=false`) lanzado por `aws-mcp.amazonaws.com` con el usuario `nexo-lab-admin`, no por esta sesión.
+  No es auto-stop ni shutdown del SO. Detalle en `audit-cloudtrail.txt`.
+- Las tres reglas reintroducidas a las 23:24:37Z y el reajuste de Webmin a las 23:53:50Z provienen de
+  `Terraform/1.13.2` (provider aws 6.69.0) desde `190.120.26.243/.244`, otra ejecución del operador.
+  El usuario confirmó que las 6 reglas /32 actuales son infraestructura permanente del lab: no se revierten.

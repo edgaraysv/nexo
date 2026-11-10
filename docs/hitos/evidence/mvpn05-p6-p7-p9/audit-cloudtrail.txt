@@ -1,0 +1,25 @@
+# M-VPN-05 — Auditoría de trazabilidad (CloudTrail us-east-1, 2026-11-10T23:56Z)
+
+## Apply de OpenTofu sobre el SG del nodo
+- `ModifySecurityGroupRules` 2026-11-10T23:24:37Z y 23:53:50Z sobre `sg-0cc6a1e19439c3e89`.
+- userAgent: `APN/1.0 HashiCorp/1.0 Terraform/1.13.2 terraform-provider-aws/6.69.0`.
+- Identidad: `arn:aws:iam::423597267645:user/nexo-lab-admin` (IAMUser).
+- Origen: `190.120.26.243` y `190.120.26.244`.
+- No procede de esta sesión: esta sesión opera por `aws-mcp.amazonaws.com` y su egress es `138.97.142.254`.
+  El cambio manual de Webmin de esta sesión fue a las 23:25:24Z por `aws-mcp.amazonaws.com`, y el apply de
+  23:53:50Z lo reescribió con la descripción `Webmin` y el mismo CIDR `138.97.142.254/32`.
+- Interpretación: otra ejecución de Terraform (otra sesión/máquina del operador) aplicó `multitenant.tf`.
+  Las tres reglas 21603/21604 son estado deseado de IaC y el usuario confirmó que son infraestructura permanente.
+
+## Apagado de las t3.nano
+- `StopInstances` 2026-11-10T23:07:37Z, `force=false`, `skipOsShutdown=false`, sobre las cinco t3.nano:
+  i-0c23589d00439a62d, i-08ad5939ce6bd5064, i-0ba636b1464179333, i-004d32fd26ed6b83e, i-0d438d2bb29aafcc9.
+- userAgent: `aws-mcp.amazonaws.com`; identidad `nexo-lab-admin` (IAMUser).
+- No fue emitido por esta sesión (que en esa franja solo revocó reglas SG y liberó la EIP), pero **sí existe
+  una llamada API explícita**: no es auto-stop por inactividad ni un shutdown iniciado por el SO.
+- No se encontraron eventos `InstanceInitiatedShutdown` ni políticas de auto-stop asociadas.
+
+## Consecuencia operativa
+- Las cinco t3.nano siguen `stopped`; el nodo t3.small `running`.
+- Sin listeners 9090 ni clientes VPN activos en esas instancias (los units transitorios no sobreviven al arranque).
+- Antes de reutilizarlas hay que arrancarlas y revalidar red, SG y limpieza.
