@@ -26,7 +26,7 @@ data "aws_ami" "node" {
 
 locals {
   name                     = "nexo-lab-${var.account_id}-${var.region}"
-  openvpn_client_cidr      = "138.97.142.254/32"
+  openvpn_client_cidr      = var.operator_egress_cidr
   openvpn_tunnel_ipv4_cidr = "10.247.43.0/24"
   openvpn_listener_port    = 21603
 }

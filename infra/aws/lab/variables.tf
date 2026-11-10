@@ -49,3 +49,32 @@ variable "instance_type" {
     error_message = "Usar t3.small o t3.medium hasta medir capacidad."
   }
 }
+
+variable "multitenant_instance_type" {
+  description = "Tipo de las EC2 nuevas del lab multitenant. t3.nano por coste; t3.micro solo con justificacion de RAM."
+  type        = string
+  default     = "t3.nano"
+  nullable    = false
+  validation {
+    condition     = contains(["t3.nano", "t3.micro"], var.multitenant_instance_type)
+    error_message = "Usar t3.nano o t3.micro con justificacion explicita."
+  }
+}
+
+variable "key_name" {
+  description = "Clave SSH del lab. Vacio: sin par de claves, acceso solo por SSM, igual que el nodo."
+  type        = string
+  default     = ""
+  nullable    = false
+}
+
+variable "operator_egress_cidr" {
+  description = "Egress IPv4 /32 del operador para el entorno OpenVPN del tenant B (UDP/21604). Unico CIDR admitido para el operador."
+  type        = string
+  default     = "138.97.142.254/32"
+  nullable    = false
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/32$", var.operator_egress_cidr))
+    error_message = "operator_egress_cidr debe ser un unico IPv4 /32; no se admite 0.0.0.0/0."
+  }
+}
