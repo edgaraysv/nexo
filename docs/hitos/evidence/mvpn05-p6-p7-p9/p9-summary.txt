@@ -1,0 +1,39 @@
+Saltar a contenido
+NX
+Nexo
+SYSMedia · BRING SMART SOLUTIONS
+nexo-lab-admin@example.test · company.admin
+☾Oscuro
+Salir
+Empresa: Empresa Alpha
+company.admin · 23 permisos
+EMPRESA
+Resumen
+Usuarios y equipos
+Redes y políticas
+Operaciones y auditoría
+Soporte
+Resumen de la empresa
+
+El registro no demuestra conectividad activa. Dispositivos, sedes y usuarios son dato declarado; su operatividad real requiere diagnóstico.
+
+Sedes
+2
+Dispositivos
+0
+Usuarios
+2
+Políticas activas
+0
+Sedes
+Nombre	Código	Estado	Redes
+EC2 Lab	ec2-lab	active	10.240.0.0/24
+M-VPN-05 Gateway efímero	mvpn05-gateway	active	10.250.0.0/24
+Dispositivos enrolados (primeras 10 filas)
+Nombre	Plataforma	Tipo	Estado	Detalle
+M-VPN-03 endpoint	—	endpoint	approved	—
+mvpn05-gw-a	—	gateway	approved	
+LAN declaradas
+10.250.0.0/24
+
+Mostrando hasta 10 de 2 dispositivos.

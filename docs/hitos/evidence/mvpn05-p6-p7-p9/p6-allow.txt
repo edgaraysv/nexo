@@ -1,0 +1,11 @@
+# M-VPN-05 P6 - endpoint autorizado (Windows dd8cae89)
+# Fuente: PowerShell del operador; salida transcrita de la ejecucion live.
+timestamp=2026-11-10T20:28:18Z
+tunnel: 10.247.43.141 OpenVPN Connect DCO Adapter
+route_10_250: 10.250.0.0 255.255.255.0 10.247.43.1 10.247.43.141 200
+tcp9090=True remote=10.250.0.68:9090
+# PUSH_REPLY del servidor (Gamma) para ese peer:
+# route 10.240.0.78 255.255.255.255, route-gateway 10.247.43.1, topology subnet,
+# ping 10, ping-restart 60, route 10.250.0.0 255.255.255.0,
+# ifconfig 10.247.43.141 255.255.255.0
+# CCD aplicado: ifconfig-push 10.247.43.141 255.255.255.0 + push "route 10.250.0.0 255.255.255.0"

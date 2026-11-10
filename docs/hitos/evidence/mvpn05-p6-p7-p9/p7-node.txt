@@ -1,0 +1,37 @@
+# M-VPN-05 P7 - Evidencia del nodo y de los gateways (2026-11-10T22:48:07Z)
+# Fuente: SSM en i-006cda6fdc86af7a5 (nodo) y i-08ad5939ce6bd5064 (gateway B); salida live transcrita.
+
+# Namespaces y listeners
+nexo-256ff63eb43b (id 3)  openvpn 0.0.0.0:21604  (entorno 256ff63e-b43b-476b-b613-f9de4863fb56, tenant B)
+nexo-d888126ad410 (id 2)  openvpn 0.0.0.0:21603  (entorno d888126a-d410-4f9f-a6f1-e2b0e86f062e, tenant A)
+nexo-85cee1d4b464 (id 1)  WireGuard Alpha
+nexo-43e1790578e0 (id 0)  WireGuard Beta (21602) - no se modifico
+
+# Peers simultaneos en P7
+Gateway A  (tenant A): nexo:db67b467-b55f-4822-bc5b-84c33d32cbac  IP tun 10.247.43.2
+Endpoint A (Windows):  nexo:dd8cae89-2afe-4967-a1d0-abe8844e2536  IP tun 10.247.43.141 (via 190-138.x egress, SG /32)
+Endpoint2 raiz (A):    nexo:8973cdc5-91c7-44e1-82c7-87d46f4b8c0d  IP tun 10.247.43.3
+Gateway B  (tenant B): nexo:271caef3-e60c-4dfc-b9ba-e30d520b555e  IP tun 10.247.44.2 (desde 100.28.58.184:51488)
+Endpoint B (netns):    nexo:83bb6de2-56b4-4f58-b79e-9eba6aefff75  IP tun 10.247.44.242 (desde 10.240.0.14)
+PUSH_REPLY de B (endpoint): route 10.250.0.0 255.255.255.0, ifconfig 10.247.44.242 ...
+PUSH_REPLY de B (gateway):  route-gateway 10.247.44.1, sin route 10.250.0.0 (CCD iroute + SNAT)
+
+# Reglas nft del entorno B (namespace nexo-256ff63eb43b)
+iifname "tun0" oifname "tun0" ip saddr 10.247.44.242 ip daddr 10.250.0.68 tcp dport 9090-9090 accept
+iifname "tun0" oifname "tun0" ip saddr 10.247.44.0/24 ip daddr 10.250.0.0/24 counter packets 0 bytes 0 drop
+ip saddr 10.247.44.0/24 ip daddr 10.250.0.0/24 masquerade
+
+# Reglas nft del entorno A (namespace nexo-d888126ad410)
+iifname "tun0" oifname "tun0" ip saddr 10.247.43.141 ip daddr 10.250.0.68 tcp dport 9090-9090 accept
+iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 counter packets 21 bytes 1584 drop
+ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 masquerade
+# Las reglas de A y B no se cruzan: cada entorno solo acepta su propia IP autorizada.
+
+# Gateway B: SNAT VPN->LAN y NAT LAN->Internet
+table inet nexo_gw { chain postrouting { ip saddr 10.250.0.64/26 oifname "ens5" masquerade;
+                                          ip saddr 10.247.44.0/24 ip daddr 10.250.0.0/24 masquerade } }
+
+# Incidencia registrada durante la ventana (no atribuible a P7)
+El cliente OpenVPN de Windows se detuvo y el egress del operador roto de 190.5.151.74/32 a 138.97.142.254/32.
+Se actualizo sgr-08b6996173d26d1db a 138.97.142.254/32, se relanzo el cliente y A volvio a TCP=True con banner TENANT-A.
+El SG nunca se abrio a 0.0.0.0/0.

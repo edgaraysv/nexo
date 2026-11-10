@@ -1,0 +1,105 @@
+Saltar a contenido
+NX
+Nexo
+SYSMedia · BRING SMART SOLUTIONS
+nexo-lab-admin@example.test · company.admin
+☾Oscuro
+Salir
+Empresa: Empresa Alpha
+company.admin · 23 permisos
+EMPRESA
+Resumen
+Usuarios y equipos
+Redes y políticas
+Operaciones y auditoría
+Soporte
+Redes y políticas
+
+Una VPN conectada no demuestra acceso al recurso. La conectividad requiere un diagnóstico independiente.
+
+Perfiles de red
+Nombre	Sede	Trayecto	Retorno	DNS	Revisión	Aplicado	Observado
+EC2 Lab direct	EC2 Lab	direct	routed	local	3	Pendiente	pending
+mvpn05-gateway-profile	M-VPN-05 Gateway efímero	gateway	snat	split · 10.240.0.78/32	4	4	retired
+mvpn05-gw-a-profile	M-VPN-05 Gateway efímero	gateway	snat	local	3	3	active
+Crear perfil de red
+Sede
+Selecciona una sede
+EC2 Lab
+M-VPN-05 Gateway efímero
+ID del entorno VPN
+Nombre
+Trayecto
+Endpoint directo
+Gateway
+Modo de retorno
+routed
+snat
+DNS
+local
+split
+DNS servers (coma-separado)
+DNS suffixes (coma-separado)
+Redes de sede (derivadas de la sede seleccionada)
+Crear perfil
+Recursos privados
+Nombre	Perfil	Tipo	Destino	Estado	Revisión
+NEXO EC2 Lab	EC2 Lab direct	ipv4	10.240.0.78	active	1
+mvpn05-tcp-listener	mvpn05-gateway-profile	ipv4	10.250.0.1	retired	2
+mvpn05-host-a	mvpn05-gw-a-profile	ipv4	10.250.0.68	active	1
+Perfil
+Selecciona un perfil
+EC2 Lab direct
+mvpn05-gateway-profile
+mvpn05-gw-a-profile
+Nombre
+Tipo
+IPv4
+Hostname
+Dirección
+Crear recurso
+Políticas de red
+Nombre	Efecto	Origen	Recurso	Protocolo	Puerto o tipo	Estado
+Allow TCP 18443 to EC2 Lab	allow	Cualquier endpoint	NEXO EC2 Lab	tcp	18443–18443	active
+mvpn05-allow-tcp-9090	allow	Cualquier endpoint	mvpn05-tcp-listener	tcp	9090–9090	retired
+mvpn05-allow-windows-9090	allow	M-VPN-03 endpoint	mvpn05-host-a	tcp	9090–9090	active
+Perfil
+Selecciona un perfil
+EC2 Lab direct
+mvpn05-gateway-profile
+mvpn05-gw-a-profile
+Nombre
+Efecto
+allow
+deny
+Origen
+Cualquier endpoint
+Endpoint específico
+Recurso
+Selecciona un recurso
+NEXO EC2 Lab · 10.240.0.78
+Protocolo
+tcp
+udp
+icmp · solo echo request
+Puerto inicio
+Puerto fin
+Estado inicial
+draft
+active
+Crear política
+Diagnóstico
+Endpoint origen
+Selecciona un endpoint aprobado
+M-VPN-03 endpoint
+Recurso privado
+Selecciona un recurso
+NEXO EC2 Lab · 10.240.0.78
+mvpn05-tcp-listener · 10.250.0.1
+mvpn05-host-a · 10.250.0.68
+Protocolo
+TCP
+UDP
+ICMP · echo request
+Puerto
+Evaluar política y configuración

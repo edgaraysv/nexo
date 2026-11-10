@@ -1,0 +1,24 @@
+# M-VPN-05 P6 - correlacion de servidor Gamma (d888126a-d410-4f9f-a6f1-e2b0e86f062e)
+# Fuente: journalctl y nft del namespace nexo-d888126ad410; salida live transcrita.
+timestamp=2026-11-10T20:28:19Z
+
+# Peer autorizado Windows:
+VERIFY OK: depth=0, OU=e4186fac-0dd4-4aaa-8f0f-e4342e19af8a, CN=nexo:dd8cae89-2afe-4967-a1d0-abe8844e2536
+Peer Connection Initiated with [AF_INET]190.5.151.74:52462
+MULTI_sva: pool returned IPv4=10.247.43.4
+OPTIONS IMPORT: reading client specific options from: .../ccd/nexo:dd8cae89-2afe-4967-a1d0-abe8844e2536
+MULTI: Learn: 10.247.43.141 -> nexo:dd8cae89-...
+PUSH_REPLY ... route 10.250.0.0 255.255.255.0 ... ifconfig 10.247.43.141 ...
+
+# Peer no autorizado endpoint2:
+VERIFY OK: depth=0, OU=e4186fac-0dd4-4aaa-8f0f-e4342e19af8a, CN=nexo:8973cdc5-91c7-44e1-82c7-87d46f4b8c0d
+Peer Connection Initiated with [AF_INET]10.240.0.14:51437
+MULTI_sva: pool returned IPv4=10.247.43.3
+MULTI: Learn: 10.247.43.3 -> nexo:8973cdc5-...
+PUSH_REPLY ... ifconfig 10.247.43.3 ... (sin route 10.250.0.0)
+
+# nft forward del entorno:
+iifname "tun0" oifname "tun0" ip saddr 10.247.43.141 ip daddr 10.250.0.68 tcp dport 9090-9090 accept
+iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 counter packets 9 bytes 648 drop
+
+# CCD del gateway A (sin cambios): iroute 10.250.0.0 255.255.255.0

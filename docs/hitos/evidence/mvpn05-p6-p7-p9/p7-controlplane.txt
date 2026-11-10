@@ -1,0 +1,27 @@
+# M-VPN-05 P7 - Aislamiento de control-plane entre tenants
+# Fuente: API real con sesion de tenant B (Empresa Beta) y de tenant A (Empresa Alpha), 2026-11-10T22:40Z.
+
+# Tenant B (sesion scope=tenant b81c4e38-fc44-4bf9-98e3-0bf7e0e66ab4):
+profiles = [b1a655ad-1b4b-4e59-9efd-1a5fbb6abd61 mvpn05-gw-b-profile active/active rev3 applied3]
+resources = [cb412019-5592-4bed-9fb7-67ef1440db03 mvpn05-host-b 10.250.0.68 profile=b1a655ad]
+sites = [510f8380-cdd9-413d-b3a3-513649548049 mvpn05-p7-b 10.250.0.0/24]
+policies = [703ebe27-a7b1-4e48-bdee-f4378e47b8ef mvpn05-allow-epb-9090 source=83bb6de2 -> cb412019]
+
+# Tenant A (sesion scope=tenant e4186fac-0dd4-4aaa-8f0f-e4342e19af8a):
+profiles = [c276c661-102b-4d97-a6bf-3ba62b8ca440 mvpn05-gw-a-profile active/active rev3 applied3,
+            fbea6b76-14d9-4698-afd8-1fc46b2e8cf2 EC2 Lab direct, ab3cb5e7-... mvpn05-gateway-profile retired]
+# B no aparece en A y A no aparece en B.
+
+# Diagnostico cruzado (B intenta diagnosticar el recurso de A):
+POST /v1/company/network-diagnostics {source 83bb6de2 (B), resource 13614b01 (A), tcp/9090}
+HTTP 404 {"error":"not_found"}
+
+# Diagnostico propio (B -> recurso de B):
+HTTP 200 {"decision":"allow","reason":"policy_allows","profileRevision":3,"appliedRevision":3,"pathMode":"gateway","returnMode":"snat"}
+
+# Entornos en el nodo: namespaces distintos y un unico listener OpenVPN por namespace
+nexo-d888126ad410 (tenant A, Gamma) UDP 21603 pool 10.247.43.0/24
+nexo-256ff63eb43b (tenant B, P7)    UDP 21604 pool 10.247.44.0/24
+ccd A: nexo:db67b467-b55f-4822-bc5b-84c33d32cbac -> iroute 10.250.0.0 255.255.255.0
+ccd B: nexo:271caef3-e60c-4dfc-b9ba-e30d520b555e -> iroute 10.250.0.0 255.255.255.0
+Cada iroute se aplica solo en su entorno; los pools y las reglas nft son independientes.

@@ -1,0 +1,24 @@
+# M-VPN-05 P7 - Sin degradacion de tenant A durante la prueba de tenant B
+# Medicion simultanea (ventana comun 2026-11-10T22:52:07Z - 22:52:35Z)
+
+tenant_B (endpoint B en netns p7epb, SSM i-0d438d2bb29aafcc9):
+  timestamp=2026-11-10T22:52:07Z
+  banner=TENANT-B
+
+tenant_A (Windows del operador, OpenVPN Gamma 21603):
+  timestamp_A=2026-11-10T22:52:20Z
+  tcp9090=True
+  banner_A=TENANT-A
+  timestamp_A_end=2026-11-10T22:52:35Z
+
+Interpretacion: en la misma ventana de 28 s, B obtuvo su contenido y A siguio con acceso
+al recurso y con su propio banner. Ambas LAN declaradas son 10.250.0.0/24.
+
+# Cronologia de la incidencia previa (declarada, no usada como prueba)
+20:28:18Z  A TCP=True (P6)
+~22:41Z    A TCP=False: el proceso openvpn de Windows ya no existia y el egress habia rotado
+22:45:34Z  SG 21603 sgr-08b6996173d26d1db actualizado a 138.97.142.254/32
+22:46:31Z  A reconectado: ruta 10.250.0.0/24 presente, TCP=True
+22:47:08Z  A banner=TENANT-A
+22:52Z     ventana simultanea A/B sin degradacion
+# La caida se atribuye al cliente local + rotacion de egress; P7 no modifico Gamma ni el gateway A.

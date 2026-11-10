@@ -1,0 +1,24 @@
+# M-VPN-05 P7 - Aislamiento entre tenants (banner por identidad)
+# Fuente: PowerShell del operador (tenant A / Windows) y SSM en endpoint2 (netns p7epb, tenant B).
+# Ambos peers conectados al mismo tiempo al nodo 10.240.0.78.
+
+tenant_A_2026-11-10T22:47:08Z:
+  cliente_openvpn_windows=10.247.43.141 (Gamma 21603)
+  tcp9090=True
+  banner=TENANT-A
+  host_lan=10.250.0.68 (VPC-A, gateway A 54.198.131.185)
+
+tenant_B_2026-11-10T22:47:27Z:
+  cliente_openvpn_netns=10.247.44.242 (entorno 256ff63e, UDP 21604)
+  ruta_en_netns: 10.250.0.0/24 via 10.247.44.1 dev tun0
+  banner=TENANT-B
+  host_lan=10.250.0.68 (VPC-B, gateway B 100.28.58.184)
+
+Resultado: el endpoint de B obtiene el contenido de SU LAN (TENANT-B) y nunca TENANT-A,
+aunque ambas LAN declaradas son 10.250.0.0/24 y usan la misma IP de host.
+La discriminacion es por identidad de contenido y por pertenencia al entorno, no por IP.
+
+Separacion local en el endpoint (misma instancia i-0d438d2bb29aafcc9):
+  raiz (tenant A):  10.247.43.3/24 dev tun0     + 10.250.0.0/24 via 10.247.43.1
+  netns p7epb (B):  10.247.44.242/24 dev tun0   + 10.250.0.0/24 via 10.247.44.1
+  No hay ruta cruzada entre los dos pools ni reutilizacion de la misma interfaz.

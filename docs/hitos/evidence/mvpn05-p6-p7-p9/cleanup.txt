@@ -1,0 +1,48 @@
+# M-VPN-05 — Limpieza de la ventana P6/P7/P9 (2026-11-10T23:20Z)
+# Fuente: API company/provider, SSM en el nodo, EC2 API y consultas SQL de verificación.
+
+## Objetos retirados
+- Dispositivos revocados (API company.agents/:id/revoke, HTTP 204):
+  gateway A db67b467-b55f-4822-bc5b-84c33d32cbac (tenant A)
+  endpoint2  8973cdc5-91c7-44e1-82c7-87d46f4b8c0d (tenant A)
+  gateway B  271caef3-e60c-4dfc-b9ba-e30d520b555e (tenant B)
+  endpoint B 83bb6de2-56b4-4f58-b79e-9eba6aefff75 (tenant B)
+- Credenciales revocadas: gateway A, gateway B, endpoint2 y endpoint B por la revocación del dispositivo;
+  la credencial de la ventana en el endpoint Windows (408d2b66-a4ea-4311-84b1-fc5d562c54f0) quedó state=revoked
+  con revoked_at=2026-11-10T23:14:32Z.
+- Entorno OpenVPN de B 256ff63e-b43b-476b-b613-f9de4863fb56 → desired_state=retired (rev 2); el nodo eliminó
+  namespace nexo-256ff63eb43b, unidad y listener 21604; se borró el directorio residual de entorno y la tabla
+  de diagnóstico `inet p7diag`.
+- Perfiles retirados: c276c661-102b-4d97-a6bf-3ba62b8ca440 (A) y b1a655ad-1b4b-4e59-9efd-1a5fbb6abd61 (B).
+- Políticas retiradas: 8eb5e537-2a28-49ec-96c7-7fc3111a863b (A) y 703ebe27-a7b1-4e48-bdee-f4378e47b8ef (B).
+- Recursos retirados: 13614b01-ffd2-484c-a87a-f90b82813a80 (A) y cb412019-5592-4bed-9fb7-67ef1440db03 (B).
+- Sitios archivados: c7680984-5808-44d0-9ccb-5c6b7f478391 (A, vuelve a su estado previo) y
+  510f8380-cdd9-413d-b3a3-513649548049 (B).
+- Membership temporal del admin en Beta eliminada (membership_roles + memberships); quedó solo beta-admin.
+- Auditoría: eventos 138 (tenant A) y 139 (tenant B), acción `mvpn05.window_cleanup`.
+
+## Verificación posterior
+- Perfiles no retirados: solo `EC2 Lab direct` (A, preexistente de otro hito). 0 perfiles de esta ventana.
+- Credenciales `issued`: solo afea8e49-8ac2-45f4-8e26-3236f21e5662 (F07, preexistente). 0 de esta ventana.
+- Dispositivos no revocados: solo F07 (2 endpoints) y `M-VPN-03 endpoint`. 0 de esta ventana.
+- Namespaces en el nodo: nexo-d888126ad410 (Gamma A), nexo-85cee1d4b464 y nexo-43e1790578e0 (WireGuard).
+  0 namespaces de P7; WireGuard de Beta intacto.
+- Unidades VPN activas: 43e1790578e0, 85cee1d4b464, d888126ad410. Servicios nexo/worker/node-agent/Gamma: active.
+- Health API: {"status":"ok"}.
+- netns p7epb, veth-p7, tabla nft p7nat y ruta manual eliminados en el endpoint2; helper y material de identidad borrados.
+- Gateways: clientes OpenVPN detenidos, tablas `inet nexo_gw` eliminadas, `ip_forward=0`, identidades/material borrados,
+  `SourceDestCheck=true` restaurado en ambas ENI.
+- EIP de endpoint2 32.193.87.124 (eipalloc-03c542cebe21e51a5) desasociada y liberada.
+- SG sg-0cc6a1e19439c3e89: quedan solo 3 reglas ingress —
+  UDP/21603 desde 138.97.142.254/32 (egress vigente), ICMP desde 10.247.43.0/24 (M-VPN-04) y Webmin 10000/32.
+  Se eliminaron las 7 reglas de ventana (21602 x2, 21603 x2, 21604 x3). Sin 0.0.0.0/0.
+- Sesiones: las de tenant A y provider se revocaron por API (204); la de tenant B quedó inválida al retirar la membership.
+- Tokens y material temporal local borrados (/tmp/opencode/mvpn05-auth*, mvpn05-p6, mvpn05-p7, mvpn05-cleanup).
+
+## Estado inesperado observado al cerrar
+- Las cinco instancias t3.nano del laboratorio (gateways A/B, hosts LAN A/B y endpoint2) aparecieron **stopped**
+  a las 23:19Z; el nodo t3.small sigue running. No se emitió StopInstances desde esta sesión, así que la causa
+  no está determinada. Consecuencia: no hay listeners 9090 ni clientes VPN activos en ellas (los units transitorios
+  no sobreviven al arranque). Quedan detenidas; si se reutilizan, hay que revisar su estado antes de cualquier prueba.
+- La regla Webmin (tcp/10000) sigue apuntando al egress anterior 190.5.151.74/32; fuera del alcance de esta
+  limpieza, se reporta para decisión.

@@ -1,0 +1,22 @@
+# M-VPN-05 P6 - endpoint NO autorizado (endpoint2 8973cdc5-91c7-44e1-82c7-87d46f4b8c0d)
+# Fuente: SSM en i-0d438d2bb29aafcc9 y nodo; salida live transcrita.
+timestamp=2026-11-10T20:28:19Z
+tun0=10.247.43.3/24 (IP dinamica del pool, sin CCD)
+route: 10.250.0.68 via 10.247.43.1 dev tun0 src 10.247.43.3
+# Ruta anadida manualmente para descartar un falso negativo por ausencia de ruta.
+tcp9090_exit=124   # timeout; el paquete llego al nodo
+drop_counter: iifname tun0 oifname tun0 ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 counter packets 9 bytes 648 drop
+diagnostico_api: {"decision":"deny","reason":"default_deny","connectivity":"not_tested","profileRevision":3,"appliedRevision":3,"pathMode":"gateway","returnMode":"snat","dnsMode":"local"}
+
+# Refuerzo 2026-11-10T22:53-22:55Z: contador antes/despues con ruta efectiva (misma regla drop)
+before_timestamp=2026-11-10T22:53:56Z
+before_counter: iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 counter packets 27 bytes 2052 drop
+probe_timestamp=2026-11-10T22:54:40Z
+route: 10.250.0.68 via 10.247.43.1 dev tun0 src 10.247.43.3
+tcp_exit=124   (timeout, 5s)
+probe_end=2026-11-10T22:54:45Z
+after_timestamp=2026-11-10T22:55:08Z
+after_counter:  iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 counter packets 30 bytes 2232 drop
+delta: +3 paquetes / +180 bytes atribuibles al intento no autorizado (SYN + reintentos).
+# Nota: la ruta manual esta presente para descartar falso negativo por ausencia de ruta;
+# el bloqueo proviene de la regla drop del entorno, no de la falta de camino.
