@@ -16,7 +16,10 @@ export type NetworkRuntimeRule = {address:string;protocol:'tcp'|'udp';portStart:
 export type NetworkDiagnosticRequest = {sourceDeviceId:string;resourceId:string;protocol:'tcp'|'udp';port:number}|{sourceDeviceId:string;resourceId:string;protocol:'icmp'}
 export interface NetworkProfileSpec {tenantId:string;siteId:string;vpnEnvironmentId:string;name:string;pathMode:'direct'|'gateway';gatewayDeviceId?:string;returnMode:'routed'|'snat';dnsMode:'local'|'split';dnsServers:string[];dnsSuffixes:string[];siteNetworks:string[]}
 export interface OpenVPNGatewayRuntime {deviceId:string;networks:string[];returnMode:'routed'|'snat';dnsServers:string[];dnsSuffixes:string[]}
-export interface NodeNetworkRuntime {privateAccess:NetworkRuntimeRule[];openvpnGateways:OpenVPNGatewayRuntime[]}
+export interface GatewayAccessEndpoint {deviceId:string;tunnelIp:string;allowedLans:string[]}
+export type GatewayAccessRule = {deviceId:string;address:string;protocol:'tcp'|'udp';portStart:number;portEnd:number}|{deviceId:string;address:string;protocol:'icmp';icmpType:8;icmpCode:0}
+export interface GatewayAccess {endpoints:GatewayAccessEndpoint[];rules:GatewayAccessRule[]}
+export interface NodeNetworkRuntime {privateAccess:NetworkRuntimeRule[];openvpnGateways:OpenVPNGatewayRuntime[];gatewayAccess:GatewayAccess}
 export interface PrivateNetworkRepository {
   listProfiles(tenantId:string):Promise<NetworkProfileView[]>;
   createProfile(input:NetworkProfileSpec,actor:string):Promise<NetworkProfileView>;

@@ -487,3 +487,33 @@ No hay evidencia de listener `9090`, peer OpenVPN gateway, D1–D4 ni rollback d
 - **Egress Windows:** `d5-egress.txt` documenta la lectura `09:45:43Z` con `190.120.26.242`; el CGNAT rotó **después** de la ventana. Durante D1–D5 las lecturas fueron `138.97.142.254`, que es el `/32` vigente; la relectura posterior no altera D5 ni el SG.
 - **D3/D4:** D3 se conserva como transcripción de consola de la ejecución con túnel (el valor solo es alcanzable por el túnel); D4 se reejecutó a las `09:37:41Z` en consolidación read-only, ya sin túnel, y el archivo declara ambas marcas.
 - **Estado del dictamen:** reevaluación del mismo revisor (`ses_e3b32a564ffe40JOLxRBHSWfEP`): **`PASS-CON-PENDIENTES` para Capa D**, sin `FAIL` obligatorio; M-VPN-05 completo sigue **no `VERIFICADO`**. El commit selectivo y un dictamen formal de revisor distinto quedan como pendientes de governance.
+
+## P6 — Aislamiento intra-tenant para gateways (apertura 2026-11-10)
+
+**Captura:** corregir el dataplane para que un endpoint sin política allow no alcance la LAN de un gateway del mismo tenant y uno autorizado sí. Commit base `57a5de6`; sin AWS/SG, sin migraciones live, sin push; no tocar WireGuard, Alpha/Beta ni el CCD de gateways; entornos sin gateway conservan su comportamiento.
+
+**Decisiones aprobadas por el responsable (2026-11-10):**
+1. La corrección efectiva es el `accept` amplio de `host_linux.go` (hoy `saddr <CIDR del túnel> daddr <LAN>`), no el `masquerade`; el SNAT es secundario.
+2. Pool: `server <red> <máscara> nopool` + `ifconfig-pool` en la mitad baja (`.2–.127` para /24); IP estáticas de endpoints en la mitad alta (`.128–.254`). Sin tocar el CCD del gateway.
+3. Contrato API→nodo: `allowedLans` para decidir rutas empujadas y reglas nft por recurso/protocolo/puerto; no se autoriza la LAN completa.
+4. Se actualizan `scripts/f08-postgres.mjs` y los tests F08 afectados; Go se ejecuta con Docker `golang:1.27.3`.
+
+**Pruebas de cierre locales:** unitaria Go del render/validación, integración PostgreSQL desechable del contrato, `npm test`, `npm run test:f08-postgres`, `npm run typecheck`, `git diff --check`. La prueba real con dos endpoints en AWS queda `NOT_RUN` para una ventana posterior; un `False` por ausencia de ruta no acreditará enforcement.
+
+### P6 — Implementación local (2026-11-10)
+
+- **Cambios:** `product/api/network.ts` (asignación determinista en la mitad alta y detección de agotamiento), `product/api/private-network-repository.ts` (contrato `GatewayAccess`), `product/api/postgres-private-network-repository.ts` (`gatewayAccess` por endpoint con allows/denies y LANs), `product/api/application.ts` (proyección al nodo), `product/agent/internal/vpnruntime/{reconciler.go,host_linux.go}` (validación, `server ... nopool` + pool dinámico, CCD selectivo, nft por recurso y drop por LAN), tests Go/F08 y `scripts/f08-postgres.mjs`.
+- **Decisiones aplicadas:** accept por dispositivo/recurso en lugar del accept amplio; `masquerade` conservado como NAT; pool estático `.128–.254` y dinámico `.2–.127`; rutas empujadas solo a endpoints con allow efectivo; entornos sin gateway sin cambios de directivas.
+- **Pruebas PASS:** `npm run build`, `npm run typecheck`, `git diff --check`, `node --test tests/f08-private-networks.test.mjs` (5/5), `npm run test:f08-postgres` (`PASS`, incluido `gatewayReconcile` y deny por dispositivo), `go test ./...` con Docker `golang:1.27.3` (todos los paquetes).
+- **Alineación F02/multitenant:** el árbol tenía `infra/aws/lab/multitenant.tf`, su módulo `modules/tenant-vpc` y cambios en `main.tf`/`variables.tf`/`outputs.tf` de otro trabajo (P7/P9). Ese archivo añade 3 reglas de ingress (total 8), no 5, y usa `key_name`/`iam_instance_profile`; F02 lo prohíbe globalmente. Por decisión del responsable no se commitea aquí: se movió a `/tmp/opencode/nexo-multitenant/` (archivos + parche `patches/lab-multitenant.patch`) y se revirtieron `main.tf`/`variables.tf`/`outputs.tf` a HEAD. El test F02 del árbol (5 reglas, cambio previo del responsable) no se tocó.
+- **Prueba PASS:** con el árbol limpio de multitenant, `npm test` termina **172 PASS, 1 SKIP, 0 FAIL** (173). El HEAD commiteado conserva el desajuste F02 (test 3 reglas vs `main.tf` 5); la corrección del test sigue sin commit y es independiente de P6.
+- **Pendiente:** integración real con dos endpoints en AWS (`NOT_RUN`), dictamen independiente y commit de P6. Sin commit ni push.
+
+#### P6 — Endurecimiento y dictamen local (2026-11-10)
+
+- **Endurecimiento tras revisión crítica:** la validación Go ahora exige que la IP estática esté en la mitad alta del pool (no solo fuera de red/broadcast/.1); la consulta `gatewayAccess` une `device_identities` del gateway y exige `status='approved'`, igual que la consulta de gateways, para no conceder recursos de un gateway revocado cuando otro sigue activo. Añadido un caso de validación para IP en la mitad dinámica.
+- **Pruebas finales:** `npm run build` PASS; `npm test` **172 PASS, 1 SKIP, 0 FAIL**; `npm run test:f08-postgres` PASS; `go test ./...` (Docker `golang:1.27.3`) PASS; `npm run typecheck` PASS; `git diff --check` PASS.
+- **Dictamen independiente:** `nexo-cierre`, sesión `ses_e396fdbb6ffewcD9D3NCx3FoUx`, **PASS-CON-PENDIENTES (local)**, sin fallo obligatorio demostrado. No acredita enforcement real ni cierra P6 live; la prueba con dos endpoints en AWS sigue **NOT_RUN**. El dictamen es documental: los resultados se aportaron como ejecutados por el orquestador, no reejecutados por el revisor.
+- **Riesgos residuales registrados:** IP determinista pero no persistente (una colisión con un alta nueva puede reasignar IP); crecimiento N×M y límites 4096/65536; gateway dinámico y agotamiento del pool; DNS global y recursos `hostname` fuera de `gatewayAccess`; retorno/SNAT y binding CN→IP sin corroboración real; árbol sin commit inmutable.
+- **Multitenant:** el trabajo ajeno que rompía F02 se movió a `/tmp/opencode/nexo-multitenant/` (archivos + `patches/lab-multitenant.patch` reaplicable); no se commiteó ni se tocó su test. Vive fuera del árbol activo para la ventana P7.
+- **Estado:** P6 **PASS-CON-PENDIENTES (local)**; M-VPN-05 completo no `VERIFICADO`. Sin commit ni push.

@@ -13,6 +13,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
@@ -492,7 +493,18 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 	wireguard := ""
 	interfaceName := "tun0"
 	if environment.Engine == "openvpn" {
-		openvpn = fmt.Sprintf("port %d\nproto udp\ndev tun\ntopology subnet\nserver %s %s\nuser nobody\ngroup nobody\npersist-key\npersist-tun\nkeepalive 10 60\ntls-version-min 1.2\ntls-cert-profile preferred\ndata-ciphers AES-256-GCM:AES-128-GCM\nauth SHA256\nca %s/pki/ca.crt\ncert %s/pki/server.crt\nkey %s/pki/server.key\ncrl-verify %s/pki/crl.pem\ntls-crypt %s/pki/tls-crypt.key\ndh none\nscript-security 1\nverb 3\nexplicit-exit-notify 1\n", environment.ListenerPort, prefix, mask, directory, directory, directory, directory, directory)
+		serverDirective := fmt.Sprintf("server %s %s", prefix, mask)
+		// Static endpoint addresses live in the upper half of the pool, so the
+		// dynamic pool must be reduced with nopool + ifconfig-pool. OpenVPN
+		// refuses ifconfig-pool next to the default --server pool.
+		if len(environment.OpenVPNGateways) > 0 {
+			poolStart, poolEnd, poolErr := gatewayAddressPool(environment.TunnelIPv4CIDR)
+			if poolErr != nil {
+				return runtimeBundle{}, poolErr
+			}
+			serverDirective += fmt.Sprintf(" nopool\nifconfig-pool %s %s %s", poolStart, poolEnd, mask)
+		}
+		openvpn = fmt.Sprintf("port %d\nproto udp\ndev tun\ntopology subnet\n%s\nuser nobody\ngroup nobody\npersist-key\npersist-tun\nkeepalive 10 60\ntls-version-min 1.2\ntls-cert-profile preferred\ndata-ciphers AES-256-GCM:AES-128-GCM\nauth SHA256\nca %s/pki/ca.crt\ncert %s/pki/server.crt\nkey %s/pki/server.key\ncrl-verify %s/pki/crl.pem\ntls-crypt %s/pki/tls-crypt.key\ndh none\nscript-security 1\nverb 3\nexplicit-exit-notify 1\n", environment.ListenerPort, serverDirective, directory, directory, directory, directory, directory)
 	} else {
 		interfaceName = "wg0"
 		serverAddress, addressErr := wireGuardServerAddress(environment.TunnelIPv4CIDR)
@@ -527,6 +539,7 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 	var hostLocalOutputRules strings.Builder
 	var gatewayForwardRules strings.Builder
 	var gatewayReturnRules strings.Builder
+	var gatewayDropRules strings.Builder
 	var masqueradeRules strings.Builder
 	ccd := map[string]string{}
 	pushedRoutes := map[string]struct{}{}
@@ -550,10 +563,8 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 			canonical := network.String()
 			fmt.Fprintf(&config, "iroute %s %s\n", networkAddress.Mask(network.Mask), mask)
 			openvpn += fmt.Sprintf("route %s %s\n", networkAddress.Mask(network.Mask), mask)
-			openvpn += fmt.Sprintf("push \"route %s %s\"\n", networkAddress.Mask(network.Mask), mask)
-			pushedRoutes[canonical] = struct{}{}
-			gatewayForwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s accept; ", interfaceName, interfaceName, environment.TunnelIPv4CIDR, canonical))
 			gatewayReturnRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ct state established,related ip saddr %s ip daddr %s accept; ", interfaceName, interfaceName, canonical, environment.TunnelIPv4CIDR))
+			gatewayDropRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s counter drop; ", interfaceName, interfaceName, environment.TunnelIPv4CIDR, canonical))
 			if gateway.ReturnMode == "snat" {
 				masqueradeRules.WriteString(fmt.Sprintf("ip saddr %s ip daddr %s masquerade; ", environment.TunnelIPv4CIDR, canonical))
 			}
@@ -565,6 +576,65 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 		for _, suffix := range gateway.DNSSuffixes {
 			dnsSuffixes[suffix] = struct{}{}
 		}
+	}
+	var access GatewayAccess
+	if environment.GatewayAccess != nil {
+		access = *environment.GatewayAccess
+	}
+	endpoints := append([]GatewayAccessEndpoint(nil), access.Endpoints...)
+	sort.Slice(endpoints, func(i, j int) bool { return endpoints[i].DeviceID < endpoints[j].DeviceID })
+	activeDevices := map[string]struct{}{}
+	for _, rule := range access.Rules {
+		activeDevices[rule.DeviceID] = struct{}{}
+	}
+	tunnelByDevice := make(map[string]string, len(endpoints))
+	for _, endpoint := range endpoints {
+		if len(endpoint.AllowedLans) == 0 {
+			continue
+		}
+		if _, authorized := activeDevices[endpoint.DeviceID]; !authorized {
+			continue
+		}
+		lans := append([]string(nil), endpoint.AllowedLans...)
+		sort.Strings(lans)
+		var config strings.Builder
+		fmt.Fprintf(&config, "ifconfig-push %s %s\n", endpoint.TunnelIP, mask)
+		for _, raw := range lans {
+			networkAddress, network, parseErr := net.ParseCIDR(raw)
+			if parseErr != nil {
+				return runtimeBundle{}, parseErr
+			}
+			fmt.Fprintf(&config, "push \"route %s %s\"\n", networkAddress.Mask(network.Mask), net.IP(network.Mask).String())
+		}
+		ccd["nexo:"+endpoint.DeviceID] = config.String()
+		tunnelByDevice[endpoint.DeviceID] = endpoint.TunnelIP
+	}
+	gatewayRules := append([]GatewayAccessRule(nil), access.Rules...)
+	sort.Slice(gatewayRules, func(i, j int) bool {
+		if gatewayRules[i].DeviceID != gatewayRules[j].DeviceID {
+			return gatewayRules[i].DeviceID < gatewayRules[j].DeviceID
+		}
+		if gatewayRules[i].Address != gatewayRules[j].Address {
+			return gatewayRules[i].Address < gatewayRules[j].Address
+		}
+		if gatewayRules[i].Protocol != gatewayRules[j].Protocol {
+			return gatewayRules[i].Protocol < gatewayRules[j].Protocol
+		}
+		if gatewayRules[i].PortStart != gatewayRules[j].PortStart {
+			return gatewayRules[i].PortStart < gatewayRules[j].PortStart
+		}
+		return gatewayRules[i].PortEnd < gatewayRules[j].PortEnd
+	})
+	for _, rule := range gatewayRules {
+		tunnelIP, exists := tunnelByDevice[rule.DeviceID]
+		if !exists {
+			return runtimeBundle{}, errors.New("invalid gateway access rule")
+		}
+		if rule.Protocol == "icmp" {
+			gatewayForwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s icmp type echo-request accept; ", interfaceName, interfaceName, tunnelIP, rule.Address))
+			continue
+		}
+		gatewayForwardRules.WriteString(fmt.Sprintf("iifname \"%s\" oifname \"%s\" ip saddr %s ip daddr %s %s dport %d-%d accept; ", interfaceName, interfaceName, tunnelIP, rule.Address, rule.Protocol, rule.PortStart, rule.PortEnd))
 	}
 	suffixes := make([]string, 0, len(dnsSuffixes))
 	for suffix := range dnsSuffixes {
@@ -620,7 +690,7 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 	if masqueradeRules.Len() > 0 {
 		postrouting = fmt.Sprintf(" chain postrouting { type nat hook postrouting priority srcnat; policy accept; %s}\n", masqueradeRules.String())
 	}
-	namespaceFirewall := fmt.Sprintf("table inet nexo_env {\n chain input { type filter hook input priority 0; policy drop; iifname \"lo\" accept; ct state established,related accept; iifname \"%s\" udp dport %d accept; }\n chain forward { type filter hook forward priority 0; policy drop; %s%s%s%s iifname \"%s\" oifname \"%s\" ip saddr %s counter drop; }\n chain output { type filter hook output priority 0; policy drop; oifname \"lo\" accept; ct state established,related accept; ip daddr 169.254.169.254 drop; oifname \"%s\" udp sport %d accept; }\n%s}\n", link.NamespaceInterface, environment.ListenerPort, gatewayForwardRules.String(), gatewayReturnRules.String(), forwardRules.String(), returnRules.String(), interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, link.NamespaceInterface, environment.ListenerPort, postrouting)
+	namespaceFirewall := fmt.Sprintf("table inet nexo_env {\n chain input { type filter hook input priority 0; policy drop; iifname \"lo\" accept; ct state established,related accept; iifname \"%s\" udp dport %d accept; }\n chain forward { type filter hook forward priority 0; policy drop; %s%s%s%s%s iifname \"%s\" oifname \"%s\" ip saddr %s counter drop; }\n chain output { type filter hook output priority 0; policy drop; oifname \"lo\" accept; ct state established,related accept; ip daddr 169.254.169.254 drop; oifname \"%s\" udp sport %d accept; }\n%s}\n", link.NamespaceInterface, environment.ListenerPort, gatewayForwardRules.String(), gatewayReturnRules.String(), forwardRules.String(), returnRules.String(), gatewayDropRules.String(), interfaceName, link.NamespaceInterface, environment.TunnelIPv4CIDR, link.NamespaceInterface, environment.ListenerPort, postrouting)
 	hostFirewall := fmt.Sprintf("table inet %s {\n chain prerouting { type nat hook prerouting priority dstnat; policy accept; fib daddr type local udp dport %d dnat ip to %s:%d; }\n chain input { type filter hook input priority filter; policy accept; %siifname \"%s\" counter drop; }\n chain output { type filter hook output priority filter; policy accept; %soifname \"%s\" counter drop; }\n chain forward { type filter hook forward priority filter; policy accept; %s%s oifname \"%s\" ip daddr %s udp dport %d accept; iifname \"%s\" ip saddr %s udp sport %d accept; iifname \"%s\" counter drop; oifname \"%s\" counter drop; }\n}\n", tableName(environment), environment.ListenerPort, link.NamespaceAddress, environment.ListenerPort, hostLocalInputRules.String(), link.HostInterface, hostLocalOutputRules.String(), link.HostInterface, hostReturnRules.String(), hostAccessRules.String(), link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.NamespaceAddress, environment.ListenerPort, link.HostInterface, link.HostInterface)
 	unit := renderUnit(environment, directory, serverAddressForUnit(environment), interfaceName)
 	canonical, _ := json.Marshal(environment)
@@ -784,6 +854,26 @@ func netipPrefix(value string) (string, error) {
 		return "", err
 	}
 	return network.IP.String(), nil
+}
+func gatewayAddressPool(cidr string) (string, string, error) {
+	prefix, err := netip.ParsePrefix(cidr)
+	if err != nil || !prefix.Addr().Is4() || prefix.Bits() > 29 {
+		return "", "", errors.New("invalid gateway address pool")
+	}
+	baseBytes := prefix.Masked().Addr().As4()
+	base := binary.BigEndian.Uint32(baseBytes[:])
+	size := uint32(1) << uint(32-prefix.Bits())
+	start := base + 2
+	end := base + size/2 - 1
+	if end < start {
+		end = start
+	}
+	address := func(value uint32) string {
+		var raw [4]byte
+		binary.BigEndian.PutUint32(raw[:], value)
+		return netip.AddrFrom4(raw).String()
+	}
+	return address(start), address(end), nil
 }
 func tableName(environment DesiredEnvironment) string {
 	return "nx_" + strings.TrimPrefix(environment.NamespaceName, "nexo-")

@@ -48,8 +48,9 @@ func TestNativeRendererBuildsGatewayCCDRouteSNATAndSplitDNS(t *testing.T) {
 	}
 	for _, required := range []string{
 		"client-config-dir /var/lib/nexo-node/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/ccd",
+		"server 10.247.43.0 255.255.255.0 nopool",
+		"ifconfig-pool 10.247.43.2 10.247.43.127 255.255.255.0",
 		"route 10.250.0.0 255.255.255.0",
-		`push "route 10.250.0.0 255.255.255.0"`,
 		`push "route 10.240.0.78 255.255.255.255"`,
 		`push "dhcp-option DOMAIN corp.internal"`,
 		`push "dhcp-option DNS 10.240.0.78"`,
@@ -59,7 +60,7 @@ func TestNativeRendererBuildsGatewayCCDRouteSNATAndSplitDNS(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
-		`iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 accept`,
+		`ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 counter drop`,
 		`ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 masquerade`,
 		`ip daddr 10.240.0.78 udp dport 53 accept`,
 		`ip daddr 10.240.0.78 tcp dport 53 accept`,
@@ -68,9 +69,123 @@ func TestNativeRendererBuildsGatewayCCDRouteSNATAndSplitDNS(t *testing.T) {
 			t.Fatalf("missing nftables rule %q: %s", required, bundle.namespaceFirewall)
 		}
 	}
-	for _, forbidden := range []string{"0.0.0.0/0", "redirect-gateway", "client-to-client", "ip saddr 10.247.43.0/24 masquerade"} {
+	for _, forbidden := range []string{"0.0.0.0/0", "redirect-gateway", "client-to-client", "ip saddr 10.247.43.0/24 masquerade", `push "route 10.250.0.0 255.255.255.0"`, `ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 accept`} {
 		if strings.Contains(bundle.openvpn+bundle.namespaceFirewall, forbidden) {
 			t.Fatalf("unexpected broad gateway rule %q", forbidden)
+		}
+	}
+}
+
+func TestNativeRendererRestrictsGatewayAccessToAuthorizedEndpointRules(t *testing.T) {
+	host := &NativeHost{root: "/var/lib/nexo-node/environments", units: "/run/systemd/system"}
+	env := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	env.TunnelIPv4CIDR = "10.247.43.0/24"
+	env.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+	const endpoint, denied = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb6", "cccccccc-cccc-4ccc-8ccc-ccccccccccc6"
+	env.GatewayAccess = &GatewayAccess{
+		Endpoints: []GatewayAccessEndpoint{{DeviceID: endpoint, TunnelIP: "10.247.43.128", AllowedLans: []string{"10.250.0.0/24"}}, {DeviceID: denied, TunnelIP: "10.247.43.129", AllowedLans: []string{"10.250.0.0/24"}}},
+		Rules:     []GatewayAccessRule{{DeviceID: endpoint, Address: "10.250.0.1", Protocol: "tcp", PortStart: 9090, PortEnd: 9090}},
+	}
+	bundle, err := host.render(env, linkFor(env.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bundle.ccd["nexo:"+endpoint]; got != "ifconfig-push 10.247.43.128 255.255.255.0\npush \"route 10.250.0.0 255.255.255.0\"\n" {
+		t.Fatalf("unexpected authorized endpoint CCD: %q", got)
+	}
+	if _, exists := bundle.ccd["nexo:"+denied]; exists {
+		t.Fatal("endpoint without an effective allow received CCD")
+	}
+	for _, required := range []string{
+		"server 10.247.43.0 255.255.255.0 nopool",
+		"ifconfig-pool 10.247.43.2 10.247.43.127 255.255.255.0",
+	} {
+		if !strings.Contains(bundle.openvpn, required) {
+			t.Fatalf("missing OpenVPN pool directive %q: %s", required, bundle.openvpn)
+		}
+	}
+	for _, required := range []string{
+		`iifname "tun0" oifname "tun0" ip saddr 10.247.43.128 ip daddr 10.250.0.1 tcp dport 9090-9090 accept`,
+		`iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 counter drop`,
+		`ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 masquerade`,
+	} {
+		if !strings.Contains(bundle.namespaceFirewall, required) {
+			t.Fatalf("missing gateway access rule %q: %s", required, bundle.namespaceFirewall)
+		}
+	}
+	for _, forbidden := range []string{`push "route 10.250.0.0 255.255.255.0"`, `iifname "tun0" oifname "tun0" ip saddr 10.247.43.0/24 ip daddr 10.250.0.0/24 accept`} {
+		if strings.Contains(bundle.openvpn+"\n"+bundle.namespaceFirewall, forbidden) {
+			t.Fatalf("unexpected broad gateway access %q", forbidden)
+		}
+	}
+}
+
+func TestNativeRendererWithoutGatewayKeepsDynamicPoolAndOmitsEndpointCCD(t *testing.T) {
+	host := &NativeHost{root: "/var/lib/nexo-node/environments", units: "/run/systemd/system"}
+	env := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	bundle, err := host.render(env, linkFor(env.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(bundle.openvpn, "server 10.90.0.0 255.255.255.0\n") {
+		t.Fatalf("default server directive changed: %s", bundle.openvpn)
+	}
+	for _, forbidden := range []string{"nopool", "ifconfig-pool", "client-config-dir"} {
+		if strings.Contains(bundle.openvpn, forbidden) {
+			t.Fatalf("gateway-only directive leaked into plain environment: %q", forbidden)
+		}
+	}
+	if len(bundle.ccd) != 0 {
+		t.Fatalf("plain environment received endpoint CCD entries: %#v", bundle.ccd)
+	}
+}
+
+func TestGatewayAccessValidationRejectsInvalidEndpointOrRule(t *testing.T) {
+	valid := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	valid.TunnelIPv4CIDR = "10.247.43.0/24"
+	valid.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+	const endpoint, other = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb6", "cccccccc-cccc-4ccc-8ccc-ccccccccccc6"
+	valid.GatewayAccess = &GatewayAccess{
+		Endpoints: []GatewayAccessEndpoint{{DeviceID: endpoint, TunnelIP: "10.247.43.128", AllowedLans: []string{"10.250.0.0/24"}}},
+		Rules:     []GatewayAccessRule{{DeviceID: endpoint, Address: "10.250.0.1", Protocol: "tcp", PortStart: 9090, PortEnd: 9090}},
+	}
+	if err := validate(valid); err != nil {
+		t.Fatalf("valid gateway access rejected: %v", err)
+	}
+	mutations := map[string]func(*DesiredEnvironment){
+		"duplicate ip": func(item *DesiredEnvironment) {
+			item.GatewayAccess.Endpoints = append(item.GatewayAccess.Endpoints, GatewayAccessEndpoint{DeviceID: other, TunnelIP: "10.247.43.128", AllowedLans: []string{"10.250.0.0/24"}})
+		},
+		"outside pool": func(item *DesiredEnvironment) {
+			item.GatewayAccess.Endpoints[0].TunnelIP = "10.248.43.128"
+		},
+		"reserved server address": func(item *DesiredEnvironment) {
+			item.GatewayAccess.Endpoints[0].TunnelIP = "10.247.43.1"
+		},
+		"dynamic pool address": func(item *DesiredEnvironment) {
+			item.GatewayAccess.Endpoints[0].TunnelIP = "10.247.43.10"
+		},
+		"unknown rule device": func(item *DesiredEnvironment) {
+			item.GatewayAccess.Rules[0].DeviceID = other
+		},
+		"rule outside allowed lan": func(item *DesiredEnvironment) {
+			item.GatewayAccess.Rules[0].Address = "10.250.1.1"
+		},
+		"missing gateway": func(item *DesiredEnvironment) {
+			item.OpenVPNGateways = nil
+		},
+	}
+	for name, mutate := range mutations {
+		invalid := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+		invalid.TunnelIPv4CIDR = "10.247.43.0/24"
+		invalid.OpenVPNGateways = []OpenVPNGateway{openVPNGatewayFixture()}
+		invalid.GatewayAccess = &GatewayAccess{
+			Endpoints: append([]GatewayAccessEndpoint(nil), valid.GatewayAccess.Endpoints...),
+			Rules:     append([]GatewayAccessRule(nil), valid.GatewayAccess.Rules...),
+		}
+		mutate(&invalid)
+		if err := validate(invalid); err == nil {
+			t.Fatalf("%s was accepted: %#v", name, invalid.GatewayAccess)
 		}
 	}
 }

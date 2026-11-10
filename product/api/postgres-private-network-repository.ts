@@ -1,6 +1,6 @@
 import type{Pool,PoolClient}from'pg';
-import type{NetworkDiagnostic,NetworkDiagnosticRequest,NetworkObservedState,NetworkPolicyView,NetworkProfileSpec,NetworkProfileView,NetworkRuntimeRule,NodeNetworkRuntime,OpenVPNGatewayRuntime,PrivateNetworkRepository,PrivateResourceView}from'./private-network-repository.js';
-import{parsePrivateCidr}from'./network.js';
+import type{NetworkDiagnostic,NetworkDiagnosticRequest,NetworkObservedState,NetworkPolicyView,NetworkProfileSpec,NetworkProfileView,NetworkRuntimeRule,NodeNetworkRuntime,OpenVPNGatewayRuntime,PrivateNetworkRepository,PrivateResourceView,GatewayAccess,GatewayAccessRule}from'./private-network-repository.js';
+import{allocateTunnelIPs,cidrContains,parsePrivateCidr}from'./network.js';
 
 export class PostgresPrivateNetworkRepository implements PrivateNetworkRepository{
  constructor(private readonly pool:Pool){}
@@ -42,18 +42,24 @@ export class PostgresPrivateNetworkRepository implements PrivateNetworkRepositor
   try{
    await c.query('BEGIN');
    await c.query("SELECT set_config('app.worker_role','operation_dispatch',true),set_config('app.node_id',$1,true)",[nodeId]);
-    const environments=(await c.query<{id:string;tenant_id:string;engine:'openvpn'|'wireguard'}>("SELECT id,tenant_id,engine FROM vpn_environments WHERE node_id=$1 AND desired_state='active' ORDER BY id",[nodeId])).rows,output:Record<string,NodeNetworkRuntime>={};
+    const environments=(await c.query<{id:string;tenant_id:string;engine:'openvpn'|'wireguard';tunnel_ipv4_cidr:string}>("SELECT id,tenant_id,engine,host(tunnel_ipv4_cidr)::text||'/'||masklen(tunnel_ipv4_cidr)::text tunnel_ipv4_cidr FROM vpn_environments WHERE node_id=$1 AND desired_state='active' ORDER BY id",[nodeId])).rows,output:Record<string,NodeNetworkRuntime>={};
    for(const env of environments){
     await c.query("SELECT set_config('app.tenant_id',$1,true)",[env.tenant_id]);
      const rows=(await c.query<runtimePolicyRow>("SELECT r.address,p.protocol,p.effect,p.source_kind,p.port_start,p.port_end,p.icmp_type,p.icmp_code FROM private_network_profiles n JOIN private_resources r ON r.profile_id=n.id AND r.tenant_id=n.tenant_id JOIN private_network_policies p ON p.profile_id=n.id AND p.tenant_id=n.tenant_id AND p.resource_id=r.id WHERE n.vpn_environment_id=$1 AND n.path_mode='direct' AND n.desired_state='active' AND r.kind='ipv4' AND r.status='active' AND p.status='active' ORDER BY r.address,p.protocol,p.effect,p.source_kind,p.port_start",[env.id])).rows;
      const gateways=env.engine==='openvpn'?(await c.query<runtimeGatewayRow>("SELECT n.gateway_device_id device_id,n.return_mode,ARRAY(SELECT host(address) FROM unnest(n.dns_servers) address ORDER BY host(address)) dns_servers,n.dns_suffixes,coalesce(array_agg(host(s.network)::text||'/'||masklen(s.network)::text ORDER BY s.network::text) FILTER(WHERE family(s.network)=4),'{}') networks FROM private_network_profiles n JOIN device_identities d ON d.id=n.gateway_device_id AND d.tenant_id=n.tenant_id AND d.site_id=n.site_id AND d.device_kind='gateway' AND d.status='approved' JOIN site_networks s ON s.tenant_id=n.tenant_id AND s.site_id=n.site_id WHERE n.vpn_environment_id=$1 AND n.path_mode='gateway' AND n.desired_state='active' GROUP BY n.id,n.gateway_device_id,n.return_mode,n.dns_servers,n.dns_suffixes ORDER BY n.gateway_device_id",[env.id])).rows.map(runtimeGateway):[];
-     output[env.id]={privateAccess:compileNodeAccessRules(rows),openvpnGateways:gateways};
+     const gatewayAccess=env.engine==='openvpn'&&gateways.length>0?await this.gatewayAccess(c,env.id,env.tenant_id,env.tunnel_ipv4_cidr):{endpoints:[],rules:[]};
+     output[env.id]={privateAccess:compileNodeAccessRules(rows),openvpnGateways:gateways,gatewayAccess};
    }
    await c.query('COMMIT');
    return output;
   }catch(error){await c.query('ROLLBACK').catch(()=>{});throw error;}finally{c.release();}
  }
  async report(id:string,t:string,deviceId:string,kind:'endpoint'|'gateway',i:{revision:number;observedState:NetworkObservedState;configDigest?:string;errorCode?:string}){return this.deviceTx(t,deviceId,async c=>{const eligible=(await c.query("SELECT 1 FROM private_network_profiles p JOIN device_identities d ON d.id=$2 AND d.tenant_id=p.tenant_id AND d.status='approved' WHERE p.id=$1 AND p.revision=$3 AND ((p.path_mode='direct' AND d.device_kind='endpoint' AND $4='endpoint') OR (p.path_mode='gateway' AND p.gateway_device_id=d.id AND d.device_kind='gateway' AND $4='gateway'))",[id,deviceId,i.revision,kind])).rowCount;if(!eligible)return false;await c.query("INSERT INTO private_network_device_observations(tenant_id,profile_id,device_id,revision,observed_state,config_digest,error_code) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(profile_id,device_id) DO UPDATE SET revision=excluded.revision,observed_state=excluded.observed_state,config_digest=excluded.config_digest,error_code=excluded.error_code,updated_at=now()",[t,id,deviceId,i.revision,i.observedState,i.configDigest??null,i.errorCode??null]);await c.query("UPDATE private_network_profiles SET observed_state=$3,applied_revision=CASE WHEN $3 IN('active','suspended','retired') THEN $2 ELSE applied_revision END,config_digest=CASE WHEN $3='applying' AND $4::text IS NULL THEN config_digest ELSE $4 END,error_code=$5,updated_at=now() WHERE id=$1 AND revision=$2",[id,i.revision,i.observedState,i.configDigest??null,i.errorCode??null]);return true;});}
+ private async gatewayAccess(c:PoolClient,environmentId:string,tenantId:string,cidr:string):Promise<GatewayAccess>{
+  const endpointIds=(await c.query<{id:string}>("SELECT id FROM device_identities WHERE tenant_id=$1 AND device_kind='endpoint' AND status='approved' ORDER BY id",[tenantId])).rows.map(x=>x.id);
+  const rows=(await c.query<runtimeGatewayPolicyRow>("SELECT p.source_kind,p.source_device_id,p.effect,r.address,p.protocol,p.port_start,p.port_end,p.icmp_type,p.icmp_code,host(s.network)::text||'/'||masklen(s.network)::text lan FROM private_network_profiles n JOIN private_resources r ON r.profile_id=n.id AND r.tenant_id=n.tenant_id JOIN private_network_policies p ON p.profile_id=n.id AND p.tenant_id=n.tenant_id AND p.resource_id=r.id JOIN device_identities gd ON gd.id=n.gateway_device_id AND gd.tenant_id=n.tenant_id AND gd.site_id=n.site_id AND gd.device_kind='gateway' AND gd.status='approved' JOIN site_networks s ON s.tenant_id=n.tenant_id AND s.site_id=n.site_id AND r.address::inet << s.network WHERE n.vpn_environment_id=$1 AND n.tenant_id=$2 AND n.path_mode='gateway' AND n.desired_state='active' AND r.kind='ipv4' AND r.status='active' AND p.status='active' AND family(s.network)=4 ORDER BY p.source_device_id,r.address::inet,p.protocol,p.effect,p.source_kind,p.port_start",[environmentId,tenantId])).rows;
+  return compileGatewayAccess(endpointIds,rows,cidr);
+ }
  private async bump(c:PoolClient,id:string,t:string,actor:string){await c.query("UPDATE private_network_profiles SET revision=revision+1,observed_state='pending',error_code=NULL,updated_at=now() WHERE id=$1",[id]);await this.revision(c,id,t,actor);}
  private async revision(c:PoolClient,id:string,t:string,actor:string){await c.query("INSERT INTO private_network_profile_revisions(profile_id,tenant_id,revision,specification,requested_by) SELECT id,tenant_id,revision,jsonb_build_object('site_id',site_id,'vpn_environment_id',vpn_environment_id,'path_mode',path_mode,'gateway_device_id',gateway_device_id,'return_mode',return_mode,'dns_mode',dns_mode,'dns_servers',dns_servers,'dns_suffixes',dns_suffixes,'desired_state',desired_state),$3 FROM private_network_profiles WHERE id=$1 AND tenant_id=$2",[id,t,actor]);}
   private async profileRows(c:PoolClient,id?:string):Promise<NetworkProfileView[]>{return(await c.query<{id:string;tenant_id:string;site_id:string;vpn_environment_id:string;name:string;site_networks:string[];path_mode:'direct'|'gateway';gateway_device_id:string|null;return_mode:'routed'|'snat';dns_mode:'local'|'split';dns_servers:string[];dns_suffixes:string[];desired_state:'active'|'suspended'|'retired';observed_state:NetworkObservedState;revision:string;applied_revision:string|null;config_digest:string|null;error_code:string|null}>("SELECT p.id,p.tenant_id,p.site_id,p.vpn_environment_id,p.name,coalesce((SELECT array_agg(host(n.network)::text||'/'||masklen(n.network)::text ORDER BY n.network::text) FROM site_networks n WHERE n.tenant_id=p.tenant_id AND n.site_id=p.site_id),'{}') site_networks,p.path_mode,p.gateway_device_id,p.return_mode,p.dns_mode,p.dns_servers::text[],p.dns_suffixes,p.desired_state,p.observed_state,p.revision,p.applied_revision,p.config_digest,p.error_code FROM private_network_profiles p WHERE ($1::uuid IS NULL OR p.id=$1) ORDER BY p.created_at",[id??null])).rows.map(x=>({id:x.id,tenantId:x.tenant_id,siteId:x.site_id,vpnEnvironmentId:x.vpn_environment_id,name:x.name,siteNetworks:x.site_networks,pathMode:x.path_mode,...(x.gateway_device_id?{gatewayDeviceId:x.gateway_device_id}:{}),returnMode:x.return_mode,dnsMode:x.dns_mode,dnsServers:x.dns_servers,dnsSuffixes:x.dns_suffixes,desiredState:x.desired_state,observedState:x.observed_state,revision:Number(x.revision),...(x.applied_revision?{appliedRevision:Number(x.applied_revision)}:{}),...(x.config_digest?{configDigest:x.config_digest}:{}),...(x.error_code?{errorCode:x.error_code}:{})}));}
@@ -69,6 +75,46 @@ export class PostgresPrivateNetworkRepository implements PrivateNetworkRepositor
 type runtimePolicyRow={address:string;protocol:'tcp'|'udp'|'icmp';effect:'allow'|'deny';source_kind:'any_endpoint'|'device';port_start:number|null;port_end:number|null;icmp_type:number|null;icmp_code:number|null}
 type runtimeGatewayRow={device_id:string;networks:string[];return_mode:'routed'|'snat';dns_servers:string[];dns_suffixes:string[]}
 function runtimeGateway(row:runtimeGatewayRow):OpenVPNGatewayRuntime{return{deviceId:row.device_id,networks:row.networks,returnMode:row.return_mode,dnsServers:row.dns_servers,dnsSuffixes:row.dns_suffixes};}
+type runtimeGatewayPolicyRow={source_kind:'any_endpoint'|'device';source_device_id:string|null;effect:'allow'|'deny';address:string;protocol:'tcp'|'udp'|'icmp';port_start:number|null;port_end:number|null;icmp_type:number|null;icmp_code:number|null;lan:string}
+type GatewayGroup={address:string;protocol:'tcp'|'udp'|'icmp';allow:PortRange[];deny:PortRange[];icmpAllow:boolean;icmpDeny:boolean};
+function compileGatewayAccess(endpointIds:string[],rows:runtimeGatewayPolicyRow[],cidr:string):GatewayAccess{
+ const lans=[...new Set(rows.map(row=>row.lan))].sort(),perEndpoint=new Map<string,GatewayAccessRule[]>();
+ for(const endpointId of endpointIds){
+  const grouped=new Map<string,GatewayGroup>();
+  for(const row of rows){
+   if(row.source_kind==='device'&&row.source_device_id!==endpointId)continue;
+   const key=`${row.address}|${row.protocol}`,group=grouped.get(key)??{address:row.address,protocol:row.protocol,allow:[],deny:[],icmpAllow:false,icmpDeny:false};
+   if(row.protocol==='icmp'){
+    if(row.icmp_type===8&&row.icmp_code===0){if(row.effect==='allow')group.icmpAllow=true;else group.icmpDeny=true;}
+   }else if(row.port_start!==null&&row.port_end!==null)(row.effect==='allow'?group.allow:group.deny).push([row.port_start,row.port_end]);
+   grouped.set(key,group);
+  }
+  const rules:GatewayAccessRule[]=[];
+  for(const group of grouped.values()){
+   const protocol=group.protocol;
+   if(protocol==='icmp'){
+    if(group.icmpAllow&&!group.icmpDeny)rules.push({deviceId:endpointId,address:group.address,protocol:'icmp',icmpType:8,icmpCode:0});
+    continue;
+   }
+   let allowed=mergePortRanges(group.allow);
+   for(const[denyLow,denyHigh]of mergePortRanges(group.deny)){
+    const next:PortRange[]=[];
+    for(const[a,b]of allowed){if(denyHigh<a||denyLow>b){next.push([a,b]);continue;}if(denyLow>a)next.push([a,denyLow-1]);if(denyHigh<b)next.push([denyHigh+1,b]);}
+    allowed=next;
+   }
+   for(const[portStart,portEnd]of allowed)rules.push({deviceId:endpointId,address:group.address,protocol,portStart,portEnd});
+  }
+  if(rules.length>0)perEndpoint.set(endpointId,rules.sort(compareGatewayRules));
+ }
+ const authorized=[...perEndpoint.keys()].sort(),tunnelIPs=allocateTunnelIPs(cidr,authorized),endpoints:GatewayAccess['endpoints']=[],rules:GatewayAccessRule[]=[];
+ for(const deviceId of authorized){
+  const endpointRules=perEndpoint.get(deviceId)!;
+  endpoints.push({deviceId,tunnelIp:tunnelIPs[deviceId]!,allowedLans:lans.filter(lan=>endpointRules.some(rule=>cidrContains(parsePrivateCidr(lan),parsePrivateCidr(`${rule.address}/32`))))});
+  rules.push(...endpointRules);
+ }
+ return{endpoints,rules:rules.sort(compareGatewayRules)};
+}
+function compareGatewayRules(a:GatewayAccessRule,b:GatewayAccessRule):number{const prefix=a.deviceId.localeCompare(b.deviceId)||a.address.localeCompare(b.address)||a.protocol.localeCompare(b.protocol);if(prefix!==0)return prefix;if(a.protocol==='icmp'||b.protocol==='icmp')return 0;return a.portStart-b.portStart||a.portEnd-b.portEnd;}
 type PortRange=[number,number];
 function mergePortRanges(ranges:PortRange[]):PortRange[]{const sorted=ranges.map(([start,end])=>[start,end] as PortRange).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),merged:PortRange[]=[];for(const[start,end]of sorted){const previous=merged[merged.length-1];if(previous&&start<=previous[1]+1)previous[1]=Math.max(previous[1],end);else merged.push([start,end]);}return merged;}
 function compileNodeAccessRules(rows:runtimePolicyRow[]):NetworkRuntimeRule[]{

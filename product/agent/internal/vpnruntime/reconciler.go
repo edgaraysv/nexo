@@ -25,7 +25,29 @@ type DesiredEnvironment struct {
 	Revision        int64                   `json:"revision"`
 	PrivateAccess   []PrivateAccessRule     `json:"privateAccess,omitempty"`
 	OpenVPNGateways []OpenVPNGateway        `json:"openvpnGateways,omitempty"`
+	GatewayAccess   *GatewayAccess          `json:"gatewayAccess,omitempty"`
 	WireGuard       *WireGuardConfiguration `json:"wireguard,omitempty"`
+}
+
+type GatewayAccess struct {
+	Endpoints []GatewayAccessEndpoint `json:"endpoints"`
+	Rules     []GatewayAccessRule     `json:"rules"`
+}
+
+type GatewayAccessEndpoint struct {
+	DeviceID    string   `json:"deviceId"`
+	TunnelIP    string   `json:"tunnelIp"`
+	AllowedLans []string `json:"allowedLans"`
+}
+
+type GatewayAccessRule struct {
+	DeviceID  string `json:"deviceId"`
+	Address   string `json:"address"`
+	Protocol  string `json:"protocol"`
+	PortStart int    `json:"portStart,omitempty"`
+	PortEnd   int    `json:"portEnd,omitempty"`
+	IcmpType  int    `json:"icmpType,omitempty"`
+	IcmpCode  int    `json:"icmpCode,omitempty"`
 }
 
 type OpenVPNGateway struct {
@@ -298,6 +320,9 @@ func validate(environment DesiredEnvironment) error {
 	if len(environment.PrivateAccess) > 64 {
 		return errors.New("too many private access rules")
 	}
+	if err := validateGatewayAccess(environment, prefix, gatewayNetworks); err != nil {
+		return err
+	}
 	seen := map[PrivateAccessRule]struct{}{}
 	byService := map[string][]PrivateAccessRule{}
 	for _, rule := range environment.PrivateAccess {
@@ -380,6 +405,115 @@ func validate(environment DesiredEnvironment) error {
 			if rules[i].PortStart <= rules[i-1].PortEnd {
 				return errors.New("overlapping private access rules")
 			}
+		}
+	}
+	return nil
+}
+
+func validateGatewayAccess(environment DesiredEnvironment, tunnel netip.Prefix, gatewayNetworks []netip.Prefix) error {
+	if environment.GatewayAccess == nil {
+		return nil
+	}
+	access := *environment.GatewayAccess
+	if len(access.Endpoints) > 4096 || len(access.Rules) > 65536 {
+		return errors.New("too many gateway access entries")
+	}
+	if len(access.Endpoints) == 0 && len(access.Rules) == 0 {
+		return nil
+	}
+	if environment.Engine != "openvpn" || len(environment.OpenVPNGateways) == 0 {
+		return errors.New("gateway access without gateway")
+	}
+	network := tunnel.Masked().Addr().As4()
+	first := binary.BigEndian.Uint32(network[:])
+	size := uint32(1) << uint(32-tunnel.Bits())
+	last := first + size - 1
+	server := first + 1
+	seenDevices := map[string]struct{}{}
+	seenAddresses := map[string]struct{}{}
+	lansByDevice := map[string][]netip.Prefix{}
+	for _, endpoint := range access.Endpoints {
+		if !uuidPattern.MatchString(endpoint.DeviceID) {
+			return errors.New("invalid gateway access device")
+		}
+		if _, duplicate := seenDevices[endpoint.DeviceID]; duplicate {
+			return errors.New("duplicate gateway access device")
+		}
+		seenDevices[endpoint.DeviceID] = struct{}{}
+		address, parseErr := netip.ParseAddr(endpoint.TunnelIP)
+		if parseErr != nil || !address.Is4() || !tunnel.Contains(address) {
+			return errors.New("invalid gateway access tunnel ip")
+		}
+		raw := address.As4()
+		value := binary.BigEndian.Uint32(raw[:])
+		if value == first || value == last || value == server {
+			return errors.New("reserved gateway access tunnel ip")
+		}
+		if value < first+size/2 || value > last-1 {
+			return errors.New("gateway access tunnel ip outside static half")
+		}
+		if _, duplicate := seenAddresses[endpoint.TunnelIP]; duplicate {
+			return errors.New("duplicate gateway access tunnel ip")
+		}
+		seenAddresses[endpoint.TunnelIP] = struct{}{}
+		if len(endpoint.AllowedLans) < 1 {
+			return errors.New("invalid gateway access lans")
+		}
+		seenLans := map[string]struct{}{}
+		lans := make([]netip.Prefix, 0, len(endpoint.AllowedLans))
+		for _, rawLan := range endpoint.AllowedLans {
+			lan, lanErr := netip.ParsePrefix(rawLan)
+			if lanErr != nil || !lan.Addr().Is4() || lan.Bits() < 16 || lan.Bits() > 30 || lan != lan.Masked() || !privateIPv4(lan.Addr()) {
+				return errors.New("invalid gateway access lan")
+			}
+			registered := false
+			for _, gatewayNetwork := range gatewayNetworks {
+				if gatewayNetwork == lan {
+					registered = true
+					break
+				}
+			}
+			if !registered {
+				return errors.New("unregistered gateway access lan")
+			}
+			if _, duplicate := seenLans[rawLan]; duplicate {
+				return errors.New("duplicate gateway access lan")
+			}
+			seenLans[rawLan] = struct{}{}
+			lans = append(lans, lan)
+		}
+		lansByDevice[endpoint.DeviceID] = lans
+	}
+	for _, rule := range access.Rules {
+		lans, exists := lansByDevice[rule.DeviceID]
+		if !exists {
+			return errors.New("gateway access rule for unknown device")
+		}
+		address, parseErr := netip.ParseAddr(rule.Address)
+		if parseErr != nil || !address.Is4() || !privateIPv4(address) {
+			return errors.New("invalid gateway access rule address")
+		}
+		contained := false
+		for _, lan := range lans {
+			if lan.Contains(address) {
+				contained = true
+				break
+			}
+		}
+		if !contained {
+			return errors.New("gateway access rule outside allowed lan")
+		}
+		switch rule.Protocol {
+		case "tcp", "udp":
+			if rule.PortStart < 1 || rule.PortEnd < rule.PortStart || rule.PortEnd > 65535 || rule.IcmpType != 0 || rule.IcmpCode != 0 {
+				return errors.New("invalid gateway access rule")
+			}
+		case "icmp":
+			if rule.PortStart != 0 || rule.PortEnd != 0 || rule.IcmpType != 8 || rule.IcmpCode != 0 {
+				return errors.New("invalid gateway access rule")
+			}
+		default:
+			return errors.New("invalid gateway access rule")
 		}
 	}
 	return nil
