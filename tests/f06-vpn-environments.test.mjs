@@ -11,7 +11,7 @@ import { hashPassword } from '../dist/product/security.js';
 const OWNER='f6f6f6f6-f6f6-4f6f-8f6f-f6f6f6f6f6f6', TENANT='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', S='JBSWY3DPEHPK3PXP';
 function totp(){const p=Buffer.alloc(8);p.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const d=createHmac('sha1',Buffer.from('48656c6c6f21deadbeef','hex')).update(p).digest(),o=d.at(-1)&15;return String((((d[o]&127)<<24)|(d[o+1]<<16)|(d[o+2]<<8)|d[o+3])%1e6).padStart(6,'0');}
 
-async function setup(vpnEnvironments) {
+async function setup(vpnEnvironments, privateNetworks) {
   const identity = new MemoryIdentityRepository([{
     id: OWNER, email: 'f06-owner@example.test',
     passwordHash: await hashPassword('correct horse battery staple'),
@@ -23,7 +23,7 @@ async function setup(vpnEnvironments) {
   ]);
   const issuer = { issue: async i => ({ serial: 'F06-1', certificatePem: `${i.audience}-cert`, notBefore: new Date(Date.now()-1e3).toISOString(), notAfter: new Date(Date.now()+864e5).toISOString() }) };
   const nodes = new MemoryNodeRepository();
-  const app = await createProductApplication(identity, undefined, provider, undefined, undefined, undefined, issuer, undefined, nodes, vpnEnvironments);
+  const app = await createProductApplication(identity, undefined, provider, undefined, undefined, undefined, issuer, undefined, nodes, vpnEnvironments, undefined, privateNetworks);
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
   const login = await app.inject({ method: 'POST', url: '/v1/auth/login', payload: { email: 'f06-owner@example.test', password: 'correct horse battery staple' } });
@@ -94,7 +94,9 @@ test('F06 validates protocols and CIDR while F11 adds WireGuard', async () => {
 
 test('F06 node reports observed state and nodeId mismatch is rejected', async () => {
   const vpnRepo = new MemoryVpnEnvironmentRepository(new Set([TENANT]));
-  const { app, headers } = await setup(vpnRepo);
+  const runtimeByEnvironment = {};
+  const privateNetworks = { desiredForNode: async () => runtimeByEnvironment };
+  const { app, headers } = await setup(vpnRepo, privateNetworks);
   try {
     const { nodeId, nodeHeaders } = await enrollNode(app, headers);
     const { nodeHeaders: otherNodeHeaders } = await enrollNode(app, headers);
@@ -102,10 +104,12 @@ test('F06 node reports observed state and nodeId mismatch is rejected', async ()
       method: 'POST', url: '/v1/provider/vpn-environments', headers,
       payload: { tenant_id: TENANT, node_id: nodeId, name: 'Test', engine: 'openvpn', protocol: 'udp', listener_port: 1194, tunnel_ipv4_cidr: '10.8.0.0/24' },
     })).json();
+	 runtimeByEnvironment[env.id] = {privateAccess:[],openvpnGateways:[{deviceId:'22222222-2222-4222-8222-222222222228',networks:['10.250.0.0/24'],returnMode:'snat',dnsServers:['10.240.0.78'],dnsSuffixes:['corp.internal']}]};
 
     const desired = await app.inject({ method: 'POST', url: '/v1/node/vpn-environments/reconcile', headers: nodeHeaders, payload: {} });
     assert.equal(desired.statusCode, 200);
     assert.deepEqual(desired.json().items.map(item => item.id), [env.id]);
+    assert.deepEqual(desired.json().items[0].openvpnGateways,runtimeByEnvironment[env.id].openvpnGateways);
     assert.equal((await app.inject({ method: 'POST', url: '/v1/node/vpn-environments/reconcile', headers: nodeHeaders, payload: { path: '/tmp' } })).statusCode, 422);
     assert.deepEqual((await app.inject({ method: 'POST', url: '/v1/node/vpn-environments/reconcile', headers: otherNodeHeaders, payload: {} })).json().items, []);
 

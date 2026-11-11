@@ -60,7 +60,8 @@
     "test:f10-postgres": "npm run build && node scripts/f10-postgres.mjs",
     "test:f11-postgres": "npm run build && node scripts/f11-postgres.mjs",
     "db:migrate": "node scripts/migrate.mjs",
-    "test:prod-migrate": "node scripts/prod-migrate-test.mjs"
+    "test:prod-migrate": "node scripts/prod-migrate-test.mjs",
+    "test:mvpn05-migrations": "node scripts/mvpn05-migrations.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.2.0",

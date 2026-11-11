@@ -6,27 +6,28 @@
 
 | Perfil | Secuencia | Destino permitido |
 | --- | --- | --- |
-| `f07-local` | `001–016 + 017 + 019 + 020 + 022 + 023 + 024` | Host loopback; base desechable exclusiva de la integración F07 |
-| `f09-local` | `001–015 + 017 + 019 + 020 + 022 + 023 + 024` | Host loopback únicamente; base efímera/local desechable |
+| `f07-local` | `001–016 + 017 + 019 + 020 + 022–027` | Host loopback; base desechable exclusiva de la integración F07 |
+| `f09-local` | `001–015 + 017 + 019 + 020 + 022–027` | Host loopback únicamente; base efímera/local desechable |
 | `f09-lab` | `001–015 + 017` | Requiere `NEXO_MIGRATION_TARGET=lab` y `--confirm-lab` |
-| `f08-local` | `001–016 + 017 + 019 + 020 + 022 + 023 + 024` | Host loopback únicamente; base efímera/local desechable |
-| `ga01-local` | `001–015 + 017 + 018 + 019 + 023` | Host loopback únicamente; solo pruebas desechables |
-| `f10-local` | `001–015 + 017 + 019 + 020 + 021 + 022 + 023 + 024` | Host loopback únicamente; base efímera/local desechable |
-| `production` | `001–024`, estrictamente en orden | Requiere `NEXO_MIGRATION_TARGET=production` y `--confirm-production`; `--initialize` exige base vacía |
+| `f08-local` | `001–016 + 017 + 019 + 020 + 022–027` | Host loopback únicamente; base efímera/local desechable |
+| `ga01-local` | `001–015 + 017 + 018 + 019 + 023 + 025–027` | Host loopback únicamente; solo pruebas desechables |
+| `f10-local` | `001–015 + 017 + 019–027` | Host loopback únicamente; base efímera/local desechable |
+| `f11-local` | `001–027`, estrictamente en orden | Host loopback únicamente; base efímera/local desechable |
+| `production` | `001–027`, estrictamente en orden | Requiere `NEXO_MIGRATION_TARGET=production` y `--confirm-production`; `--initialize` exige base vacía |
 
 **No existe perfil que aplique `016` o `018` al laboratorio AWS.** El `f09-lab` no adopta el esquema AWS existente: el ledger debe existir y el primer uso de `--initialize` solo acepta una base sin relaciones de aplicación. El esquema actual del laboratorio no tiene este historial; no ejecutar el runner allí ni crear un baseline retroactivo sin una comparación/adopción revisada y autorización específica.
 
-El perfil `production` define el historial completo desde una base nueva: crea `public.nexo_schema_migrations` **antes** de `001`, y registra cada archivo y su SHA-256 en la misma transacción de esa migración. Rechaza bases no vacías sin historial, mezcla de perfiles, huecos y checksums divergentes. Toda ejecución requiere una `DATABASE_URL` explícita, `NEXO_MIGRATION_TARGET=production` y `--confirm-production`; no se infiere ni selecciona una conexión. `--dry-run` no requiere URL, no abre conexiones y solo enumera las 24 migraciones/checksums.
+El perfil `production` define el historial completo desde una base nueva: crea `public.nexo_schema_migrations` **antes** de `001`, y registra cada archivo y su SHA-256 en la misma transacción de esa migración. Rechaza bases no vacías sin historial, mezcla de perfiles, huecos y checksums divergentes. Toda ejecución requiere una `DATABASE_URL` explícita, `NEXO_MIGRATION_TARGET=production` y `--confirm-production`; no se infiere ni selecciona una conexión. `--dry-run` no requiere URL, no abre conexiones y enumera las migraciones/checksums del perfil.
 
 `f10-local` es solo para probar el esquema de consentimiento y ciclo de vida F10 en PostgreSQL local desechable. La migración 020 es el corte inicial y 021 lo evoluciona sin reescribirlo; 023 corrige el grant runtime omitido por 019 y 024 concede privilegios mínimos a las tablas de soporte existentes. Ninguna forma parte de una secuencia de despliegue AWS implícita. La decisión autenticada por API no sustituye el prompt nativo; el servidor no configura un motor de transporte. El 2026-11-01 se aplicaron manualmente 020 y 021 al PostgreSQL del AWS lab como excepción explícita; véase la evidencia inferior. Esto no acepta F10 ni habilita soporte remoto.
 
-`f09-local` incluye 020 porque el fixture PostgreSQL aplica el SQL completo de grants runtime, que referencia `support_consent` y `support_sessions`; incluye 022 porque el repositorio VPN usado por las pruebas consulta `wireguard_environment_config`; 023 repara el privilegio de `resource_grants` en bases que ya aplicaron 019; y 024 otorga privilegios a las tablas de soporte disponibles, tolerando que el perfil no incluya las tablas de ciclo de vida 021. Esto no amplía el alcance de F09 ni su despliegue. El perfil `f09-lab` permanece `001–015 + 017` y excluye 019/020/022/023/024.
+`f09-local` incluye 020 porque el fixture PostgreSQL aplica el SQL completo de grants runtime, que referencia `support_consent` y `support_sessions`; incluye 022 porque el repositorio VPN usado por las pruebas consulta `wireguard_environment_config`; 023 repara el privilegio de `resource_grants` en bases que ya aplicaron 019; y 024 otorga privilegios a las tablas de soporte disponibles, tolerando que el perfil no incluya las tablas de ciclo de vida 021. Las migraciones 025–027 cierran el contrato F08/identidad vigente del fixture local. Esto no amplía el alcance de F09 ni su despliegue. El perfil `f09-lab` permanece `001–015 + 017` y excluye 019/020/022–027.
 
 `f10-upgrade-seed-local` es un corte **solo de fixture** que termina en 020 para insertar filas heredadas antes de probar 021 y 023 mediante `f10-local`. No es un perfil operativo ni debe usarse fuera de ese ensayo.
 
-`f07-local` es un perfil de integración dedicado y autónomo para el fixture PostgreSQL F07: combina la rotación de credenciales 016 con 020, ya que el SQL de grants runtime referencia las tablas de soporte, y añade 022/023 para el repositorio VPN y el privilegio runtime, más 024 para el acceso mínimo a soporte. Se inicializa en una base desechable propia; no se compone con otros historiales ni se aplica a AWS. Esto no cambia el alcance ni la aceptación de F10.
+`f07-local` es un perfil de integración dedicado y autónomo para el fixture PostgreSQL F07: combina la rotación de credenciales 016 con 020, ya que el SQL de grants runtime referencia las tablas de soporte, y añade 022–027 para el repositorio y contrato runtime vigente. Se inicializa en una base desechable propia; no se compone con otros historiales ni se aplica a AWS. Esto no cambia el alcance ni la aceptación de F10.
 
-`f08-local` conserva 016 después de 015 y añade 020 para cubrir las tablas citadas por los grants runtime, además de 022/023 para las consultas VPN actuales y su privilegio runtime, y 024 para las tablas de soporte existentes. Debe inicializarse en una base desechable independiente.
+`f08-local` conserva 016 después de 015 y añade 020 para cubrir las tablas citadas por los grants runtime, además de 022/023 para las consultas VPN actuales y su privilegio runtime, 024 para las tablas de soporte existentes, 025 para ICMP echo, 026 para rotación de nodo y 027 para audiencia de gateway. Debe inicializarse en una base desechable independiente.
 
 ## Uso local
 
@@ -43,7 +44,7 @@ NEXO_MIGRATION_TARGET=production DATABASE_URL="$DATABASE_URL" \
   npm run db:migrate -- --profile production --initialize --confirm-production
 ```
 
-La implementación del perfil se ejercita contra PostgreSQL desechable local, nunca AWS, mediante `npm run test:prod-migrate`. El ensayo solo crea un contenedor Docker de esta ejecución, publica PostgreSQL en loopback, verifica las 23 filas/checksums y elimina el contenedor etiquetado. No despliega ni ejecuta migraciones en una base real.
+La implementación del perfil se ejercita contra PostgreSQL desechable local, nunca AWS, mediante `npm run test:prod-migrate`. El ensayo solo crea un contenedor Docker de esta ejecución, publica PostgreSQL en loopback, verifica las 27 filas/checksums y elimina el contenedor etiquetado. No despliega ni ejecuta migraciones en una base real.
 
 ### Evidencia del perfil production — 2026-11-01
 
@@ -80,6 +81,12 @@ Validación local de esta corrección:
 - SHA-256 de 024: `c9484d2aa0aebc10fb40ba98080b07185af85e77f595eca902fdbc0c6dc48aea`.
 - Ninguna de estas pruebas aplicó la migración a AWS o desplegó la API; no implica cierre de C9, E4 ni las pruebas P1 de Windows/OpenVPN.
 
+### Preparación F08 ICMP echo — 2026-11-07
+
+- La nueva `025_f08_icmp_echo_policies.sql` permite únicamente ICMP echo request (tipo 8/código 0) con destino de recurso IPv4 exacto. TCP/UDP conserva el esquema de puertos existente; la columna de puertos queda nula para ICMP.
+- `025` se añade al final de los perfiles locales que consumen F08 y del baseline `production`. `f09-lab` queda intencionalmente sin cambios: no se aplica migración ni se reconcilia el historial AWS durante esta preparación.
+- El SG Terraform y la migración de DB siguen siendo artefactos locales sujetos a revisión y a sus gates propios. No se ejecutó el runner contra AWS ni se aplicó Terraform.
+
 En una base PostgreSQL vacía y desechable, defina `DATABASE_URL` con un host de loopback. Ejecute `--initialize` una sola vez para crear el ledger y aplicar el perfil:
 
 ```bash
@@ -97,6 +104,14 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/nexo_f09 \
 ```
 
 `ga01-local` debe inicializarse en una base independiente para ejercitar `018`: su secuencia coloca esa migración antes de `019` y excluye `020`, por lo que no se agrega sobre `f09-local`. `f08-local`, `f07-local` y `f10-local` también se inicializan en bases independientes; `f07-local` y `f08-local` incluyen `016` y `020`. El ensayo F10 usa el corte test-only `f10-upgrade-seed-local` para insertar filas antiguas tras 020 y luego ejecuta `f10-local` para comprobar 021/022/023/024. Ningún perfil local se aplica a AWS. CI verifica historial, reejecución, checksums y rechazo de mezcla de perfiles en PostgreSQL efímero.
+
+### M-VPN-05 Capa A — audiencia de gateway (027)
+
+- `027_f08_gateway_device_audience.sql` amplía `device_invitations.audience` y `device_identities.audience` a `endpoint|gateway`, pero exige que `audience=device_kind` en ambas tablas.
+- La migración aborta sin reescribir datos si encuentra una fila heredada incoherente, por ejemplo `device_kind='gateway'` con `audience='endpoint'`. Esa identidad requiere una decisión explícita y re-enrolamiento.
+- `027` cierra los perfiles locales que ya llegan a 026 y el baseline `production`; `f09-lab` y el corte histórico `f10-upgrade-seed-local` permanecen sin cambios.
+- `npm run test:mvpn05-migrations` reconstruye 001–026 en PostgreSQL desechable, prueba el aborto atómico y la matriz de pares en invitaciones e identidades. `npm run test:prod-migrate` verifica 001–027, ledger, checksums y reejecución.
+- No se aplicó `027` al PostgreSQL AWS lab ni se desplegó la API durante Capa A.
 
 ## Estado excepcional del PostgreSQL AWS lab — 2026-11-01
 

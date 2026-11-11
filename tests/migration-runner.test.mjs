@@ -9,8 +9,8 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
   const expected = [...Array.from({ length: 15 }, (_, index) => `${String(index + 1).padStart(3, '0')}_`), '017_'];
   assert.equal(migrationProfiles['f09-lab'].migrations.length, 16);
   assert.deepEqual(migrationProfiles['f09-lab'].migrations.map(file => file.slice(0, 4)), expected);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -7), migrationProfiles['f09-lab'].migrations);
-  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(-7), [
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(0, -8), migrationProfiles['f09-lab'].migrations);
+  assert.deepEqual(migrationProfiles['f09-local'].migrations.slice(-8), [
     '019_f03_resource_grants.sql',
     '020_f10_support_consent.sql',
     '022_f11_wireguard.sql',
@@ -18,6 +18,7 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
     '024_f10_support_runtime_privileges.sql',
     '025_f08_icmp_echo_policies.sql',
     '026_l06_node_credential_rotation.sql',
+    '027_f08_gateway_device_audience.sql',
   ]);
   assert.equal(migrationProfiles['f09-local'].target, 'local');
   assert.deepEqual(migrationProfiles['f09-local'].migrations, [
@@ -29,28 +30,30 @@ test('F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 m
     '024_f10_support_runtime_privileges.sql',
     '025_f08_icmp_echo_policies.sql',
     '026_l06_node_credential_rotation.sql',
+    '027_f08_gateway_device_audience.sql',
   ]);
-  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_') || file.startsWith('022_') || file.startsWith('023_') || file.startsWith('024_') || file.startsWith('025_') || file.startsWith('026_')));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.some(file => file.startsWith('019_') || file.startsWith('020_') || file.startsWith('022_') || file.startsWith('023_') || file.startsWith('024_') || file.startsWith('025_') || file.startsWith('026_') || file.startsWith('027_')));
 });
 
 test('GA-01 is local-only, orders 018 before the F03 local closure, and excludes 016', () => {
   const ga01 = migrationProfiles['ga01-local'].migrations;
   assert.equal(migrationProfiles['ga01-local'].target, 'local');
-  assert.deepEqual(ga01.slice(0, -5), migrationProfiles['f09-lab'].migrations);
-  assert.equal(ga01.at(-5), '018_ga01_assignment_permissions.sql');
-  assert.equal(ga01.at(-4), '019_f03_resource_grants.sql');
-  assert.equal(ga01.at(-3), '023_f03_resource_grants_runtime_privileges.sql');
-  assert.equal(ga01.at(-2), '025_f08_icmp_echo_policies.sql');
-  assert.equal(ga01.at(-1), '026_l06_node_credential_rotation.sql');
+  assert.deepEqual(ga01.slice(0, -6), migrationProfiles['f09-lab'].migrations);
+  assert.equal(ga01.at(-6), '018_ga01_assignment_permissions.sql');
+  assert.equal(ga01.at(-5), '019_f03_resource_grants.sql');
+  assert.equal(ga01.at(-4), '023_f03_resource_grants_runtime_privileges.sql');
+  assert.equal(ga01.at(-3), '025_f08_icmp_echo_policies.sql');
+  assert.equal(ga01.at(-2), '026_l06_node_credential_rotation.sql');
+  assert.equal(ga01.at(-1), '027_f08_gateway_device_audience.sql');
   assert.ok(!ga01.some(file => file.startsWith('016_')));
 });
 
-test('production profile is exactly the ordered 001-026 sequence and guarded from implicit execution', () => {
+test('production profile is exactly the ordered 001-027 sequence and guarded from implicit execution', () => {
   const production = migrationProfiles.production;
   assert.equal(production.target, 'production');
   assert.deepEqual(production.migrations, migrationProfiles['f11-local'].migrations);
-  assert.deepEqual(production.migrations.map(file => Number(file.slice(0, 3))), Array.from({ length: 26 }, (_, index) => index + 1));
-  assert.equal(production.migrations.at(-1), '026_l06_node_credential_rotation.sql');
+  assert.deepEqual(production.migrations.map(file => Number(file.slice(0, 3))), Array.from({ length: 27 }, (_, index) => index + 1));
+  assert.equal(production.migrations.at(-1), '027_f08_gateway_device_audience.sql');
 
   const result = spawnSync(process.execPath, ['scripts/migrate.mjs', '--profile', 'production'], {
     encoding: 'utf8',
@@ -61,7 +64,7 @@ test('production profile is exactly the ordered 001-026 sequence and guarded fro
   assert.doesNotMatch(result.stderr, /ECONNREFUSED/u, 'guard must reject before attempting a database connection');
 });
 
-test('production migration dry-run lists all 26 files without DATABASE_URL or confirmation', () => {
+test('production migration dry-run lists all 27 files without DATABASE_URL or confirmation', () => {
   const env = { ...process.env };
   delete env.DATABASE_URL;
   delete env.NEXO_MIGRATION_TARGET;
@@ -69,27 +72,29 @@ test('production migration dry-run lists all 26 files without DATABASE_URL or co
     encoding: 'utf8', env,
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Perfil production \(production\): 26 migraciones/u);
+  assert.match(result.stdout, /Perfil production \(production\): 27 migraciones/u);
   assert.match(result.stdout, /^001_l02_identity\.sql /mu);
   assert.match(result.stdout, /^022_f11_wireguard\.sql /mu);
   assert.match(result.stdout, /^023_f03_resource_grants_runtime_privileges\.sql /mu);
   assert.match(result.stdout, /^024_f10_support_runtime_privileges\.sql /mu);
   assert.match(result.stdout, /^025_f08_icmp_echo_policies\.sql /mu);
   assert.match(result.stdout, /^026_l06_node_credential_rotation\.sql /mu);
+  assert.match(result.stdout, /^027_f08_gateway_device_audience\.sql /mu);
   assert.doesNotMatch(result.stdout, /APPLY /u);
 });
 
 test('F10 support consent is local-only and follows the verified F03 grant migration', () => {
   const f10 = migrationProfiles['f10-local'];
   assert.equal(f10.target, 'local');
-  assert.equal(f10.migrations.at(-8), '019_f03_resource_grants.sql');
-  assert.equal(f10.migrations.at(-7), '020_f10_support_consent.sql');
-  assert.equal(f10.migrations.at(-6), '021_f10_support_lifecycle.sql');
-  assert.equal(f10.migrations.at(-5), '022_f11_wireguard.sql');
-  assert.equal(f10.migrations.at(-4), '023_f03_resource_grants_runtime_privileges.sql');
-  assert.equal(f10.migrations.at(-3), '024_f10_support_runtime_privileges.sql');
-  assert.equal(f10.migrations.at(-2), '025_f08_icmp_echo_policies.sql');
-  assert.equal(f10.migrations.at(-1), '026_l06_node_credential_rotation.sql');
+  assert.equal(f10.migrations.at(-9), '019_f03_resource_grants.sql');
+  assert.equal(f10.migrations.at(-8), '020_f10_support_consent.sql');
+  assert.equal(f10.migrations.at(-7), '021_f10_support_lifecycle.sql');
+  assert.equal(f10.migrations.at(-6), '022_f11_wireguard.sql');
+  assert.equal(f10.migrations.at(-5), '023_f03_resource_grants_runtime_privileges.sql');
+  assert.equal(f10.migrations.at(-4), '024_f10_support_runtime_privileges.sql');
+  assert.equal(f10.migrations.at(-3), '025_f08_icmp_echo_policies.sql');
+  assert.equal(f10.migrations.at(-2), '026_l06_node_credential_rotation.sql');
+  assert.equal(f10.migrations.at(-1), '027_f08_gateway_device_audience.sql');
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('020_f10_support_consent.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('021_f10_support_lifecycle.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('022_f11_wireguard.sql'));
@@ -97,6 +102,7 @@ test('F10 support consent is local-only and follows the verified F03 grant migra
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('024_f10_support_runtime_privileges.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('025_f08_icmp_echo_policies.sql'));
   assert.ok(!migrationProfiles['f09-lab'].migrations.includes('026_l06_node_credential_rotation.sql'));
+  assert.ok(!migrationProfiles['f09-lab'].migrations.includes('027_f08_gateway_device_audience.sql'));
 });
 
 test('F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile', () => {
@@ -120,6 +126,7 @@ test('F08 local profile includes the runtime closure and retains credential rota
     '024_f10_support_runtime_privileges.sql',
     '025_f08_icmp_echo_policies.sql',
     '026_l06_node_credential_rotation.sql',
+    '027_f08_gateway_device_audience.sql',
   ]);
 });
 
