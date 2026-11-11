@@ -81,8 +81,8 @@ run "secure_lab_plan" {
     }
   }
   assert {
-    condition     = aws_instance.node.root_block_device[0].encrypted && aws_instance.node.metadata_options[0].http_endpoint == "enabled" && aws_instance.node.metadata_options[0].http_tokens == "required" && aws_instance.node.metadata_options[0].http_put_response_hop_limit == 1
-    error_message = "Disco cifrado, IMDSv2 y hop limit 1 son obligatorios en esta declaración de laboratorio."
+    condition     = aws_instance.node.root_block_device[0].encrypted && aws_instance.node.metadata_options[0].http_endpoint == "enabled" && aws_instance.node.metadata_options[0].http_tokens == "required" && aws_instance.node.metadata_options[0].http_put_response_hop_limit == 2
+    error_message = "Disco cifrado e IMDSv2 son obligatorios y el hop limit debe ser 2 (valor observado en AWS que se conserva para no recrear la instancia)."
   }
   assert {
     condition     = aws_vpc.lab.cidr_block == "10.240.0.0/20" && !aws_subnet.node.map_public_ip_on_launch
@@ -119,7 +119,7 @@ run "reject_account_format" {
 run "reject_wrong_identity" {
   command = plan
   variables { account_id = "999999999999" }
-  expect_failures = [aws_instance.node]
+  expect_failures = [aws_instance.node, aws_instance.gateway_a, aws_instance.gateway_b]
 }
 
 run "reject_region" {
