@@ -1,0 +1,10 @@
+ok  	nexo.local/agent/cmd/nexo-agent	0.423s
+?   	nexo.local/agent/cmd/nexo-agent-updater	[no test files]
+?   	nexo.local/agent/cmd/nexo-crl-probe	[no test files]
+ok  	nexo.local/agent/cmd/nexo-issuer	0.040s
+ok  	nexo.local/agent/internal/clientipc	0.025s
+ok  	nexo.local/agent/internal/keystore	0.019s
+ok  	nexo.local/agent/internal/labfixture	0.019s
+ok  	nexo.local/agent/internal/networkruntime	0.026s
+ok  	nexo.local/agent/internal/updater	0.275s
+ok  	nexo.local/agent/internal/vpnruntime	2.319s

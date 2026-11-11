@@ -1,0 +1,29 @@
+# M-VPN-06 — preflight de despliegue; sin mutaciones live
+# Fecha de reloj local observada: 2026-11-11T03:16:06Z
+
+## AWS / servicio — SSM 60b6850d-432a-415c-a3ce-e129c3f4b04e (Success)
+- Cuenta: 423597267645; región: us-east-1; instancia: i-006cda6fdc86af7a5 (running); SSM PingStatus Online.
+- Unidad: `nexo.service`, `nexo_runtime`, WorkingDirectory `/opt/nexo`, ExecStart `/usr/local/lib/nexo/node /opt/nexo/dist/product/server.js`.
+- `ActiveState=active`, `SubState=running`, `NRestarts=0`, MainPID 4139492.
+- Health previo: `GET http://127.0.0.1:3000/v1/health` → HTTP 200, `{"status":"ok"}`.
+- `dist/product`: directorio root:nexo_runtime, modo 750, 38 ficheros, 641436 bytes. `pg` presente; runtime Node presente.
+- Disco raíz: 31379436 KiB total, 5523056 usados, 25856380 disponibles (18%).
+
+## Preflight DB/autorización — SSM 60b6850d-432a-415c-a3ce-e129c3f4b04e (Success)
+- DB `nexo_mvpn01`; tenant `e4186fac-0dd4-4aaa-8f0f-e4342e19af8a`.
+- Endpoint `dd8cae89-2afe-4967-a1d0-abe8844e2536`: approved/endpoint.
+- Recurso `3494038c-661a-42e5-8b38-a2562cedee87`: active; perfil `fbea6b76-14d9-4698-afd8-1fc46b2e8cf2`: active/direct.
+- Query de actor en ese primer preflight: `eligible_diagnose_actors=0`.
+- Para TCP/18444 no se encontró política activa coincidente; política TCP/18443 no es parte de la solicitud de prueba.
+- Preflight adicional read-only SSM `4da18e28-955c-475d-825d-4b946054d5b8`: único endpoint aprobado en tenant A es el dd8... y tiene 0 actores con grant `company.network.diagnose` activo.
+- El handler `POST /v1/company/network-diagnostics` invoca `companyIdentity(...,'company.network.diagnose')`; la resolución del permiso exige resource grant sobre `source_device_id`. Un endpoint sin ese grant responde 403 antes del repositorio y no genera `default_deny`.
+
+## Build local
+- `npm run build`: PASS; candidato construido desde el checkout con base `3e1d942fada88ec2982fd91f240a0beb464cd41e` y diff M-VPN-06 SHA-256 `97e98b8d017f18ba79ccd510fc86bf47d2759b1732fb79df39db0543674df8b0`.
+- Artefacto: `/tmp/opencode/mvpn06-api-product.tgz`, SHA-256 `60d187025bda15eb965113d6dfe5fcd8c0b7f55dd6c91e7ff10f390b65aa6901`, 119772 bytes, 39 entradas; incluye `product/server.js`, `product/postgres-private-network-repository.js`, `product/private-network-repository.js`.
+- Primer comando de comprobación compuesta tuvo exit 1 al buscar el literal de acción en el módulo equivocado (el módulo Postgres importa la constante). Inspección siguiente confirmó el import y localizó el literal en `private-network-repository.js`; el empaquetado se completó.
+
+## Estado al cierre de este preflight (03:16Z)
+- El responsable había autorizado un grant temporal para habilitar la llamada, expiración y revocación tras la prueba; aún no se había creado.
+- La primera tarjeta privada guardó una credencial con ruta no visible en el runtime. No se leyó ni imprimió ese secreto. La continuación autenticó una sesión tenant-scoped por una nueva tarjeta privada; ver `deployment-run.txt`.
+- En el momento de este preflight no había backup remoto, swap, despliegue ni llamada HTTP. El health 200 era solo preflight, no postdeploy. El resultado posterior, incluidos backup, despliegue, endpoint, fila y revocación, está en `deployment-run.txt`.

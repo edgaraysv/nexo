@@ -1,0 +1,7 @@
+
+> nexo-f01-foundation@0.1.0 typecheck
+> tsc -p spikes/api/typescript/tsconfig.json --noEmit && tsc -p product/api/tsconfig.json --noEmit && npm run typecheck:portal
+
+
+> nexo-f01-foundation@0.1.0 typecheck:portal
+> tsc -p product/portal/tsconfig.json --noEmit

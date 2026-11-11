@@ -1,0 +1,44 @@
+# M-VPN-06 — despliegue live y prueba HTTP→audit_events
+# Cuenta 423597267645; us-east-1; instancia i-006cda6fdc86af7a5; DB nexo_mvpn01
+# No contiene tokens, URLs prefirmadas ni datos de credencial.
+
+## Preflight y autorización
+- SSM read-only `60b6850d-432a-415c-a3ce-e129c3f4b04e`: instancia running/SSM Online; nexo.service active, NRestarts=0; health previo `/v1/health` HTTP 200; espacio libre ~25.8 GB; producto compilado en `/opt/nexo/dist/product`.
+- SSM read-only `4da18e28-955c-475d-825d-4b946054d5b8`: único endpoint aprobado tenant A `dd8cae89-2afe-4967-a1d0-abe8844e2536`; `eligible_diagnose_actors=0`; TCP/18444 no tenía política activa coincidente en el preflight previo `60b6850d-432a-415c-a3ce-e129c3f4b04e`.
+- Controlador `POST /v1/company/network-diagnostics` requiere `company.network.diagnose` y grant por `source_device_id` antes del diagnóstico. El responsable autorizó un grant temporal.
+- SSM `0dc772d7-4dbb-4644-954f-9b8d9dde205a`, GET `/v1/me` vía sesión cifrada efímera: tenant `e4186fac-0dd4-4aaa-8f0f-e4342e19af8a`, actor `184193d0-2d3c-4056-9940-7f1053d06221`, rol `company.admin`, permisos manage_resource_grants y network.diagnose. No se imprimió ni persistió el token.
+- SSM `9f11bdbd-a511-45fc-b86c-24637204cd04`: API creó con HTTP 201 el grant `8e093cd0-100b-44a5-88cc-d4c97de28e61` para ese actor y endpoint, `company.network.diagnose`, válido 03:34:20.884Z–04:34:20Z. El grant se revocó al concluir.
+
+## Artefacto y backup
+- Build: `npm run build` PASS; SHA-256 del flujo descomprimido del diff fuente `candidate.diff.gz`: `97e98b8d017f18ba79ccd510fc86bf47d2759b1732fb79df39db0543674df8b0`.
+- Candidato local `/tmp/opencode/mvpn06-api-product.tgz`: 119772 bytes, SHA-256 `60d187025bda15eb965113d6dfe5fcd8c0b7f55dd6c91e7ff10f390b65aa6901`.
+- S3: `s3://nexo-lab-423597267645-us-east-1-control/deploy/mvpn06/20261111T0335Z/nexo-mvpn06-api-product.tgz`; versión `4FYSTT6TSw7vP8RYfELpDcCcOB.368aM`; SSE-KMS; HeadObject 119772 bytes.
+- Backup compilado SSM `7210ae9a-003d-4135-8da1-cbdae3b07446`: `/root/mvpn06/backups/20261111T0335Z/nexo-dist-product-predeploy.tgz`, 119544 bytes, modo 0600, SHA-256 `5286a649c678962e244e181639730b1451190d6e6a10848ff0109d48691d5fec`; extracción temporal y `diff -qr` con el árbol activo: PASS.
+
+## Intento de despliegue 1 y diagnóstico
+- SSM `4e9a363a-4c64-4c5d-a522-9e5dc78e3748`: status Failed, stdout vacío, stderr `failed to run commands: exit status 141`.
+- El script estaba en staging/verificación; `SWAP_STARTED=1`, systemctl stop y rename venían después. Línea previa a swap: `tar -tzf "$ARTIFACT" | grep -q '^product/server.js$'` bajo `set -euo pipefail`.
+- Diagnóstico solo lectura `nexo-diagnostico`, sesión `ses_e374e3839ffex1u7851yQhmhCG`: SIGPIPE de tar inducido por `grep -q` es plausible, no probado por el primer log por sí solo.
+- Confirmación read-only SSM `9bda1457-4488-48df-9210-b92893bd4bc3`: `nexo.service`, agent y worker seguían activos; API health HTTP 200; artefacto y backup con SHA esperado; target old tree ausente. Listado sin pipeline: `tar_list_exit=0 grep_member_exit=0 files=39`. No se detuvo ni reemplazó servicio, así que no se necesitó rollback.
+
+## Swap aprobado y health
+- SSM `650392d3-a857-40c6-b4a2-e8888cb5d26f`: `deploy=PASS`, `health_http=200`, API active, agent active, worker active; candidato SHA `60d187025bda15eb965113d6dfe5fcd8c0b7f55dd6c91e7ff10f390b65aa6901`; backup SHA `5286a649c678962e244e181639730b1451190d6e6a10848ff0109d48691d5fec`.
+- El script tuvo trap de rollback automático antes de swap y health gate; preservó el árbol compilado anterior en `/opt/nexo/dist/product.pre-mvpn06-20261111T0335Z`. El trap no se activó porque el health check pasó.
+
+## Diagnóstico API y fila nueva
+- SSM `260dda04-0a3a-4e9c-a2ab-87c32a394a7c` llamó mediante HTTP local a `POST /v1/company/network-diagnostics` usando el token de administrador solo dentro del host (cifrado efímero; no se imprimió). Entrada: endpoint `dd8cae89-2afe-4967-a1d0-abe8844e2536`, recurso `3494038c-661a-42e5-8b38-a2562cedee87`, `tcp/18444`.
+- Respuesta HTTP 200: `{"decision":"deny","reason":"default_deny","connectivity":"not_tested","profileRevision":3,"pathMode":"direct","returnMode":"routed","dnsMode":"local"}`.
+- Consulta PostgreSQL read-only por tenant, recurso, metadata device/recurso/razón y created_at posterior al inicio de la llamada: exactamente 1 coincidencia. Fila id **145**: action `network.diagnostic.denied`; resource_type `private_resource`; resource_id `3494038c-661a-42e5-8b38-a2562cedee87`; metadata.device_id `dd8cae89-2afe-4967-a1d0-abe8844e2536`; metadata.resource_id `3494038c-661a-42e5-8b38-a2562cedee87`; metadata.reason `default_deny`; created_at `2026-11-11T03:45:16.274852+00`.
+- Grant temporal revocado por endpoint API con HTTP 204; SQL read-only posterior: fila del grant presente y revoked_at `2026-11-11 03:45:16.700151+00`; no queda grant activo.
+- Health final HTTP 200.
+
+## Postverificación
+- SSM read-only `0bfcadea-06f5-49e8-ae99-7824fe3edd1c`: API, node-agent y worker activos, cada uno `NRestarts=0`; `/v1/health` HTTP 200; audit row 145 sigue visible; grant revocado; directorio de transporte cifrado efímero ausente.
+- Resultado general live: PASS. No rollback; no commit/push efectuado todavía.
+
+## Verificación independiente reproducible de la cadena de artefacto
+- Transcripción y exits locales: `closure-verification.txt` (completa para identidad source→build→archive y códigos faltantes señalados en la evaluación anterior).
+- En checkout `master` sobre HEAD/origin `3e1d942fada88ec2982fd91f240a0beb464cd41e`, el diff binario actual de las cuatro rutas fuente coincide byte por byte con el flujo descomprimido de `candidate.diff.gz`; ambos SHA-256 `97e98b8d017f18ba79ccd510fc86bf47d2759b1732fb79df39db0543674df8b0`.
+- `npm run typecheck` y `npm run build`: exit 0. Reempaquetado determinista de `dist/product` dio el mismo SHA-256 que el artefacto usado por SSM/S3 (`60d187025bda15eb965113d6dfe5fcd8c0b7f55dd6c91e7ff10f390b65aa6901`); comparación binaria `cmp` exit 0.
+- Hashes locales de `dist/product/postgres-private-network-repository.js` y `dist/product/private-network-repository.js` coinciden con los hashes recogidos por SSM en el árbol live después del despliegue: `9db392884b0673a2aab3aacb0e06f457fe89c6843b2872716d1264f63c23cb76` y `18057358f2009d0f146295d0a9efe2b2e4ae0477b616706545b02e8108c0d3e9`.
+- `git diff --check` exit 0; no había paths staged en ese momento.

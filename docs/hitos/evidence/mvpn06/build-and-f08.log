@@ -1,0 +1,50 @@
+
+> nexo-f01-foundation@0.1.0 build
+> tsc -p spikes/api/typescript/tsconfig.json && tsc -p product/api/tsconfig.json
+
+TAP version 13
+# Subtest: F08 defaults to deny and never equates policy/configuration with tested connectivity
+ok 1 - F08 defaults to deny and never equates policy/configuration with tested connectivity
+  ---
+  duration_ms: 20472.869917
+  type: 'test'
+  ...
+# Subtest: F08 audits only denied diagnostics through the API
+ok 2 - F08 audits only denied diagnostics through the API
+  ---
+  duration_ms: 823.694304
+  type: 'test'
+  ...
+# Subtest: F08 rejects unsafe routes, arbitrary targets and invalid direct/SNAT combinations
+ok 3 - F08 rejects unsafe routes, arbitrary targets and invalid direct/SNAT combinations
+  ---
+  duration_ms: 789.150737
+  type: 'test'
+  ...
+# Subtest: F08 allocates deterministic static tunnel IPs in the upper half
+ok 4 - F08 allocates deterministic static tunnel IPs in the upper half
+  ---
+  duration_ms: 1.57459
+  type: 'test'
+  ...
+# Subtest: F08 keeps gateway access default-deny per endpoint
+ok 5 - F08 keeps gateway access default-deny per endpoint
+  ---
+  duration_ms: 0.96568
+  type: 'test'
+  ...
+# Subtest: F08 keeps same LANs isolated by tenant and routes legacy network UI to React
+ok 6 - F08 keeps same LANs isolated by tenant and routes legacy network UI to React
+  ---
+  duration_ms: 773.74721
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 86689.197972

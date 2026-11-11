@@ -1,0 +1,24 @@
+# M-VPN-06 — verificación final local de identidad y códigos de salida
+# 2026-11-11T03:53:29Z; checkout /mnt/c/laragon/www/nexo
+
+## Checkout y diff autorizado
+- Rama `master`; HEAD y `origin/master`: `3e1d942fada88ec2982fd91f240a0beb464cd41e`.
+- `git diff --binary HEAD -- product/api/postgres-private-network-repository.ts product/api/private-network-repository.ts scripts/f08-postgres.mjs tests/f08-private-networks.test.mjs | sha256sum`: `97e98b8d017f18ba79ccd510fc86bf47d2759b1732fb79df39db0543674df8b0`.
+- `gzip -t docs/hitos/evidence/mvpn06/candidate.diff.gz`: PASS.
+- `gzip -cd docs/hitos/evidence/mvpn06/candidate.diff.gz | sha256sum`: `97e98b8d017f18ba79ccd510fc86bf47d2759b1732fb79df39db0543674df8b0`.
+- `cmp` byte a byte del diff de esos cuatro archivos contra el flujo descomprimido de `candidate.diff.gz`: **PASS**.
+- En el momento de la verificación no había paths staged.
+- `git diff --check`: exit **0** (sin salida).
+
+## Build, paquete y artefacto activo
+- `npm run typecheck`: exit **0**; completó los proyectos spike, API y portal.
+- `npm run build`: exit **0**.
+- Archivo normalizado reconstruido con `tar --sort=name --mtime='UTC 2026-11-10' --owner=0 --group=0 --numeric-owner -czf ... -C dist product`: exit **0**.
+- SHA-256 tanto de `/tmp/opencode/mvpn06-api-product.tgz` como del paquete reconstruido: `60d187025bda15eb965113d6dfe5fcd8c0b7f55dd6c91e7ff10f390b65aa6901`; `cmp` exit **0**. Este hash es el que verificó el script SSM antes del swap (`deployment-run.txt`, SSM `650392d3-a857-40c6-b4a2-e8888cb5d26f`); el mismo artefacto está identificado en S3 por VersionId y SSE-KMS.
+- SHA-256 compilado local `dist/product/postgres-private-network-repository.js`: `9db392884b0673a2aab3aacb0e06f457fe89c6843b2872716d1264f63c23cb76`; concuerda con la lectura postdeploy SSM `0bfcadea-06f5-49e8-ae99-7824fe3edd1c`.
+- SHA-256 compilado local `dist/product/private-network-repository.js`: `18057358f2009d0f146295d0a9efe2b2e4ae0477b616706545b02e8108c0d3e9`; concuerda con la lectura postdeploy SSM `0bfcadea-06f5-49e8-ae99-7824fe3edd1c`.
+- El artefacto completo fue hash-verificado en el host durante el swap; las dos unidades compiladas que contienen la auditoría también concuerdan individualmente entre build local y árbol live.
+
+## Log de comandos
+- Se comprime sin modificar el flujo original porque el diff unificado contiene espacios prefijo de contexto que `git diff --check` interpretaba como whitespace en la evidencia textual. El contenido comprimido descomprime al diff original byte exacto; el source diff continúa validado con `git diff --check` exit 0.
+- Transcripción de stdout/exit codes: `/tmp/opencode/mvpn06-close-checks-20261111.log` durante la sesión. Todos los comandos indicados arriba terminaron exit 0.

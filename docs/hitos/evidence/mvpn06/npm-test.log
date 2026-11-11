@@ -1,0 +1,1073 @@
+
+> nexo-f01-foundation@0.1.0 pretest
+> npm run build
+
+
+> nexo-f01-foundation@0.1.0 build
+> tsc -p spikes/api/typescript/tsconfig.json && tsc -p product/api/tsconfig.json
+
+
+> nexo-f01-foundation@0.1.0 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: account page is served without caching and exposes invitation plus recovery flows
+ok 1 - account page is served without caching and exposes invitation plus recovery flows
+  ---
+  duration_ms: 18565.709904
+  type: 'test'
+  ...
+# Subtest: SMTP invitation and recovery tokens complete the browser account flows end to end
+ok 2 - SMTP invitation and recovery tokens complete the browser account flows end to end
+  ---
+  duration_ms: 1910.271474
+  type: 'test'
+  ...
+# Subtest: legacy navigation routes redirect to matching React portal routes
+ok 3 - legacy navigation routes redirect to matching React portal routes
+  ---
+  duration_ms: 8392.199009
+  type: 'test'
+  ...
+# Subtest: E5-1: provider operator cannot create a company (owner-only endpoint)
+ok 4 - E5-1: provider operator cannot create a company (owner-only endpoint)
+  ---
+  duration_ms: 7138.877566
+  type: 'test'
+  ...
+# Subtest: E5-2: tenant A session cannot read tenant B users
+ok 5 - E5-2: tenant A session cannot read tenant B users
+  ---
+  duration_ms: 711.881655
+  type: 'test'
+  ...
+# Subtest: E5-3: revoking a session invalidates its token
+ok 6 - E5-3: revoking a session invalidates its token
+  ---
+  duration_ms: 724.332595
+  type: 'test'
+  ...
+# Subtest: E5-4: plan endpoint quota rejects a third device enrollment
+ok 7 - E5-4: plan endpoint quota rejects a third device enrollment # SKIP
+  ---
+  duration_ms: 0.406068
+  type: 'test'
+  ...
+# Subtest: backup F02 identifica tamaños, hashes y proyecto del ensayo
+ok 8 - backup F02 identifica tamaños, hashes y proyecto del ensayo
+  ---
+  duration_ms: 2.377855
+  type: 'test'
+  ...
+# Subtest: backup F02 rechaza corrupción o truncamiento
+ok 9 - backup F02 rechaza corrupción o truncamiento
+  ---
+  duration_ms: 4.975393
+  type: 'test'
+  ...
+# Subtest: backup F02 rechaza archivos ausentes, adicionales y nombres con traversal
+ok 10 - backup F02 rechaza archivos ausentes, adicionales y nombres con traversal
+  ---
+  duration_ms: 4.074053
+  type: 'test'
+  ...
+# Subtest: backup F02 rechaza otra identidad, alcance o versión
+ok 11 - backup F02 rechaza otra identidad, alcance o versión
+  ---
+  duration_ms: 1.981265
+  type: 'test'
+  ...
+# Subtest: backup F02 rechaza configuración ajena al laboratorio o módulos activos
+ok 12 - backup F02 rechaza configuración ajena al laboratorio o módulos activos
+  ---
+  duration_ms: 3.073473
+  type: 'test'
+  ...
+# Subtest: F02 exige SCRAM en todo TCP incluido loopback, sin puertos publicados
+ok 13 - F02 exige SCRAM en todo TCP incluido loopback, sin puertos publicados
+  ---
+  duration_ms: 32.895861
+  type: 'test'
+  ...
+# Subtest: F02 local solo contiene seis planes simulados y restringe ingreso al host
+ok 14 - F02 local solo contiene seis planes simulados y restringe ingreso al host
+  ---
+  duration_ms: 57.477508
+  type: 'test'
+  ...
+# Subtest: el lab multitenant excluido no abre ingreso publico ni usa SG inline
+ok 15 - el lab multitenant excluido no abre ingreso publico ni usa SG inline
+  ---
+  duration_ms: 44.097625
+  type: 'test'
+  ...
+# Subtest: guardia F02 rechaza apply explicito e implicito
+ok 16 - guardia F02 rechaza apply explicito e implicito
+  ---
+  duration_ms: 3.859238
+  type: 'test'
+  ...
+# Subtest: guardia F02 exige mocks y rechaza providers/modulos adicionales
+ok 17 - guardia F02 exige mocks y rechaza providers/modulos adicionales
+  ---
+  duration_ms: 1.327108
+  type: 'test'
+  ...
+# Subtest: toolchains F02 y locks aislados fijan el mismo provider
+ok 18 - toolchains F02 y locks aislados fijan el mismo provider
+  ---
+  duration_ms: 50.424677
+  type: 'test'
+  ...
+# Subtest: F03 resolves explicit permissions without granting F09 export by default
+ok 19 - F03 resolves explicit permissions without granting F09 export by default
+  ---
+  duration_ms: 7477.53681
+  type: 'test'
+  ...
+# Subtest: F03 enforces permissions on the API instead of relying on hidden controls
+ok 20 - F03 enforces permissions on the API instead of relying on hidden controls
+  ---
+  duration_ms: 1204.4545
+  type: 'test'
+  ...
+# Subtest: F03 tenant switch revokes prior context and does not retain tenant resources
+ok 21 - F03 tenant switch revokes prior context and does not retain tenant resources
+  ---
+  duration_ms: 684.966347
+  type: 'test'
+  ...
+# Subtest: F03 role changes require admin and preserve at least one active administrator
+ok 22 - F03 role changes require admin and preserve at least one active administrator
+  ---
+  duration_ms: 1024.426193
+  type: 'test'
+  ...
+# Subtest: F03 resource grants scope declared-device reads, isolate tenants, expire and revoke immediately
+ok 23 - F03 resource grants scope declared-device reads, isolate tenants, expire and revoke immediately
+  ---
+  duration_ms: 1034.617909
+  type: 'test'
+  ...
+# Subtest: F03 device-identity actions require separate grants and current role permission
+ok 24 - F03 device-identity actions require separate grants and current role permission
+  ---
+  duration_ms: 854.536047
+  type: 'test'
+  ...
+# Subtest: F04 grants the last quota atomically and replays an idempotent reservation once
+ok 25 - F04 grants the last quota atomically and replays an idempotent reservation once
+  ---
+  duration_ms: 9030.876573
+  type: 'test'
+  ...
+# Subtest: F04 suspends one module without cancelling the subscription or other modules
+ok 26 - F04 suspends one module without cancelling the subscription or other modules
+  ---
+  duration_ms: 582.45018
+  type: 'test'
+  ...
+# Subtest: F04 plan reduction preserves consumption and exposes the excess
+ok 27 - F04 plan reduction preserves consumption and exposes the excess
+  ---
+  duration_ms: 607.433231
+  type: 'test'
+  ...
+# Subtest: F04 applies subscription validity, dated quota exceptions and idempotent payments
+ok 28 - F04 applies subscription validity, dated quota exceptions and idempotent payments
+  ---
+  duration_ms: 515.70096
+  type: 'test'
+  ...
+# Subtest: F04 redirects legacy commercial navigation to the React page
+ok 29 - F04 redirects legacy commercial navigation to the React page
+  ---
+  duration_ms: 567.330135
+  type: 'test'
+  ...
+# Subtest: F05 redelivers without duplicate execution and rejects stale or divergent acknowledgements
+ok 30 - F05 redelivers without duplicate execution and rejects stale or divergent acknowledgements
+  ---
+  duration_ms: 26.861204
+  type: 'test'
+  ...
+# Subtest: F05 resumes queued work after worker interruption and expires disconnected targets
+ok 31 - F05 resumes queued work after worker interruption and expires disconnected targets
+  ---
+  duration_ms: 11.62445
+  type: 'test'
+  ...
+# Subtest: F05 enforces monotonic revisions independently for endpoint and provider node
+ok 32 - F05 enforces monotonic revisions independently for endpoint and provider node
+  ---
+  duration_ms: 1.075677
+  type: 'test'
+  ...
+# Subtest: F06 AWS review is local, structured and keeps PV15-PV20 NOT_RUN
+ok 33 - F06 AWS review is local, structured and keeps PV15-PV20 NOT_RUN
+  ---
+  duration_ms: 143.575962
+  type: 'test'
+  ...
+# Subtest: F06 AWS execution remains blocked without an explicit phase guard
+ok 34 - F06 AWS execution remains blocked without an explicit phase guard
+  ---
+  duration_ms: 126.826236
+  type: 'test'
+  ...
+# Subtest: F06 AWS mutating acceptance refuses to run while prerequisites are open
+ok 35 - F06 AWS mutating acceptance refuses to run while prerequisites are open
+  ---
+  duration_ms: 126.820373
+  type: 'test'
+  ...
+# Subtest: F06 node unit preserves host mount propagation required by named namespaces
+ok 36 - F06 node unit preserves host mount propagation required by named namespaces
+  ---
+  duration_ms: 15.524124
+  type: 'test'
+  ...
+# Subtest: F06 creates a VPN environment with openvpn/udp and namespace pattern
+ok 37 - F06 creates a VPN environment with openvpn/udp and namespace pattern
+  ---
+  duration_ms: 9566.228543
+  type: 'test'
+  ...
+# Subtest: F06 validates protocols and CIDR while F11 adds WireGuard
+ok 38 - F06 validates protocols and CIDR while F11 adds WireGuard
+  ---
+  duration_ms: 679.8274
+  type: 'test'
+  ...
+# Subtest: F06 node reports observed state and nodeId mismatch is rejected
+ok 39 - F06 node reports observed state and nodeId mismatch is rejected
+  ---
+  duration_ms: 654.000173
+  type: 'test'
+  ...
+# Subtest: F06 state change requires expected revision and blocks retired re-activation
+ok 40 - F06 state change requires expected revision and blocks retired re-activation
+  ---
+  duration_ms: 587.553041
+  type: 'test'
+  ...
+# Subtest: F06 routes legacy VPN administration to the React portal
+ok 41 - F06 routes legacy VPN administration to the React portal
+  ---
+  duration_ms: 615.55198
+  type: 'test'
+  ...
+# Subtest: F07 credential history permits reissue only after a terminal state
+ok 42 - F07 credential history permits reissue only after a terminal state
+  ---
+  duration_ms: 7.637013
+  type: 'test'
+  ...
+# Subtest: F07 endpoint receives only its typed active VPN catalog
+ok 43 - F07 endpoint receives only its typed active VPN catalog
+  ---
+  duration_ms: 9127.472657
+  type: 'test'
+  ...
+# Subtest: F07 endpoint catalog fails closed when VPN is not entitled
+ok 44 - F07 endpoint catalog fails closed when VPN is not entitled
+  ---
+  duration_ms: 236.601665
+  type: 'test'
+  ...
+# Subtest: F07 queues only a typed CSR operation for the owning node
+ok 45 - F07 queues only a typed CSR operation for the owning node
+  ---
+  duration_ms: 253.700959
+  type: 'test'
+  ...
+# Subtest: F07 Windows UI exposes only typed connect and disconnect actions
+ok 46 - F07 Windows UI exposes only typed connect and disconnect actions
+  ---
+  duration_ms: 13.773657
+  type: 'test'
+  ...
+# Subtest: F07 deploys a persistent least-privilege operation worker
+ok 47 - F07 deploys a persistent least-privilege operation worker
+  ---
+  duration_ms: 25.62518
+  type: 'test'
+  ...
+# Subtest: F07-only server build hides every F08 HTTP surface
+ok 48 - F07-only server build hides every F08 HTTP surface
+  ---
+  duration_ms: 17900.907904
+  type: 'test'
+  ...
+# Subtest: F08 defaults to deny and never equates policy/configuration with tested connectivity
+ok 49 - F08 defaults to deny and never equates policy/configuration with tested connectivity
+  ---
+  duration_ms: 15721.072501
+  type: 'test'
+  ...
+# Subtest: F08 audits only denied diagnostics through the API
+ok 50 - F08 audits only denied diagnostics through the API
+  ---
+  duration_ms: 754.760184
+  type: 'test'
+  ...
+# Subtest: F08 rejects unsafe routes, arbitrary targets and invalid direct/SNAT combinations
+ok 51 - F08 rejects unsafe routes, arbitrary targets and invalid direct/SNAT combinations
+  ---
+  duration_ms: 654.228382
+  type: 'test'
+  ...
+# Subtest: F08 allocates deterministic static tunnel IPs in the upper half
+ok 52 - F08 allocates deterministic static tunnel IPs in the upper half
+  ---
+  duration_ms: 2.457692
+  type: 'test'
+  ...
+# Subtest: F08 keeps gateway access default-deny per endpoint
+ok 53 - F08 keeps gateway access default-deny per endpoint
+  ---
+  duration_ms: 1.900229
+  type: 'test'
+  ...
+# Subtest: F08 keeps same LANs isolated by tenant and routes legacy network UI to React
+ok 54 - F08 keeps same LANs isolated by tenant and routes legacy network UI to React
+  ---
+  duration_ms: 719.468989
+  type: 'test'
+  ...
+# Subtest: F09 provider audit and inventory direct APIs enforce owner/global and assigned-tenant scope
+ok 55 - F09 provider audit and inventory direct APIs enforce owner/global and assigned-tenant scope
+  ---
+  duration_ms: 7230.116709
+  type: 'test'
+  ...
+# Subtest: F09 export grant is explicit, role-scoped, idempotent, revocable and still requires dataset read
+ok 56 - F09 export grant is explicit, role-scoped, idempotent, revocable and still requires dataset read
+  ---
+  duration_ms: 908.448133
+  type: 'test'
+  ...
+# Subtest: F09 company audit, non-empty inventory and operations enforce pagination, isolation and filters
+ok 57 - F09 company audit, non-empty inventory and operations enforce pagination, isolation and filters
+  ---
+  duration_ms: 700.008599
+  type: 'test'
+  ...
+# Subtest: F09 legacy report routes redirect to matching React report pages
+ok 58 - F09 legacy report routes redirect to matching React report pages
+  ---
+  duration_ms: 362.219439
+  type: 'test'
+  ...
+# Subtest: F10 transport deadline bounds adapters that do not settle after abort
+ok 59 - F10 transport deadline bounds adapters that do not settle after abort
+  ---
+  duration_ms: 30.543102
+  type: 'test'
+  ...
+# Subtest: F10 creates an assisted request only with role, per-device grant, module entitlement and approved endpoint
+ok 60 - F10 creates an assisted request only with role, per-device grant, module entitlement and approved endpoint
+  ---
+  duration_ms: 7327.525541
+  type: 'test'
+  ...
+# Subtest: F10 endpoint consent gates transport authorization; requester revocation blocks it immediately
+ok 61 - F10 endpoint consent gates transport authorization; requester revocation blocks it immediately
+  ---
+  duration_ms: 723.45994
+  type: 'test'
+  ...
+# Subtest: F10 rejection and consent timeout never authorize transport
+ok 62 - F10 rejection and consent timeout never authorize transport
+  ---
+  duration_ms: 1822.536462
+  type: 'test'
+  ...
+# Subtest: F10 transport gate rechecks module, grant and endpoint status after consent
+ok 63 - F10 transport gate rechecks module, grant and endpoint status after consent
+  ---
+  duration_ms: 605.424203
+  type: 'test'
+  ...
+# Subtest: F10 module entitlement is mandatory before a request can be created
+ok 64 - F10 module entitlement is mandatory before a request can be created
+  ---
+  duration_ms: 617.492821
+  type: 'test'
+  ...
+# Subtest: F10 retries a definite synthetic open failure with the same accepted consent and terminates within five seconds on revocation
+ok 65 - F10 retries a definite synthetic open failure with the same accepted consent and terminates within five seconds on revocation
+  ---
+  duration_ms: 543.533836
+  type: 'test'
+  ...
+# Subtest: F10 reconciles an ambiguous open acknowledgement before retrying and exposes bounded open_failed
+ok 66 - F10 reconciles an ambiguous open acknowledgement before retrying and exposes bounded open_failed
+  ---
+  duration_ms: 1175.839771
+  type: 'test'
+  ...
+# Subtest: F10 keeps an unresolved open outcome unknown and blocks blind retries
+ok 67 - F10 keeps an unresolved open outcome unknown and blocks blind retries
+  ---
+  duration_ms: 569.384617
+  type: 'test'
+  ...
+# Subtest: F10 does not overwrite a concurrent revocation when open later fails definitively
+ok 68 - F10 does not overwrite a concurrent revocation when open later fails definitively
+  ---
+  duration_ms: 565.516959
+  type: 'test'
+  ...
+# Subtest: F10 requires explicit test opt-in for the synthetic motor and leaves the default API transport disabled
+ok 69 - F10 requires explicit test opt-in for the synthetic motor and leaves the default API transport disabled
+  ---
+  duration_ms: 531.519161
+  type: 'test'
+  ...
+# Subtest: F10 durable termination retry remains fail-closed when the synthetic motor initially fails
+ok 70 - F10 durable termination retry remains fail-closed when the synthetic motor initially fails
+  ---
+  duration_ms: 514.114343
+  type: 'test'
+  ...
+# Subtest: F11 HTTP lifecycle registers, approves, rotates and revokes a WireGuard peer with public keys only
+ok 71 - F11 HTTP lifecycle registers, approves, rotates and revokes a WireGuard peer with public keys only
+  ---
+  duration_ms: 18161.926124
+  type: 'test'
+  ...
+# Subtest: F11 peer registration exposes only public material and requires preview confirmation
+ok 72 - F11 peer registration exposes only public material and requires preview confirmation
+  ---
+  duration_ms: 27.893862
+  type: 'test'
+  ...
+# Subtest: F11 rotation activates a candidate only after confirmation; revoke removes it from desired state
+ok 73 - F11 rotation activates a candidate only after confirmation; revoke removes it from desired state
+  ---
+  duration_ms: 13.623653
+  type: 'test'
+  ...
+# Subtest: F12 feed serves only the current signed manifest and fixed versioned agent package
+ok 74 - F12 feed serves only the current signed manifest and fixed versioned agent package
+  ---
+  duration_ms: 35.465149
+  type: 'test'
+  ...
+# Subtest: F12 feed rejects invalid manifest versions and symlinked packages
+ok 75 - F12 feed rejects invalid manifest versions and symlinked packages
+  ---
+  duration_ms: 14.614619
+  type: 'test'
+  ...
+# Subtest: F12 feed reports no release when it has no configured publication
+ok 76 - F12 feed reports no release when it has no configured publication
+  ---
+  duration_ms: 0.764078
+  type: 'test'
+  ...
+# Subtest: F12 recovery metrics measures RPO and RTO against approved objectives
+ok 77 - F12 recovery metrics measures RPO and RTO against approved objectives
+  ---
+  duration_ms: 3.384302
+  type: 'test'
+  ...
+# Subtest: F12 recovery metrics fails objectives independently and rejects invalid chronology
+ok 78 - F12 recovery metrics fails objectives independently and rejects invalid chronology
+  ---
+  duration_ms: 3.070347
+  type: 'test'
+  ...
+# Subtest: F12 KMS manifest payload has stable Go struct field order and empty rollback list
+ok 79 - F12 KMS manifest payload has stable Go struct field order and empty rollback list
+  ---
+  duration_ms: 2.36053
+  type: 'test'
+  ...
+# Subtest: F12 KMS Ed25519 SPKI export is the raw key consumed by Go trust keyring
+ok 80 - F12 KMS Ed25519 SPKI export is the raw key consumed by Go trust keyring
+  ---
+  duration_ms: 11.519094
+  type: 'test'
+  ...
+# Subtest: cobertura completa sin afirmar aceptación de producto
+ok 81 - cobertura completa sin afirmar aceptación de producto
+  ---
+  duration_ms: 9.935773
+  type: 'test'
+  ...
+# Subtest: rechaza ID de catálogo omitido
+ok 82 - rechaza ID de catálogo omitido
+  ---
+  duration_ms: 5.82055
+  type: 'test'
+  ...
+# Subtest: rechaza ID duplicado
+ok 83 - rechaza ID duplicado
+  ---
+  duration_ms: 3.398467
+  type: 'test'
+  ...
+# Subtest: rechaza habilitar función prohibida
+ok 84 - rechaza habilitar función prohibida
+  ---
+  duration_ms: 1.059232
+  type: 'test'
+  ...
+# Subtest: rechaza desplazar WireGuard P1 a evolución
+ok 85 - rechaza desplazar WireGuard P1 a evolución
+  ---
+  duration_ms: 1.962327
+  type: 'test'
+  ...
+# Subtest: rechaza fase inexistente
+ok 86 - rechaza fase inexistente
+  ---
+  duration_ms: 1.307991
+  type: 'test'
+  ...
+# Subtest: rechaza declarar producto PASS desde F01
+ok 87 - rechaza declarar producto PASS desde F01
+  ---
+  duration_ms: 2.30356
+  type: 'test'
+  ...
+# Subtest: contrato experimental resuelve referencias locales
+ok 88 - contrato experimental resuelve referencias locales
+  ---
+  duration_ms: 0.859021
+  type: 'test'
+  ...
+# Subtest: rechaza referencia rota
+ok 89 - rechaza referencia rota
+  ---
+  duration_ms: 1.543899
+  type: 'test'
+  ...
+# Subtest: rechaza operationId repetido
+ok 90 - rechaza operationId repetido
+  ---
+  duration_ms: 22.131353
+  type: 'test'
+  ...
+# Subtest: rechaza confundir ACK con conectividad observada
+ok 91 - rechaza confundir ACK con conectividad observada
+  ---
+  duration_ms: 2.699542
+  type: 'test'
+  ...
+# Subtest: L02 product login requires valid password, MFA and membership-derived tenant
+ok 92 - L02 product login requires valid password, MFA and membership-derived tenant
+  ---
+  duration_ms: 8602.592951
+  type: 'test'
+  ...
+# Subtest: L02 tenant switch revokes old token and issues a new scoped session
+ok 93 - L02 tenant switch revokes old token and issues a new scoped session
+  ---
+  duration_ms: 623.440041
+  type: 'test'
+  ...
+# Subtest: L02 refuses arbitrary tenant and revocation invalidates subsequent requests
+ok 94 - L02 refuses arbitrary tenant and revocation invalidates subsequent requests
+  ---
+  duration_ms: 631.145567
+  type: 'test'
+  ...
+# Subtest: L02 sends root and legacy admin routes to the React portal
+ok 95 - L02 sends root and legacy admin routes to the React portal
+  ---
+  duration_ms: 372.594587
+  type: 'test'
+  ...
+# Subtest: L02 recovery is non-enumerating, one-use and revokes existing sessions
+ok 96 - L02 recovery is non-enumerating, one-use and revokes existing sessions
+  ---
+  duration_ms: 1450.189516
+  type: 'test'
+  ...
+# nexo_recovery_email_delivery_failed
+# Subtest: L02 SMTP failure does not reveal whether a recovery address exists
+ok 97 - L02 SMTP failure does not reveal whether a recovery address exists
+  ---
+  duration_ms: 369.686106
+  type: 'test'
+  ...
+# Subtest: L02 rejects malformed JSON safely and throttles repeated password failures
+ok 98 - L02 rejects malformed JSON safely and throttles repeated password failures
+  ---
+  duration_ms: 396.178659
+  type: 'test'
+  ...
+# Subtest: L02 password hashes are salted and verifiable without plaintext storage
+ok 99 - L02 password hashes are salted and verifiable without plaintext storage
+  ---
+  duration_ms: 609.277251
+  type: 'test'
+  ...
+# Subtest: L02 opaque tokens are one-way digests
+ok 100 - L02 opaque tokens are one-way digests
+  ---
+  duration_ms: 1.448355
+  type: 'test'
+  ...
+# Subtest: L02 TOTP secrets are sealed and tamper detected
+ok 101 - L02 TOTP secrets are sealed and tamper detected
+  ---
+  duration_ms: 1.952521
+  type: 'test'
+  ...
+# Subtest: L02 TOTP accepts current code and rejects malformed code
+ok 102 - L02 TOTP accepts current code and rejects malformed code
+  ---
+  duration_ms: 1.649258
+  type: 'test'
+  ...
+# Subtest: L02 migration enables forced RLS and does not define a bypass role
+ok 103 - L02 migration enables forced RLS and does not define a bypass role
+  ---
+  duration_ms: 14.498106
+  type: 'test'
+  ...
+# Subtest: L03 keeps provider context separate from company context
+ok 104 - L03 keeps provider context separate from company context
+  ---
+  duration_ms: 7444.820061
+  type: 'test'
+  ...
+# Subtest: L03 owner creates companies, plans and versioned subscriptions
+ok 105 - L03 owner creates companies, plans and versioned subscriptions
+  ---
+  duration_ms: 626.177661
+  type: 'test'
+  ...
+# Subtest: L03 quota reservation is atomic and never exceeds the configured plan limit
+ok 106 - L03 quota reservation is atomic and never exceeds the configured plan limit
+  ---
+  duration_ms: 564.495247
+  type: 'test'
+  ...
+# Subtest: L03 settings never return secret references and reject stale revisions
+ok 107 - L03 settings never return secret references and reject stale revisions
+  ---
+  duration_ms: 601.366032
+  type: 'test'
+  ...
+# Subtest: L03 legacy admin URL redirects to the React portal
+ok 108 - L03 legacy admin URL redirects to the React portal
+  ---
+  duration_ms: 419.140105
+  type: 'test'
+  ...
+# Subtest: GA-01 does not expose the legacy integrated shell at /admin
+ok 109 - GA-01 does not expose the legacy integrated shell at /admin
+  ---
+  duration_ms: 361.316142
+  type: 'test'
+  ...
+# Subtest: L03 operator sees only explicitly assigned companies and cannot assign
+ok 110 - L03 operator sees only explicitly assigned companies and cannot assign
+  ---
+  duration_ms: 678.168717
+  type: 'test'
+  ...
+# Subtest: GA-01 owner lists, assigns and removes operators with server-side enforcement
+ok 111 - GA-01 owner lists, assigns and removes operators with server-side enforcement
+  ---
+  duration_ms: 751.040725
+  type: 'test'
+  ...
+# Subtest: L04 separates company context and enforces company.admin mutations
+ok 112 - L04 separates company context and enforces company.admin mutations
+  ---
+  duration_ms: 6424.393037
+  type: 'test'
+  ...
+# Subtest: L04 creates tenant sites and rejects public or overlapping networks
+ok 113 - L04 creates tenant sites and rejects public or overlapping networks
+  ---
+  duration_ms: 607.656156
+  type: 'test'
+  ...
+# Subtest: L04 declares devices only in sites from the active company
+ok 114 - L04 declares devices only in sites from the active company
+  ---
+  duration_ms: 737.189765
+  type: 'test'
+  ...
+# Subtest: L04 invitations are opaque, one-use and bind the authenticated email
+ok 115 - L04 invitations are opaque, one-use and bind the authenticated email
+  ---
+  duration_ms: 777.759425
+  type: 'test'
+  ...
+# Subtest: L04 reports invitation delivery failure without exposing provider details
+ok 116 - L04 reports invitation delivery failure without exposing provider details
+  ---
+  duration_ms: 681.545032
+  type: 'test'
+  ...
+# Subtest: L04 policies use optimistic revisions and expose the portal summary
+ok 117 - L04 policies use optimistic revisions and expose the portal summary
+  ---
+  duration_ms: 559.213702
+  type: 'test'
+  ...
+# Subtest: L04 legacy company navigation redirects to the React company summary
+ok 118 - L04 legacy company navigation redirects to the React company summary
+  ---
+  duration_ms: 368.025809
+  type: 'test'
+  ...
+# Subtest: L05/M-VPN-03 enrollment exposes approved identity and a current certificate claim
+ok 119 - L05/M-VPN-03 enrollment exposes approved identity and a current certificate claim
+  ---
+  duration_ms: 15189.649098
+  type: 'test'
+  ...
+# Subtest: L05 retries keep identity and reject replay, a different key and node audience
+ok 120 - L05 retries keep identity and reject replay, a different key and node audience
+  ---
+  duration_ms: 1128.006636
+  type: 'test'
+  ...
+# Subtest: L05 authentication, renewal and revocation preserve identity boundaries
+ok 121 - L05 authentication, renewal and revocation preserve identity boundaries
+  ---
+  duration_ms: 876.835361
+  type: 'test'
+  ...
+# Subtest: M-VPN-05 gateway enrollment preserves its own audience through approval and renewal
+ok 122 - M-VPN-05 gateway enrollment preserves its own audience through approval and renewal
+  ---
+  duration_ms: 875.166726
+  type: 'test'
+  ...
+# Subtest: L05 capacity admits exactly the configured number under concurrent starts
+ok 123 - L05 capacity admits exactly the configured number under concurrent starts
+  ---
+  duration_ms: 722.379704
+  type: 'test'
+  ...
+# Subtest: L05 rejects expired invitations and redirects admin navigation to React
+ok 124 - L05 rejects expired invitations and redirects admin navigation to React
+  ---
+  duration_ms: 376.653381
+  type: 'test'
+  ...
+# Subtest: approved node rotates once with a 30-day credential and safely replays concurrent completion
+ok 125 - approved node rotates once with a 30-day credential and safely replays concurrent completion
+  ---
+  duration_ms: 7269.816757
+  type: 'test'
+  ...
+# Subtest: credential rotation is rejected for a node that is not approved
+ok 126 - credential rotation is rejected for a node that is not approved
+  ---
+  duration_ms: 708.387154
+  type: 'test'
+  ...
+# Subtest: L06 provider node uses separate invitation, audience, credential and operation type
+ok 127 - L06 provider node uses separate invitation, audience, credential and operation type
+  ---
+  duration_ms: 5833.686539
+  type: 'test'
+  ...
+# Subtest: L06 creates idempotent typed operation, dispatches and stores sanitized result
+ok 128 - L06 creates idempotent typed operation, dispatches and stores sanitized result
+  ---
+  duration_ms: 7229.579914
+  type: 'test'
+  ...
+# Subtest: L06 rejects arbitrary operation types, arguments, targets and result fields
+ok 129 - L06 rejects arbitrary operation types, arguments, targets and result fields
+  ---
+  duration_ms: 678.493477
+  type: 'test'
+  ...
+# Subtest: L07 Tauri exposes only the local IPC bridge without shell, HTTP or filesystem plugins
+ok 130 - L07 Tauri exposes only the local IPC bridge without shell, HTTP or filesystem plugins
+  ---
+  duration_ms: 32.911843
+  type: 'test'
+  ...
+# Subtest: L07 UI shows honest module and identity states without persisting credentials
+ok 131 - L07 UI shows honest module and identity states without persisting credentials
+  ---
+  duration_ms: 18.339551
+  type: 'test'
+  ...
+# Subtest: L07 development installer isolates service state and binds the authorized SID
+ok 132 - L07 development installer isolates service state and binds the authorized SID
+  ---
+  duration_ms: 14.492034
+  type: 'test'
+  ...
+# Subtest: L07 update applies only a staged hash and checks IPC health before constrained rollback
+ok 133 - L07 update applies only a staged hash and checks IPC health before constrained rollback
+  ---
+  duration_ms: 25.336207
+  type: 'test'
+  ...
+# Subtest: L08 recovery has no plaintext or unauthenticated fallback
+ok 134 - L08 recovery has no plaintext or unauthenticated fallback
+  ---
+  duration_ms: 12.969418
+  type: 'test'
+  ...
+# Subtest: L08 runbooks preserve quarantine, revocations and endpoint private keys
+ok 135 - L08 runbooks preserve quarantine, revocations and endpoint private keys
+  ---
+  duration_ms: 12.420077
+  type: 'test'
+  ...
+# Subtest: L08 recovery report contract is sanitized and honest about host loss
+ok 136 - L08 recovery report contract is sanitized and honest about host loss
+  ---
+  duration_ms: 10.166492
+  type: 'test'
+  ...
+# Subtest: L08 bundle authenticates database, configuration, emission material and key generation
+ok 137 - L08 bundle authenticates database, configuration, emission material and key generation
+  ---
+  duration_ms: 10.2841
+  type: 'test'
+  ...
+# Subtest: L08 rejects altered bundles and preserves independently decryptable key generations
+ok 138 - L08 rejects altered bundles and preserves independently decryptable key generations
+  ---
+  duration_ms: 1.651768
+  type: 'test'
+  ...
+# Subtest: L08 checkpoint rejects tamper and stale epochs
+ok 139 - L08 checkpoint rejects tamper and stale epochs
+  ---
+  duration_ms: 1.282515
+  type: 'test'
+  ...
+# Subtest: SMTP sink formats and dispatches recovery and invitation messages through an injected transport
+ok 140 - SMTP sink formats and dispatches recovery and invitation messages through an injected transport
+  ---
+  duration_ms: 2.1472
+  type: 'test'
+  ...
+# Subtest: SMTP sink reports rejected recipient delivery and rejects malformed tokens
+ok 141 - SMTP sink reports rejected recipient delivery and rejects malformed tokens
+  ---
+  duration_ms: 0.986718
+  type: 'test'
+  ...
+# Subtest: F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 migrations
+ok 142 - F09 lab profile fixes the deployed sequence and excludes local F03/GA-01 migrations
+  ---
+  duration_ms: 7.269987
+  type: 'test'
+  ...
+# Subtest: GA-01 is local-only, orders 018 before the F03 local closure, and excludes 016
+ok 143 - GA-01 is local-only, orders 018 before the F03 local closure, and excludes 016
+  ---
+  duration_ms: 1.048128
+  type: 'test'
+  ...
+# Subtest: production profile is exactly the ordered 001-027 sequence and guarded from implicit execution
+ok 144 - production profile is exactly the ordered 001-027 sequence and guarded from implicit execution
+  ---
+  duration_ms: 2085.667731
+  type: 'test'
+  ...
+# Subtest: production migration dry-run lists all 27 files without DATABASE_URL or confirmation
+ok 145 - production migration dry-run lists all 27 files without DATABASE_URL or confirmation
+  ---
+  duration_ms: 2242.256502
+  type: 'test'
+  ...
+# Subtest: F10 support consent is local-only and follows the verified F03 grant migration
+ok 146 - F10 support consent is local-only and follows the verified F03 grant migration
+  ---
+  duration_ms: 1.854834
+  type: 'test'
+  ...
+# Subtest: F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile
+ok 147 - F07 PostgreSQL fixture combines credential rotation with runtime grants in a dedicated local profile
+  ---
+  duration_ms: 1.118163
+  type: 'test'
+  ...
+# Subtest: F08 local profile includes the runtime closure and retains credential rotation 016
+ok 148 - F08 local profile includes the runtime closure and retains credential rotation 016
+  ---
+  duration_ms: 2.030304
+  type: 'test'
+  ...
+# Subtest: 026 persists node credential rotation with RLS and least-privilege runtime grants
+ok 149 - 026 persists node credential rotation with RLS and least-privilege runtime grants
+  ---
+  duration_ms: 36.689782
+  type: 'test'
+  ...
+# Subtest: forward resource-grant privilege migration follows every profile that applies 019 and stays least-privilege
+ok 150 - forward resource-grant privilege migration follows every profile that applies 019 and stays least-privilege
+  ---
+  duration_ms: 20.625566
+  type: 'test'
+  ...
+# Subtest: forward support privilege migration follows F10 consent and grants only existing tables without DELETE
+ok 151 - forward support privilege migration follows F10 consent and grants only existing tables without DELETE
+  ---
+  duration_ms: 17.141259
+  type: 'test'
+  ...
+# Subtest: 016 appears in disposable F07/F08/F11 profiles and in the complete production baseline
+ok 152 - 016 appears in disposable F07/F08/F11 profiles and in the complete production baseline
+  ---
+  duration_ms: 2.10573
+  type: 'test'
+  ...
+# Subtest: migration transaction wrapper is removed while inner SQL blocks remain intact
+ok 153 - migration transaction wrapper is removed while inner SQL blocks remain intact
+  ---
+  duration_ms: 17.929451
+  type: 'test'
+  ...
+# Subtest: F03 resource-grant migration is atomic and encodes tenant/resource constraints
+ok 154 - F03 resource-grant migration is atomic and encodes tenant/resource constraints
+  ---
+  duration_ms: 18.478369
+  type: 'test'
+  ...
+# Subtest: historical 019 checksum stays unchanged after its manual lab application
+ok 155 - historical 019 checksum stays unchanged after its manual lab application
+  ---
+  duration_ms: 13.722105
+  type: 'test'
+  ...
+# Subtest: F10 migration persists consent with tenant/device RLS and limits contracted mode to assisted support
+ok 156 - F10 migration persists consent with tenant/device RLS and limits contracted mode to assisted support
+  ---
+  duration_ms: 14.636365
+  type: 'test'
+  ...
+# Subtest: F10 lifecycle migration records hashed one-use consent, engine attempts and transactional termination outbox
+ok 157 - F10 lifecycle migration records hashed one-use consent, engine attempts and transactional termination outbox
+  ---
+  duration_ms: 13.608506
+  type: 'test'
+  ...
+# Subtest: runner rejects migration files without atomic wrapper boundaries
+ok 158 - runner rejects migration files without atomic wrapper boundaries
+  ---
+  duration_ms: 1.938572
+  type: 'test'
+  ...
+# Subtest: Nest arranca con Fastify y la ruta health usa el proveedor de BD
+ok 159 - Nest arranca con Fastify y la ruta health usa el proveedor de BD
+  ---
+  duration_ms: 11810.151025
+  type: 'test'
+  ...
+# Subtest: conserva 202, cuerpo y headers; quita query sin derivar tenant del navegador
+ok 160 - conserva 202, cuerpo y headers; quita query sin derivar tenant del navegador
+  ---
+  duration_ms: 211.421557
+  type: 'test'
+  ...
+# Subtest: no transforma JSON null/array ni elimina campos desconocidos antes de validar en BD
+ok 161 - no transforma JSON null/array ni elimina campos desconocidos antes de validar en BD
+  ---
+  duration_ms: 227.540691
+  type: 'test'
+  ...
+# Subtest: cuerpo vacío se normaliza sin error de parsing previo al dominio
+ok 162 - cuerpo vacío se normaliza sin error de parsing previo al dominio
+  ---
+  duration_ms: 201.248687
+  type: 'test'
+  ...
+# Subtest: JSON malformado conserva 422 seguro y no llega a la BD
+ok 163 - JSON malformado conserva 422 seguro y no llega a la BD
+  ---
+  duration_ms: 192.562752
+  type: 'test'
+  ...
+# Subtest: el parser rechaza claves de prototipo sin ejecutar consultas
+ok 164 - el parser rechaza claves de prototipo sin ejecutar consultas
+  ---
+  duration_ms: 243.347259
+  type: 'test'
+  ...
+# Subtest: el límite de 8192 bytes devuelve 413 sin consulta ni payload filtrado
+ok 165 - el límite de 8192 bytes devuelve 413 sin consulta ni payload filtrado
+  ---
+  duration_ms: 166.011546
+  type: 'test'
+  ...
+# Subtest: registra operación y ACK con rutas explícitas
+ok 166 - registra operación y ACK con rutas explícitas
+  ---
+  duration_ms: 178.069317
+  type: 'test'
+  ...
+# Subtest: tipo de contenido no admitido devuelve 415 seguro sin consultar la BD
+ok 167 - tipo de contenido no admitido devuelve 415 seguro sin consultar la BD
+  ---
+  duration_ms: 150.478169
+  type: 'test'
+  ...
+# Subtest: rutas desconocidas no llegan a la BD ni exponen la respuesta interna de Nest
+ok 168 - rutas desconocidas no llegan a la BD ni exponen la respuesta interna de Nest
+  ---
+  duration_ms: 148.643688
+  type: 'test'
+  ...
+# Subtest: excepciones del proveedor no filtran mensajes SQL ni credenciales
+ok 169 - excepciones del proveedor no filtran mensajes SQL ni credenciales
+  ---
+  duration_ms: 160.433409
+  type: 'test'
+  ...
+# Subtest: sin DATABASE_URL el arranque real falla, no usa una conexión implícita
+ok 170 - sin DATABASE_URL el arranque real falla, no usa una conexión implícita
+  ---
+  duration_ms: 7.139733
+  type: 'test'
+  ...
+# Subtest: GET /v1/health is public, minimal, and not cacheable
+ok 171 - GET /v1/health is public, minimal, and not cacheable
+  ---
+  duration_ms: 12203.951183
+  type: 'test'
+  ...
+# Subtest: server config defaults to loopback, peer-compatible PostgreSQL and bounded pool
+ok 172 - server config defaults to loopback, peer-compatible PostgreSQL and bounded pool
+  ---
+  duration_ms: 9.314056
+  type: 'test'
+  ...
+# Subtest: server config rejects network exposure, relative secrets and invalid identities
+ok 173 - server config rejects network exposure, relative secrets and invalid identities
+  ---
+  duration_ms: 2.960546
+  type: 'test'
+  ...
+# Subtest: server config allows SMTP to be omitted and the null notification sink is safe to call
+ok 174 - server config allows SMTP to be omitted and the null notification sink is safe to call
+  ---
+  duration_ms: 0.699799
+  type: 'test'
+  ...
+# Subtest: el gate de tipos rechaza un defecto introducido deliberadamente
+ok 175 - el gate de tipos rechaza un defecto introducido deliberadamente
+  ---
+  duration_ms: 1133.180307
+  type: 'test'
+  ...
+1..175
+# tests 175
+# suites 0
+# pass 174
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 231358.826682
