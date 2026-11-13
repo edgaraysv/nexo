@@ -516,7 +516,7 @@ func TestNativeHostPersistsAndRepairsGatewayCCDWithClosedPermissions(t *testing.
 	}
 	root := filepath.Join(host.root, desired.ID)
 	ccdPath := filepath.Join(root, "ccd", "nexo:22222222-2222-4222-8222-222222222228")
-	for path, mode := range map[string]os.FileMode{root: 0711, filepath.Join(root, "ccd"): 0755, ccdPath: 0644, filepath.Join(root, "pki"): 0700, filepath.Join(root, "pki", "server.key"): 0600} {
+	for path, mode := range map[string]os.FileMode{root: 0711, filepath.Join(root, "ccd"): 0755, ccdPath: 0644, filepath.Join(root, "pki"): 0711, filepath.Join(root, "pki", "server.key"): 0600} {
 		info, err := os.Stat(path)
 		if err != nil {
 			t.Fatalf("cannot stat %s: %v", path, err)
@@ -554,6 +554,139 @@ func TestNativeHostPersistsAndRepairsGatewayCCDWithClosedPermissions(t *testing.
 	}
 	if runner.route != "" {
 		t.Fatalf("revoked split-DNS left return route behind: %q", runner.route)
+	}
+}
+
+func TestNativeRendererUsesScopedRootOnlyUnixManagement(t *testing.T) {
+	host := &NativeHost{root: "/var/lib/nexo-node/environments", units: "/run/systemd/system"}
+	desired := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	bundle, err := host.render(desired, linkFor(desired.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	directory := filepath.Join(host.root, desired.ID)
+	for _, required := range []string{
+		"management " + directory + "/mgmt.sock unix\n",
+		"management-client-user root\n",
+	} {
+		if !strings.Contains(bundle.openvpn, required) {
+			t.Fatalf("missing management directive %q: %s", required, bundle.openvpn)
+		}
+	}
+	for _, forbidden := range []string{"management unix ", "management 0.0.0.0", "management 127.0.0.1", "management ::", "management-client-pw", "management-client-auth"} {
+		if strings.Contains(bundle.openvpn, forbidden) {
+			t.Fatalf("unexpected TCP/password management directive %q: %s", forbidden, bundle.openvpn)
+		}
+	}
+	if !strings.Contains(bundle.unit, "ReadWritePaths="+directory+"\n") {
+		t.Fatalf("unit does not scope ReadWritePaths to the environment: %s", bundle.unit)
+	}
+	if strings.Contains(bundle.unit, "ReadWritePaths=/var/lib/nexo-node/environments\n") {
+		t.Fatalf("unit exposes every environment to the sandbox: %s", bundle.unit)
+	}
+}
+
+func TestNativeHostOpenVPNDirectoriesAreTraversalOnlyAndRepairedWithoutRestart(t *testing.T) {
+	runner := &statefulRunner{}
+	host, desired := nativeHostFixture(t, runner)
+	if _, err := host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(host.root, desired.ID)
+	pki := filepath.Join(root, "pki")
+	assertMode := func(path string, want os.FileMode) {
+		t.Helper()
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("cannot stat %s: %v", path, err)
+		}
+		if info.Mode().Perm() != want {
+			t.Fatalf("unexpected mode for %s: got=%o want=%o", path, info.Mode().Perm(), want)
+		}
+	}
+	assertMode(root, 0711)
+	assertMode(pki, 0711)
+	for name, mode := range map[string]os.FileMode{
+		"ca.key": 0600, "server.key": 0600, "tls-crypt.key": 0600,
+		"ca.crt": 0644, "server.crt": 0644, "crl.pem": 0644,
+	} {
+		assertMode(filepath.Join(pki, name), mode)
+	}
+	if _, clean, err := host.Inspect(desired, linkFor(desired.ID)); err != nil || !clean {
+		t.Fatalf("fresh environment not inspect-clean: clean=%v err=%v", clean, err)
+	}
+
+	// Directory-mode drift must be visible to Inspect so the reconciler does
+	// not skip repair. Inspect itself stays read-only.
+	if err := os.Chmod(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(pki, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if _, clean, err := host.Inspect(desired, linkFor(desired.ID)); err != nil || clean {
+		t.Fatalf("directory-mode drift was reported clean: clean=%v err=%v", clean, err)
+	}
+	assertMode(root, 0700)
+	assertMode(pki, 0700)
+
+	count := func(prefix string) int {
+		total := 0
+		for _, command := range runner.commands {
+			if strings.HasPrefix(command, prefix) {
+				total++
+			}
+		}
+		return total
+	}
+	starts, namespaces := count("systemctl start "), count("ip netns add ")
+	if _, err := host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	assertMode(root, 0711)
+	assertMode(pki, 0711)
+	if got := count("systemctl start "); got != starts {
+		t.Fatalf("mode-only repair restarted the runtime: starts %d -> %d", starts, got)
+	}
+	if got := count("ip netns add "); got != namespaces {
+		t.Fatalf("mode-only repair rebuilt the namespace: adds %d -> %d", namespaces, got)
+	}
+	if !runner.running {
+		t.Fatal("mode-only repair stopped the OpenVPN unit")
+	}
+	if _, clean, err := host.Inspect(desired, linkFor(desired.ID)); err != nil || !clean {
+		t.Fatalf("repaired environment not inspect-clean: clean=%v err=%v", clean, err)
+	}
+
+	// PKI-only drift must be detected even when the environment directory is
+	// already correct, and must also repair without a restart.
+	if err := os.Chmod(pki, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if _, clean, err := host.Inspect(desired, linkFor(desired.ID)); err != nil || clean {
+		t.Fatalf("pki-mode drift was reported clean: clean=%v err=%v", clean, err)
+	}
+	starts = count("systemctl start ")
+	if _, err := host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	assertMode(pki, 0711)
+	if got := count("systemctl start "); got != starts {
+		t.Fatalf("pki-mode repair restarted the runtime: starts %d -> %d", starts, got)
+	}
+	if !runner.running {
+		t.Fatal("pki-mode repair stopped the OpenVPN unit")
+	}
+}
+
+func TestEnvironmentDirectoryModeKeepsWireGuardPrivate(t *testing.T) {
+	desired := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
+	if got := environmentDirectoryMode(desired); got != 0711 {
+		t.Fatalf("unexpected OpenVPN environment mode %o", got)
+	}
+	desired.Engine = "wireguard"
+	if got := environmentDirectoryMode(desired); got != 0700 {
+		t.Fatalf("WireGuard environment mode was widened to %o", got)
 	}
 }
 

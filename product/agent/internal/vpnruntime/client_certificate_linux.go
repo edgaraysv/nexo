@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -42,11 +43,88 @@ type issuedClientRecord struct {
 	CSRSHA256     string            `json:"csr_sha256"`
 }
 
+// RevocationStatusTiming records one status 3 read from its write start to the
+// complete END frame, relative to T0.
+type RevocationStatusTiming struct {
+	StartNS int64 `json:"start_ns"`
+	EndNS   int64 `json:"end_ns"`
+}
+
+// RevocationTimings contains durations measured with the same monotonic clock
+// from T0, the entry of the local revocation flow. Only elapsed nanoseconds are
+// serialized; wall-clock instants are never reported as monotonic values.
+// SLA comparisons use the duration values directly, never a lossy ms field.
+type RevocationTimings struct {
+	ValidationEndNS      int64                    `json:"validation_end_ns"`
+	RecordReadEndNS      int64                    `json:"record_read_end_ns"`
+	CRLStartNS           int64                    `json:"crl_start_ns"`
+	CRLPublishedNS       int64                    `json:"crl_published_ns"`
+	RecordUpdatedNS      int64                    `json:"record_updated_ns"`
+	ConnectStartNS       int64                    `json:"connect_start_ns"`
+	DialStartNS          int64                    `json:"dial_start_ns"`
+	DialEndNS            int64                    `json:"dial_end_ns"`
+	GreetingEndNS        int64                    `json:"greeting_end_ns"`
+	InitialStatusStartNS int64                    `json:"initial_status_start_ns"`
+	InitialStatusEndNS   int64                    `json:"initial_status_end_ns"`
+	PreKillStatusStartNS int64                    `json:"pre_kill_status_start_ns"`
+	PreKillStatusEndNS   int64                    `json:"pre_kill_status_end_ns"`
+	KillWriteStartNS     int64                    `json:"kill_write_start_ns"`
+	KillWriteEndNS       int64                    `json:"kill_write_end_ns"`
+	AcceptTerminalNS     int64                    `json:"accept_terminal_ns"`
+	FinalStatusStartNS   int64                    `json:"final_status_start_ns"`
+	FinalStatusEndNS     int64                    `json:"final_status_end_ns"`
+	FinalStatusPolls     []RevocationStatusTiming `json:"final_status_polls,omitempty"`
+	// T_accept - T0: complete SUCCESS: terminal received from management.
+	AcceptElapsedNS int64 `json:"accept_elapsed_ns"`
+	// T_caída - T0: complete final status 3 with the target absent and a
+	// control peer still present.
+	DisconnectElapsedNS int64 `json:"disconnect_elapsed_ns"`
+}
+
+// RevocationResult reports the separately observable effects of a revocation.
+// DisconnectRequested/ManagementAccepted mean OpenVPN management accepted the
+// client-kill command with a complete SUCCESS: terminal; they never mean the
+// peer is gone. DisconnectConfirmed is the only field that supports a
+// disconnected claim: it is set only after a complete final status 3 shows the
+// target CN absent and the control peer still present.
+type RevocationResult struct {
+	Serial                     string            `json:"serial"`
+	Revoked                    bool              `json:"revoked"`
+	DisconnectRequested        bool              `json:"disconnect_requested"`
+	ManagementCommandSent      bool              `json:"management_command_sent"`
+	ManagementCommandAttempted bool              `json:"management_command_attempted"`
+	ManagementWritePartial     bool              `json:"management_write_partial"`
+	ManagementAccepted         bool              `json:"management_accepted"`
+	DisconnectConfirmed        bool              `json:"disconnect_confirmed"`
+	AcceptWithinBudget         bool              `json:"accept_within_budget"`
+	DisconnectWithinBudget     bool              `json:"disconnect_within_budget"`
+	Timings                    RevocationTimings `json:"timings"`
+}
+
+// ErrRevocationPublished marks partial failures where the CRL rename already
+// happened. Callers must keep the credential revoked and must not report a
+// confirmed disconnect.
+var ErrRevocationPublished = errors.New("revocation published but client disconnect unconfirmed")
+
+// The following sentinels separate pre-publication, published, and
+// post-publication outcomes. The disconnect/record sentinels also match
+// ErrRevocationPublished so existing partial-failure handling remains valid.
+var (
+	ErrRevocationPublishFailed = errors.New("revocation CRL publication failed")
+	ErrRevocationSLAExceeded   = errors.New("revocation SLA exceeded")
+	ErrDisconnectNotAttempted  = fmt.Errorf("%w: disconnect not attempted", ErrRevocationPublished)
+	ErrDisconnectRejected      = fmt.Errorf("%w: management rejected disconnect", ErrRevocationPublished)
+	ErrDisconnectUnconfirmed   = fmt.Errorf("%w: management disconnect unconfirmed", ErrRevocationPublished)
+	ErrRevocationRecordUpdate  = fmt.Errorf("%w: durable client record update failed", ErrRevocationPublished)
+)
+
+type clientDisconnector func(root, environmentID, deviceID string, t0 time.Time, clock managementClock) (disconnectOutcome, error)
+
 func IssueClientCertificate(requestID, environmentID, tenantID, deviceID, csrPEM string) (ClientCertificate, error) {
 	return issueClientCertificate(nativeRoot, requestID, environmentID, tenantID, deviceID, csrPEM)
 }
 
-func RevokeClientCertificate(requestID, environmentID, tenantID, deviceID, serial string) error {
+func RevokeClientCertificate(requestID, environmentID, tenantID, deviceID, serial string) (RevocationResult, error) {
 	return revokeClientCertificate(nativeRoot, requestID, environmentID, tenantID, deviceID, serial)
 }
 
@@ -151,17 +229,30 @@ func makeTLSCryptEnvelope(pki, environmentID, csrPEM string) (string, error) {
 	return EncryptTLSCryptKey(publicKey, environmentID, staticKey)
 }
 
-func revokeClientCertificate(root, requestID, environmentID, tenantID, deviceID, serial string) error {
+func revokeClientCertificate(root, requestID, environmentID, tenantID, deviceID, serial string) (RevocationResult, error) {
+	return revokeClientCertificateWith(root, requestID, environmentID, tenantID, deviceID, serial, disconnectOpenVPNClient)
+}
+
+func revokeClientCertificateWith(root, requestID, environmentID, tenantID, deviceID, serial string, disconnect clientDisconnector) (RevocationResult, error) {
+	return revokeClientCertificateWithClock(root, requestID, environmentID, tenantID, deviceID, serial, disconnect, systemManagementClock{})
+}
+
+func revokeClientCertificateWithClock(root, requestID, environmentID, tenantID, deviceID, serial string, disconnect clientDisconnector, clock managementClock) (RevocationResult, error) {
+	// T0 is the entry of the local revocation flow, before any validation and
+	// before the CRL is read or published.
+	t0 := clock.Now()
+	result := RevocationResult{Serial: serial}
 	if !credentialID.MatchString(requestID) || !ValidEnvironmentID(environmentID) || !credentialID.MatchString(tenantID) || !credentialID.MatchString(deviceID) || !regexp.MustCompile(`^[a-f0-9]{8,64}$`).MatchString(serial) {
-		return errors.New("invalid revocation request")
+		return result, errors.New("invalid revocation request")
 	}
 	pki := filepath.Join(root, environmentID, "pki")
 	if info, err := os.Stat(filepath.Join(pki, "crl.pem")); err != nil || validateCRL(pki, info.Mode().Perm()) != nil {
-		return errors.New("invalid crl")
+		return result, errors.New("invalid crl")
 	}
+	result.Timings.ValidationEndNS = elapsedNS(t0, clock.Now())
 	entries, err := os.ReadDir(filepath.Join(pki, "clients"))
 	if err != nil {
-		return err
+		return result, err
 	}
 	var record issuedClientRecord
 	var recordPath string
@@ -178,17 +269,78 @@ func revokeClientCertificate(root, requestID, environmentID, tenantID, deviceID,
 		}
 	}
 	if recordPath == "" || record.RequestID != requestID || record.TenantID != tenantID || record.DeviceID != deviceID || record.EnvironmentID != environmentID {
-		return errors.New("serial mismatch")
+		return result, errors.New("serial mismatch")
 	}
-	if record.Revoked {
-		return nil
-	}
+	result.Timings.RecordReadEndNS = elapsedNS(t0, clock.Now())
+	// Publish the CRL first. appendRevocation is idempotent, so a persisted
+	// revocation still verifies/re-adds its entry instead of short-circuiting.
+	result.Timings.CRLStartNS = elapsedNS(t0, clock.Now())
 	if err = appendRevocation(pki, serial); err != nil {
-		return err
+		return result, errors.Join(ErrRevocationPublishFailed, err)
 	}
-	record.Revoked = true
-	raw, _ := json.Marshal(record)
-	return atomicWrite(filepath.Dir(recordPath), filepath.Base(recordPath), raw, 0600)
+	result.Revoked = true
+	result.Timings.CRLPublishedNS = elapsedNS(t0, clock.Now())
+	var recordErr error
+	if !record.Revoked {
+		record.Revoked = true
+		raw, _ := json.Marshal(record)
+		if err = atomicWrite(filepath.Dir(recordPath), filepath.Base(recordPath), raw, 0600); err != nil {
+			recordErr = err
+		}
+	}
+	result.Timings.RecordUpdatedNS = elapsedNS(t0, clock.Now())
+	// Only now, after the atomic CRL rename, is a device-level disconnect
+	// requested. A failure here must leave the revocation in place and must
+	// never be reported as a confirmed disconnect.
+	preTimings := result.Timings
+	var (
+		outcome       disconnectOutcome
+		disconnectErr error
+	)
+	if disconnect == nil {
+		disconnectErr = errors.Join(ErrDisconnectNotAttempted, errors.New("management disconnect unavailable"))
+	} else {
+		outcome, disconnectErr = disconnect(root, environmentID, deviceID, t0, clock)
+		// Preserve pre-management marks; the disconnect outcome only
+		// contributes its own phases.
+		outcome.Timings.ValidationEndNS = preTimings.ValidationEndNS
+		outcome.Timings.RecordReadEndNS = preTimings.RecordReadEndNS
+		outcome.Timings.CRLStartNS = preTimings.CRLStartNS
+		outcome.Timings.CRLPublishedNS = preTimings.CRLPublishedNS
+		outcome.Timings.RecordUpdatedNS = preTimings.RecordUpdatedNS
+		result.Timings = outcome.Timings
+		result.ManagementCommandSent = outcome.Sent
+		result.ManagementCommandAttempted = outcome.Attempted || outcome.Sent
+		result.ManagementWritePartial = outcome.Partial
+		result.ManagementAccepted = outcome.Accepted
+		result.DisconnectConfirmed = outcome.Confirmed
+		result.AcceptWithinBudget = outcome.AcceptWithinBudget
+		result.DisconnectWithinBudget = outcome.DisconnectWithinBudget
+		result.DisconnectRequested = outcome.Accepted
+	}
+	if disconnectErr != nil {
+		switch {
+		case errors.Is(disconnectErr, ErrDisconnectNotAttempted) || (!outcome.Sent && !outcome.Attempted):
+			return result, errors.Join(ErrDisconnectNotAttempted, disconnectErr, recordErr)
+		case errors.Is(disconnectErr, ErrDisconnectRejected):
+			return result, errors.Join(ErrDisconnectRejected, disconnectErr, recordErr)
+		default:
+			return result, errors.Join(ErrDisconnectUnconfirmed, disconnectErr, recordErr)
+		}
+	}
+	if recordErr != nil {
+		return result, errors.Join(ErrRevocationRecordUpdate, recordErr)
+	}
+	if !result.DisconnectConfirmed {
+		if !result.ManagementCommandSent {
+			return result, ErrDisconnectNotAttempted
+		}
+		return result, ErrDisconnectUnconfirmed
+	}
+	if !result.AcceptWithinBudget || !result.DisconnectWithinBudget {
+		return result, ErrRevocationSLAExceeded
+	}
+	return result, nil
 }
 
 func readCA(pki string) (*x509.Certificate, *ecdsa.PrivateKey, []byte, error) {

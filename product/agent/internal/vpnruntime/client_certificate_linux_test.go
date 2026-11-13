@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 const (
@@ -88,10 +89,13 @@ func TestClientCertificateIssueAndRevoke(t *testing.T) {
 	if bytes.Contains([]byte(issued.CertificatePEM), []byte("PRIVATE KEY")) || bytes.Contains([]byte(issued.CACertificatePEM), []byte("PRIVATE KEY")) {
 		t.Fatal("private key leaked")
 	}
-	if err = revokeClientCertificate(root, testRequest, testEnvironment, testTenant, testDevice, issued.Serial); err != nil {
+	noopDisconnect := func(string, string, string, time.Time, managementClock) (disconnectOutcome, error) {
+		return disconnectOutcome{Sent: true, Accepted: true, Confirmed: true, AcceptWithinBudget: true, DisconnectWithinBudget: true}, nil
+	}
+	if _, err = revokeClientCertificateWith(root, testRequest, testEnvironment, testTenant, testDevice, issued.Serial, noopDisconnect); err != nil {
 		t.Fatal(err)
 	}
-	if err = revokeClientCertificate(root, testRequest, testEnvironment, testTenant, testDevice, issued.Serial); err != nil {
+	if _, err = revokeClientCertificateWith(root, testRequest, testEnvironment, testTenant, testDevice, issued.Serial, noopDisconnect); err != nil {
 		t.Fatal("revocation was not idempotent")
 	}
 	raw, err := os.ReadFile(filepath.Join(pki, "crl.pem"))
@@ -134,7 +138,7 @@ func TestClientCertificateRejectsInvalidCSRAndWrongDeviceRevocation(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = revokeClientCertificate(root, testRequest, testEnvironment, testTenant, "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", issued.Serial); err == nil {
+	if _, err = revokeClientCertificateWith(root, testRequest, testEnvironment, testTenant, "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", issued.Serial, confirmedDisconnect); err == nil {
 		t.Fatal("wrong device revoked certificate")
 	}
 }

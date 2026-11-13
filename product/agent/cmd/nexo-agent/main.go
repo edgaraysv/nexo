@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -458,6 +459,378 @@ type operationResult struct {
 	Revision   int64          `json:"revision"`
 }
 
+const (
+	operationJournalStarted       = "started"
+	operationJournalIndeterminate = "indeterminate"
+	operationJournalFinal         = "final"
+	revocationOperationType       = "vpn.client_certificate.revoke.v1"
+)
+
+// operationJournalEntry is written durably before an operation is executed.
+// A started entry without a final result is never re-executed: it is reported
+// as an indeterminate failure so a crash cannot replay client-kill.
+type operationJournalEntry struct {
+	ID        string           `json:"id"`
+	Revision  int64            `json:"revision"`
+	State     string           `json:"state"`
+	Result    *operationResult `json:"result,omitempty"`
+	UpdatedAt string           `json:"updated_at"`
+}
+
+// operationJournalMu serializes runOnce journal/execution in this process.
+// Cross-process exclusion is provided separately by an OS file lock held for
+// the full marker/execute/final sequence.
+var operationJournalMu sync.Mutex
+
+func operationJournalPath(dir, operationID string) string {
+	sum := sha256.Sum256([]byte(operationID))
+	return filepath.Join(dir, "operation-journal", fmt.Sprintf("%x.json", sum))
+}
+
+func legacyOperationResultsPath(dir string) string {
+	return filepath.Join(dir, "operation-results.json")
+}
+
+// loadLegacyOperationResult migrates the previous cache format. A matching
+// ID/revision is authoritative and must be replayed, never re-executed.
+func loadLegacyOperationResult(dir, operationID string, revision int64) (operationResult, bool, error) {
+	raw, err := os.ReadFile(legacyOperationResultsPath(dir))
+	if errors.Is(err, os.ErrNotExist) {
+		return operationResult{}, false, nil
+	}
+	if err != nil {
+		return operationResult{}, false, err
+	}
+	var cache map[string]operationResult
+	if err = json.Unmarshal(raw, &cache); err != nil {
+		return operationResult{}, false, fmt.Errorf("invalid legacy operation cache: %w", err)
+	}
+	result, exists := cache[operationID]
+	if !exists {
+		return operationResult{}, false, nil
+	}
+	if result.Revision != revision {
+		return operationResult{}, false, errors.New("legacy operation cache revision mismatch")
+	}
+	return result, true, nil
+}
+
+func legacyBool(value any, key string) bool {
+	values, ok := value.(map[string]any)
+	if !ok {
+		return false
+	}
+	flag, ok := values[key].(bool)
+	return ok && flag
+}
+
+func legacyInt64(value any) (int64, bool) {
+	switch number := value.(type) {
+	case float64:
+		if number < 0 || number != float64(int64(number)) {
+			return 0, false
+		}
+		return int64(number), true
+	case int64:
+		return number, true
+	case int:
+		return int64(number), true
+	default:
+		return 0, false
+	}
+}
+
+// legacyRevocationResultIsTrustworthy only accepts a legacy result when the
+// previous run explicitly recorded the complete management/SLA evidence. An
+// old {serial, revoked:true} entry has none of these fields and must become
+// operation_outcome_unknown instead of a false success.
+func legacyRevocationResultIsTrustworthy(result operationResult) bool {
+	if result.Status != "succeeded" {
+		return false
+	}
+	values := result.Result
+	for _, key := range []string{
+		"revoked",
+		"management_command_sent",
+		"management_accepted",
+		"disconnect_confirmed",
+		"accept_within_budget",
+		"disconnect_within_budget",
+	} {
+		if !legacyBool(values, key) {
+			return false
+		}
+	}
+	// Optional contemporary fields must not contradict the required evidence.
+	if attempted, ok := values["management_command_attempted"].(bool); ok && !attempted {
+		return false
+	}
+	if partial, ok := values["management_write_partial"].(bool); ok && partial {
+		return false
+	}
+	if slaMet, ok := values["sla_met"].(bool); ok && !slaMet {
+		return false
+	}
+	timings, ok := values["timings"].(map[string]any)
+	if !ok {
+		return false
+	}
+	acceptNS, ok := legacyInt64(timings["accept_elapsed_ns"])
+	if !ok || acceptNS < 0 || acceptNS > int64(2*time.Second) {
+		return false
+	}
+	disconnectNS, ok := legacyInt64(timings["disconnect_elapsed_ns"])
+	if !ok || disconnectNS < 0 || disconnectNS < acceptNS || disconnectNS > int64(10*time.Second) {
+		return false
+	}
+	return true
+}
+
+func legacyRevocationUnknownResult(revision int64, legacy operationResult) operationResult {
+	result := indeterminateOperationResult(revision)
+	if serial, ok := legacy.Result["serial"].(string); ok && serial != "" {
+		result.Result["serial"] = serial
+	}
+	if revoked, ok := legacy.Result["revoked"].(bool); ok && revoked {
+		result.Result["revoked"] = true
+	}
+	return result
+}
+
+func loadOperationJournalEntry(path string) (operationJournalEntry, bool, error) {
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return operationJournalEntry{}, false, nil
+	}
+	if err != nil {
+		return operationJournalEntry{}, false, err
+	}
+	var entry operationJournalEntry
+	if err = json.Unmarshal(raw, &entry); err != nil {
+		return operationJournalEntry{}, false, fmt.Errorf("invalid operation journal: %w", err)
+	}
+	return entry, true, nil
+}
+
+func writeOperationJournalEntryAtomic(path string, entry operationJournalEntry) error {
+	directory := filepath.Dir(path)
+	directoryExisted := true
+	if _, statErr := os.Stat(directory); errors.Is(statErr, os.ErrNotExist) {
+		directoryExisted = false
+	} else if statErr != nil {
+		return statErr
+	}
+	if err := os.MkdirAll(directory, 0700); err != nil {
+		return err
+	}
+	if !directoryExisted {
+		// Persist the new journal directory entry before any side effect.
+		if err := syncOperationJournalDirectory(filepath.Dir(directory)); err != nil {
+			return err
+		}
+	}
+	temp, err := os.CreateTemp(directory, ".operation-journal-*")
+	if err != nil {
+		return err
+	}
+	tempPath := temp.Name()
+	defer os.Remove(tempPath)
+	if err = json.NewEncoder(temp).Encode(entry); err != nil {
+		temp.Close()
+		return err
+	}
+	if err = temp.Sync(); err != nil {
+		temp.Close()
+		return err
+	}
+	if err = temp.Close(); err != nil {
+		return err
+	}
+	if err = os.Rename(tempPath, path); err != nil {
+		return err
+	}
+	// The rename is atomic; directory fsync is required before the caller may
+	// execute the side effect.
+	if err = syncOperationJournalDirectory(directory); err != nil {
+		return err
+	}
+	return nil
+}
+
+func indeterminateOperationResult(revision int64) operationResult {
+	return operationResult{
+		Status:     "failed",
+		ObservedAt: time.Now().UTC().Format(time.RFC3339),
+		Revision:   revision,
+		Result: map[string]any{
+			"code": "operation_outcome_unknown",
+			"note": "write-ahead operation marker found without final result; operation was not re-executed",
+		},
+	}
+}
+
+// executeOperationWithJournal provides the crash/redelivery guarantee:
+//   - a durable started marker is persisted before execute;
+//   - if any marker exists without a final result, execute is not called and an
+//     indeterminate failed result is stored;
+//   - final results, including indeterminate ones, are persisted atomically.
+//
+// persist is injectable so tests can cover write failures deterministically.
+func executeOperationWithJournal(dir, operationID string, revision int64, operationType string, execute func() operationResult, persist func(string, operationJournalEntry) error) (operationResult, bool, error) {
+	if dir == "" || operationID == "" || execute == nil || persist == nil {
+		return operationResult{}, false, errors.New("invalid operation journal request")
+	}
+	operationJournalMu.Lock()
+	defer operationJournalMu.Unlock()
+	releaseLock, lockErr := acquireOperationJournalLock(dir)
+	if lockErr != nil {
+		return operationResult{}, false, lockErr
+	}
+	defer releaseLock()
+
+	path := operationJournalPath(dir, operationID)
+	entry, exists, err := loadOperationJournalEntry(path)
+	if err != nil {
+		return operationResult{}, false, err
+	}
+	if exists {
+		if entry.ID != operationID || entry.Revision != revision {
+			return operationResult{}, false, errors.New("operation journal identity mismatch")
+		}
+		switch entry.State {
+		case operationJournalFinal:
+			if entry.Result == nil {
+				return operationResult{}, false, errors.New("operation journal final result missing")
+			}
+			finalResult := *entry.Result
+			if operationType == revocationOperationType && finalResult.Status == "succeeded" && !legacyRevocationResultIsTrustworthy(finalResult) {
+				// Repair a journal final produced by an earlier migration of
+				// the old {serial,revoked:true} cache: never replay it as PASS.
+				finalResult = legacyRevocationUnknownResult(revision, finalResult)
+				entry.Result = &finalResult
+				entry.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+				if err = persist(path, entry); err != nil {
+					return operationResult{}, true, err
+				}
+			}
+			return finalResult, true, nil
+		case operationJournalStarted, operationJournalIndeterminate:
+			result := indeterminateOperationResult(revision)
+			entry.State = operationJournalFinal
+			entry.Result = &result
+			entry.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			if err = persist(path, entry); err != nil {
+				return operationResult{}, true, err
+			}
+			return result, true, nil
+		default:
+			return operationResult{}, false, errors.New("operation journal state is unknown")
+		}
+	}
+	legacyResult, legacyExists, legacyErr := loadLegacyOperationResult(dir, operationID, revision)
+	if legacyErr != nil {
+		return operationResult{}, false, legacyErr
+	}
+	if legacyExists {
+		migrated := legacyResult
+		if operationType == revocationOperationType && !legacyRevocationResultIsTrustworthy(legacyResult) {
+			migrated = legacyRevocationUnknownResult(revision, legacyResult)
+		}
+		final := operationJournalEntry{
+			ID:        operationID,
+			Revision:  revision,
+			State:     operationJournalFinal,
+			Result:    &migrated,
+			UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+		}
+		if err = persist(path, final); err != nil {
+			return operationResult{}, false, err
+		}
+		return migrated, true, nil
+	}
+	started := operationJournalEntry{
+		ID:        operationID,
+		Revision:  revision,
+		State:     operationJournalStarted,
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	if err = persist(path, started); err != nil {
+		return operationResult{}, false, err
+	}
+	result := execute()
+	final := operationJournalEntry{
+		ID:        operationID,
+		Revision:  revision,
+		State:     operationJournalFinal,
+		Result:    &result,
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	if err = persist(path, final); err != nil {
+		// The started marker remains: redelivery reports an indeterminate
+		// failure and never executes this operation again.
+		return result, false, err
+	}
+	return result, false, nil
+}
+
+// revocationOperationResult keeps the revocation effects separate: a CRL that
+// has been published remains revoked even when the management disconnect
+// failed. disconnect_requested/management_accepted only report a complete
+// SUCCESS: terminal from management; disconnect_confirmed alone reports the
+// final status 3 absence plus control peer. The result is cached even when the
+// disconnect is unconfirmed so redelivery cannot repeat client-kill; a new
+// explicit operation is required for another attempt.
+func revocationOperationResult(revocation vpnruntime.RevocationResult, revokeErr error, observedAt string, revision int64) operationResult {
+	if revokeErr == nil && (!revocation.ManagementCommandSent || !revocation.DisconnectConfirmed) {
+		// A successful result must always carry both the written/accepted
+		// command and the final status confirmation.
+		revokeErr = vpnruntime.ErrRevocationPublished
+	}
+	if revokeErr == nil && (!revocation.AcceptWithinBudget || !revocation.DisconnectWithinBudget) {
+		// Never report a temporal SLA PASS for a late measurement.
+		revokeErr = vpnruntime.ErrRevocationSLAExceeded
+	}
+	result := operationResult{
+		Status:     "succeeded",
+		ObservedAt: observedAt,
+		Revision:   revision,
+		Result: map[string]any{
+			"serial":                       revocation.Serial,
+			"revoked":                      revocation.Revoked,
+			"disconnect_requested":         revocation.DisconnectRequested,
+			"management_command_sent":      revocation.ManagementCommandSent,
+			"management_command_attempted": revocation.ManagementCommandAttempted || revocation.ManagementCommandSent,
+			"management_write_partial":     revocation.ManagementWritePartial,
+			"management_accepted":          revocation.ManagementAccepted,
+			"disconnect_confirmed":         revocation.DisconnectConfirmed,
+			"accept_within_budget":         revocation.AcceptWithinBudget,
+			"disconnect_within_budget":     revocation.DisconnectWithinBudget,
+			"sla_met":                      revocation.AcceptWithinBudget && revocation.DisconnectWithinBudget,
+			"timings":                      revocation.Timings,
+		},
+	}
+	if revokeErr != nil {
+		code := "serial_mismatch"
+		switch {
+		case errors.Is(revokeErr, vpnruntime.ErrRevocationPublishFailed):
+			code = "revocation_publish_failed"
+		case errors.Is(revokeErr, vpnruntime.ErrRevocationSLAExceeded):
+			code = "sla_exceeded"
+		case errors.Is(revokeErr, vpnruntime.ErrRevocationRecordUpdate):
+			code = "revocation_record_update_failed"
+		case errors.Is(revokeErr, vpnruntime.ErrDisconnectNotAttempted):
+			code = "disconnect_not_attempted"
+		case errors.Is(revokeErr, vpnruntime.ErrDisconnectRejected):
+			code = "disconnect_rejected"
+		case errors.Is(revokeErr, vpnruntime.ErrRevocationPublished):
+			code = "disconnect_unconfirmed"
+		}
+		result.Status = "failed"
+		result.Result["code"] = code
+	}
+	return result
+}
+
 func runOnce(base, dir string, key *ecdsa.PrivateKey, output io.Writer) error {
 	s, session, err := authenticateSession(base, dir, key)
 	if err != nil {
@@ -490,27 +863,16 @@ func runOnce(base, dir string, key *ecdsa.PrivateKey, output io.Writer) error {
 	if next.Operation == nil {
 		return json.NewEncoder(output).Encode(map[string]any{"device_id": s.DeviceID, "status": "idle"})
 	}
-	cachePath := filepath.Join(dir, "operation-results.json")
-	cache := map[string]operationResult{}
-	if raw, readErr := os.ReadFile(cachePath); readErr == nil {
-		_ = json.Unmarshal(raw, &cache)
-	}
-	result, exists := cache[next.Operation.ID]
-	if exists && result.Revision != next.Operation.Revision {
-		return fmt.Errorf("cached operation revision mismatch")
-	}
-	if !exists {
-		result = executeOperation(s.Audience, expected, next.Operation.Type, next.Operation.Arguments, next.Operation.Revision)
-		cache[next.Operation.ID] = result
-		raw, _ := json.Marshal(cache)
-		if err = os.WriteFile(cachePath, raw, 0600); err != nil {
-			return err
-		}
+	result, replayed, err := executeOperationWithJournal(dir, next.Operation.ID, next.Operation.Revision, next.Operation.Type, func() operationResult {
+		return executeOperation(s.Audience, expected, next.Operation.Type, next.Operation.Arguments, next.Operation.Revision)
+	}, writeOperationJournalEntryAtomic)
+	if err != nil {
+		return err
 	}
 	if err = postWithToken(base, "/v1/"+prefix+"/operations/"+next.Operation.ID+"/result", result, &ignored, token); err != nil {
 		return err
 	}
-	return json.NewEncoder(output).Encode(map[string]any{"device_id": s.DeviceID, "operation_id": next.Operation.ID, "status": result.Status, "cached": exists})
+	return json.NewEncoder(output).Encode(map[string]any{"device_id": s.DeviceID, "operation_id": next.Operation.ID, "status": result.Status, "cached": replayed})
 }
 
 func executeOperation(audience, expected, operationType string, arguments map[string]any, revision int64) operationResult {
@@ -547,7 +909,7 @@ func executeOperation(audience, expected, operationType string, arguments map[st
 		}
 		result.Result = map[string]any{"serial": certificate.Serial, "certificate_pem": certificate.CertificatePEM, "ca_certificate_pem": certificate.CACertificatePEM, "tls_crypt_key_envelope": certificate.TLSCryptKeyEnvelope, "not_before": certificate.NotBefore, "not_after": certificate.NotAfter}
 		return result
-	case "vpn.client_certificate.revoke.v1":
+	case revocationOperationType:
 		if len(arguments) != 5 {
 			break
 		}
@@ -559,12 +921,8 @@ func executeOperation(audience, expected, operationType string, arguments map[st
 		if !a || !b || !c || !d || !e {
 			break
 		}
-		if err := vpnruntime.RevokeClientCertificate(requestID, environmentID, tenantID, deviceID, serial); err != nil {
-			result.Status, result.Result = "failed", map[string]any{"code": "serial_mismatch"}
-			return result
-		}
-		result.Result = map[string]any{"serial": serial, "revoked": true}
-		return result
+		revocation, revokeErr := vpnruntime.RevokeClientCertificate(requestID, environmentID, tenantID, deviceID, serial)
+		return revocationOperationResult(revocation, revokeErr, result.ObservedAt, result.Revision)
 	}
 	result.Status, result.Result = "failed", map[string]any{"code": "execution_error"}
 	return result

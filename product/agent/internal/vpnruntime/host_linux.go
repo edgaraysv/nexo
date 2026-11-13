@@ -34,6 +34,14 @@ import (
 const (
 	nativeRoot     = "/var/lib/nexo-node/environments"
 	transientUnits = "/run/systemd/system"
+
+	// OpenVPN runs as "nobody" and must be able to traverse both directories to
+	// read the CRL. 0711 grants search/traverse without allowing directory
+	// listing; file modes stay 0600 for private keys and 0644 for public
+	// material. WireGuard keeps its existing 0700 environment mode.
+	openVPNEnvironmentDirectoryMode = os.FileMode(0711)
+	openVPNPKIDirectoryMode         = os.FileMode(0711)
+	managementSocketName            = "mgmt.sock"
 )
 
 type commandRunner interface {
@@ -93,10 +101,7 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 		return "", ErrWireGuardPrivateAccessUnsupported
 	}
 	directory := filepath.Join(host.root, environment.ID)
-	directoryMode := os.FileMode(0700)
-	if len(environment.OpenVPNGateways) > 0 {
-		directoryMode = 0711
-	}
+	directoryMode := environmentDirectoryMode(environment)
 	if err := os.MkdirAll(directory, directoryMode); err != nil {
 		return "", err
 	}
@@ -115,6 +120,16 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 	if host.healthy(environment, bundle) {
 		return bundle.digest, nil
 	}
+	// A directory-mode-only drift must not tear down a healthy runtime: repair
+	// the PKI directory in place and return before cleanup/restart. The
+	// environment directory is already re-chmodded above, so the remaining
+	// drift can only be pki/. If the in-place repair fails or something else is
+	// also unhealthy, fall through to the full rebuild below.
+	if host.runtimeHealthy(environment, bundle) {
+		if chmodErr := host.ensurePKIDirectoryMode(environment); chmodErr == nil && host.healthy(environment, bundle) {
+			return bundle.digest, nil
+		}
+	}
 	if err = host.checkRouteAvailable(environment, link); err != nil {
 		return "", err
 	}
@@ -127,10 +142,19 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 		}
 	}()
 	if environment.Engine == "openvpn" {
-		if err = os.MkdirAll(filepath.Join(directory, "pki"), 0700); err != nil {
+		pkiDirectory := filepath.Join(directory, "pki")
+		if err = os.MkdirAll(pkiDirectory, 0700); err != nil {
 			return "", err
 		}
-		if err = ensurePKI(filepath.Join(directory, "pki"), environment); err != nil {
+		if err = os.Chmod(pkiDirectory, openVPNPKIDirectoryMode); err != nil {
+			return "", err
+		}
+		if err = ensurePKI(pkiDirectory, environment); err != nil {
+			return "", err
+		}
+		// ensurePKI is idempotent and only writes files, but re-assert the
+		// directory mode so a pre-existing directory cannot retain 0700.
+		if err = os.Chmod(pkiDirectory, openVPNPKIDirectoryMode); err != nil {
 			return "", err
 		}
 	}
@@ -286,7 +310,29 @@ func (host *NativeHost) CleanupUnknown(known map[string]struct{}) error {
 	return errors.Join(cleanupErrors...)
 }
 
+// healthy combines the rendered/runtime invariants with the OpenVPN PKI
+// directory mode. Inspect uses the same predicate so the reconciler cannot
+// treat a directory-mode drift as clean and skip Ensure.
 func (host *NativeHost) healthy(environment DesiredEnvironment, bundle runtimeBundle) bool {
+	return host.runtimeHealthy(environment, bundle) && host.pkiDirectoryHealthy(environment)
+}
+
+func (host *NativeHost) pkiDirectoryHealthy(environment DesiredEnvironment) bool {
+	if environment.Engine != "openvpn" {
+		return true
+	}
+	info, err := os.Stat(filepath.Join(host.root, environment.ID, "pki"))
+	return err == nil && info.IsDir() && info.Mode().Perm() == openVPNPKIDirectoryMode
+}
+
+func (host *NativeHost) ensurePKIDirectoryMode(environment DesiredEnvironment) error {
+	if environment.Engine != "openvpn" {
+		return nil
+	}
+	return os.Chmod(filepath.Join(host.root, environment.ID, "pki"), openVPNPKIDirectoryMode)
+}
+
+func (host *NativeHost) runtimeHealthy(environment DesiredEnvironment, bundle runtimeBundle) bool {
 	raw, err := os.ReadFile(filepath.Join(host.root, environment.ID, "manifest.json"))
 	if err != nil {
 		return false
@@ -301,7 +347,7 @@ func (host *NativeHost) healthy(environment DesiredEnvironment, bundle runtimeBu
 			return false
 		}
 	}
-	if !ccdHealthy(filepath.Join(host.root, environment.ID), bundle.ccd) {
+	if !ccdHealthy(filepath.Join(host.root, environment.ID), environment, bundle.ccd) {
 		return false
 	}
 	unit, err := os.ReadFile(filepath.Join(host.units, unitName(environment)))
@@ -504,7 +550,11 @@ func (host *NativeHost) render(environment DesiredEnvironment, link Link) (runti
 			}
 			serverDirective += fmt.Sprintf(" nopool\nifconfig-pool %s %s %s", poolStart, poolEnd, mask)
 		}
-		openvpn = fmt.Sprintf("port %d\nproto udp\ndev tun\ntopology subnet\n%s\nuser nobody\ngroup nobody\npersist-key\npersist-tun\nkeepalive 10 60\ntls-version-min 1.2\ntls-cert-profile preferred\ndata-ciphers AES-256-GCM:AES-128-GCM\nauth SHA256\nca %s/pki/ca.crt\ncert %s/pki/server.crt\nkey %s/pki/server.key\ncrl-verify %s/pki/crl.pem\ntls-crypt %s/pki/tls-crypt.key\ndh none\nscript-security 1\nverb 3\nexplicit-exit-notify 1\n", environment.ListenerPort, serverDirective, directory, directory, directory, directory, directory)
+		// Management is restricted to a per-environment Unix socket and to peer
+		// uid 0 from the instant OpenVPN binds it. The agent re-verifies and
+		// tightens the socket to root:root 0600 before its first use. No TCP
+		// listener and no password file are rendered.
+		openvpn = fmt.Sprintf("port %d\nproto udp\ndev tun\ntopology subnet\n%s\nuser nobody\ngroup nobody\npersist-key\npersist-tun\nkeepalive 10 60\ntls-version-min 1.2\ntls-cert-profile preferred\ndata-ciphers AES-256-GCM:AES-128-GCM\nauth SHA256\nca %s/pki/ca.crt\ncert %s/pki/server.crt\nkey %s/pki/server.key\ncrl-verify %s/pki/crl.pem\ntls-crypt %s/pki/tls-crypt.key\nmanagement %s/%s unix\nmanagement-client-user root\ndh none\nscript-security 1\nverb 3\nexplicit-exit-notify 1\n", environment.ListenerPort, serverDirective, directory, directory, directory, directory, directory, directory, managementSocketName)
 	} else {
 		interfaceName = "wg0"
 		serverAddress, addressErr := wireGuardServerAddress(environment.TunnelIPv4CIDR)
@@ -724,7 +774,11 @@ func bundleFiles(environment DesiredEnvironment, bundle runtimeBundle) map[strin
 
 func renderUnit(environment DesiredEnvironment, directory, serverAddress, interfaceName string) string {
 	if environment.Engine == "openvpn" {
-		return fmt.Sprintf("[Unit]\nDescription=NEXO OpenVPN environment %s\nAfter=network-online.target\n\n[Service]\nType=simple\nNetworkNamespacePath=/run/netns/%s\nExecStart=/usr/sbin/openvpn --config %s/openvpn.conf\nRestart=on-failure\nRestartSec=3s\nUMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nProtectHome=yes\nProtectKernelTunables=yes\nProtectKernelModules=yes\nProtectControlGroups=yes\nRestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID CAP_SETPCAP\nAmbientCapabilities=\nDevicePolicy=closed\nDeviceAllow=/dev/net/tun rw\nMemoryMax=96M\nCPUQuota=25%%\nTasksMax=64\n\n", environment.ID, environment.NamespaceName, directory)
+		// ProtectSystem=strict makes the whole filesystem read-only for the
+		// unit, so the management socket needs an explicit writable path. Scope
+		// it to this instance's environment directory, never the parent that
+		// contains every tenant environment.
+		return fmt.Sprintf("[Unit]\nDescription=NEXO OpenVPN environment %s\nAfter=network-online.target\n\n[Service]\nType=simple\nNetworkNamespacePath=/run/netns/%s\nExecStart=/usr/sbin/openvpn --config %s/openvpn.conf\nRestart=on-failure\nRestartSec=3s\nUMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nReadWritePaths=%s\nProtectHome=yes\nProtectKernelTunables=yes\nProtectKernelModules=yes\nProtectControlGroups=yes\nRestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID CAP_SETPCAP\nAmbientCapabilities=\nDevicePolicy=closed\nDeviceAllow=/dev/net/tun rw\nMemoryMax=96M\nCPUQuota=25%%\nTasksMax=64\n\n", environment.ID, environment.NamespaceName, directory, directory)
 	}
 	var unit strings.Builder
 	fmt.Fprintf(&unit, "[Unit]\nDescription=NEXO WireGuard environment %s\nAfter=network-online.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nNetworkNamespacePath=/run/netns/%s\n", environment.ID, environment.NamespaceName)
@@ -1079,13 +1133,20 @@ func syncCCD(directory string, desired map[string]string) error {
 	return os.Chmod(path, 0755)
 }
 
-func ccdHealthy(directory string, desired map[string]string) bool {
+func environmentDirectoryMode(environment DesiredEnvironment) os.FileMode {
+	if environment.Engine == "openvpn" {
+		return openVPNEnvironmentDirectoryMode
+	}
+	return 0700
+}
+
+func ccdHealthy(directory string, environment DesiredEnvironment, desired map[string]string) bool {
 	root, err := os.Stat(directory)
 	wantRootMode := os.FileMode(0700)
-	if len(desired) > 0 {
-		wantRootMode = 0711
+	if environment.Engine == "openvpn" {
+		wantRootMode = openVPNEnvironmentDirectoryMode
 	}
-	if err != nil || root.Mode().Perm() != wantRootMode {
+	if err != nil || !root.IsDir() || root.Mode().Perm() != wantRootMode {
 		return false
 	}
 	path := filepath.Join(directory, "ccd")
