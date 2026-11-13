@@ -153,6 +153,18 @@ func prepareManagementSocket(path string, expectedUID, expectedGID uint32) error
 	return nil
 }
 
+// managementSocketMatches is the read-only counterpart of
+// prepareManagementSocket. The runtime health probe must be able to reject a
+// permissive or foreign-owned management socket without mutating it.
+func managementSocketMatches(path string, expectedUID, expectedGID uint32) bool {
+	info, err := os.Lstat(path)
+	if err != nil || info.Mode()&os.ModeSymlink != 0 || info.Mode()&os.ModeSocket == 0 || info.Mode().Perm() != managementSocketMode {
+		return false
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	return ok && stat.Uid == expectedUID && stat.Gid == expectedGID
+}
+
 type managementPeer struct {
 	CommonName  string
 	RealAddress string

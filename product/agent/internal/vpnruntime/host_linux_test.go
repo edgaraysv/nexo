@@ -5,10 +5,12 @@ package vpnruntime
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -363,6 +365,13 @@ type statefulRunner struct {
 	namespaceRules   string
 	hostRules        string
 	route            string
+
+	// Management socket lifecycle used by NativeHost tests. OpenVPN creates
+	// the socket permissively; the host must harden it before reporting ready.
+	socketPath        string
+	socket            *net.UnixListener
+	createdSocketMode os.FileMode
+	onSocketCreated   func(string, os.FileMode)
 }
 
 func (runner *statefulRunner) Run(input []byte, name string, arguments ...string) (string, error) {
@@ -400,8 +409,14 @@ func (runner *statefulRunner) Run(input []byte, name string, arguments ...string
 			}
 		case "start":
 			runner.running = true
+			if err := runner.createManagementSocket(); err != nil {
+				return "", err
+			}
 		case "stop":
 			runner.running = false
+			if err := runner.removeManagementSocket(); err != nil {
+				return "", err
+			}
 		}
 	}
 	if name == "ip" && len(arguments) >= 2 && arguments[0] == "netns" {
@@ -486,6 +501,44 @@ func (runner *statefulRunner) Run(input []byte, name string, arguments ...string
 	return "", nil
 }
 
+func (runner *statefulRunner) createManagementSocket() error {
+	if runner.socketPath == "" || runner.socket != nil {
+		return nil
+	}
+	if err := os.Remove(runner.socketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: runner.socketPath, Net: "unix"})
+	if err != nil {
+		return err
+	}
+	listener.SetUnlinkOnClose(false)
+	if err = os.Chmod(runner.socketPath, 0777); err != nil {
+		_ = listener.Close()
+		return err
+	}
+	runner.socket = listener
+	runner.createdSocketMode = 0777
+	if runner.onSocketCreated != nil {
+		runner.onSocketCreated(runner.socketPath, 0777)
+	}
+	return nil
+}
+
+func (runner *statefulRunner) removeManagementSocket() error {
+	var err error
+	if runner.socket != nil {
+		err = runner.socket.Close()
+		runner.socket = nil
+	}
+	if runner.socketPath != "" {
+		if removeErr := os.Remove(runner.socketPath); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) && err == nil {
+			err = removeErr
+		}
+	}
+	return err
+}
+
 func TestNativeHostCleanupFailsClosedWhenHostFirewallCannotBeInspected(t *testing.T) {
 	runner := &statefulRunner{failTableList: true}
 	host, desired := nativeHostFixture(t, runner)
@@ -496,14 +549,28 @@ func TestNativeHostCleanupFailsClosedWhenHostFirewallCannotBeInspected(t *testin
 
 func nativeHostFixture(t *testing.T, runner *statefulRunner) (*NativeHost, DesiredEnvironment) {
 	t.Helper()
-	root, units := filepath.Join(t.TempDir(), "environments"), filepath.Join(t.TempDir(), "units")
-	forwarding := filepath.Join(t.TempDir(), "ip_forward")
-	if err := os.WriteFile(forwarding, []byte("1\n"), 0600); err != nil {
+	// A short /tmp root keeps <root>/<uuid>/mgmt.sock below
+	// sockaddr_un.sun_path even when the test binary's TMPDIR is long.
+	base, err := os.MkdirTemp("/tmp", "nx-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = runner.removeManagementSocket()
+		_ = os.RemoveAll(base)
+	})
+	root, units := filepath.Join(base, "e"), filepath.Join(base, "u")
+	forwarding := filepath.Join(base, "ip_forward")
+	if err = os.WriteFile(forwarding, []byte("1\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	desired := environment("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6", "active", 21194)
 	runner.link, runner.port = linkFor(desired.ID), desired.ListenerPort
-	return &NativeHost{root: root, units: units, forwardingPath: forwarding, runner: runner}, desired
+	runner.socketPath = filepath.Join(root, desired.ID, managementSocketName)
+	return &NativeHost{
+		root: root, units: units, forwardingPath: forwarding, runner: runner,
+		managementUID: uint32(os.Geteuid()), managementGID: uint32(os.Getegid()),
+	}, desired
 }
 
 func TestNativeHostPersistsAndRepairsGatewayCCDWithClosedPermissions(t *testing.T) {
@@ -676,6 +743,102 @@ func TestNativeHostOpenVPNDirectoriesAreTraversalOnlyAndRepairedWithoutRestart(t
 	}
 	if !runner.running {
 		t.Fatal("pki-mode repair stopped the OpenVPN unit")
+	}
+}
+
+func TestNativeHostHardensManagementSocketBeforeReportingHealthy(t *testing.T) {
+	runner := &statefulRunner{}
+	host, desired := nativeHostFixture(t, runner)
+	runner.onSocketCreated = func(path string, mode os.FileMode) {
+		if mode != 0777 {
+			t.Fatalf("fixture did not create a permissive socket: got=%o", mode)
+		}
+		if _, err := os.Lstat(path); err != nil {
+			t.Fatalf("management socket was not created: %v", err)
+		}
+		if host.managementSocketHealthy(desired) {
+			t.Fatal("permissive management socket was considered healthy before hardening")
+		}
+	}
+	if _, err := host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	if runner.createdSocketMode != 0777 {
+		t.Fatalf("management socket was not created permissively: got=%o", runner.createdSocketMode)
+	}
+	socketPath := filepath.Join(host.root, desired.ID, managementSocketName)
+	info, err := os.Lstat(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&os.ModeSocket == 0 || info.Mode().Perm() != 0600 {
+		t.Fatalf("management socket was not hardened at startup: mode=%v", info.Mode())
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Uid != host.managementUID || stat.Gid != host.managementGID {
+		t.Fatalf("unexpected management socket owner: %#v", info.Sys())
+	}
+	if _, clean, err := host.Inspect(desired, linkFor(desired.ID)); err != nil || !clean {
+		t.Fatalf("hardened environment was not inspect-clean: clean=%v err=%v", clean, err)
+	}
+}
+
+func TestNativeHostRepairsRecreatedManagementSocketWithoutRestart(t *testing.T) {
+	runner := &statefulRunner{}
+	host, desired := nativeHostFixture(t, runner)
+	if _, err := host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	socketPath := filepath.Join(host.root, desired.ID, managementSocketName)
+	starts := 0
+	for _, command := range runner.commands {
+		if strings.HasPrefix(command, "systemctl start ") {
+			starts++
+		}
+	}
+	// Simulate OpenVPN recreating the socket permissively while the unit stays
+	// active. Inspect must see the drift without itself changing the mode.
+	if err := runner.removeManagementSocket(); err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.createManagementSocket(); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0777 {
+		t.Fatalf("fixture did not recreate a permissive socket: mode=%v", info.Mode())
+	}
+	if _, clean, err := host.Inspect(desired, linkFor(desired.ID)); err != nil || clean {
+		t.Fatalf("permissive recreated socket was reported clean: clean=%v err=%v", clean, err)
+	}
+	info, err = os.Lstat(socketPath)
+	if err != nil || info.Mode().Perm() != 0777 {
+		t.Fatalf("Inspect mutated the management socket: mode=%v err=%v", info.Mode(), err)
+	}
+	if _, err = host.Ensure(desired, linkFor(desired.ID)); err != nil {
+		t.Fatal(err)
+	}
+	info, err = os.Lstat(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&os.ModeSocket == 0 || info.Mode().Perm() != 0600 {
+		t.Fatalf("recreated management socket was not hardened: mode=%v", info.Mode())
+	}
+	after := 0
+	for _, command := range runner.commands {
+		if strings.HasPrefix(command, "systemctl start ") {
+			after++
+		}
+	}
+	if after != starts {
+		t.Fatalf("socket repair restarted the runtime: starts %d -> %d", starts, after)
+	}
+	if !runner.running {
+		t.Fatal("socket repair stopped the OpenVPN unit")
 	}
 }
 

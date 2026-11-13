@@ -77,6 +77,11 @@ func (execRunner) Run(input []byte, name string, arguments ...string) (string, e
 type NativeHost struct {
 	root, units, forwardingPath string
 	runner                      commandRunner
+
+	// Management sockets are created by the root OpenVPN unit. Tests override
+	// these to the unprivileged test identity; production keeps the zero value
+	// (root:root).
+	managementUID, managementGID uint32
 }
 type diskManifest struct {
 	Environment DesiredEnvironment `json:"environment"`
@@ -120,13 +125,15 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 	if host.healthy(environment, bundle) {
 		return bundle.digest, nil
 	}
-	// A directory-mode-only drift must not tear down a healthy runtime: repair
-	// the PKI directory in place and return before cleanup/restart. The
-	// environment directory is already re-chmodded above, so the remaining
-	// drift can only be pki/. If the in-place repair fails or something else is
-	// also unhealthy, fall through to the full rebuild below.
+	// A filesystem-mode-only drift must not tear down a healthy runtime:
+	// repair the PKI directory and the management socket in place and return
+	// before cleanup/restart. The environment directory is already re-chmodded
+	// above. If the in-place repair fails or something else is also unhealthy,
+	// fall through to the full rebuild below.
 	if host.runtimeHealthy(environment, bundle) {
-		if chmodErr := host.ensurePKIDirectoryMode(environment); chmodErr == nil && host.healthy(environment, bundle) {
+		pkiErr := host.ensurePKIDirectoryMode(environment)
+		socketErr := host.hardenManagementSocket(environment)
+		if pkiErr == nil && socketErr == nil && host.healthy(environment, bundle) {
 			return bundle.digest, nil
 		}
 	}
@@ -221,7 +228,13 @@ func (host *NativeHost) Ensure(environment DesiredEnvironment, link Link) (diges
 		return "", err
 	}
 	for attempt := 0; attempt < 20; attempt++ {
-		if host.healthy(environment, bundle) {
+		// OpenVPN publishes the management socket after the unit starts. Harden
+		// and verify it before reporting the environment ready. This removes the
+		// persistent 0777 state, but it cannot make OpenVPN's bind atomic; the
+		// rendered management-client-user root gate remains the peer-UID
+		// control from bind. The 100 ms loop bounds, but does not eliminate,
+		// the post-creation chmod window.
+		if err = host.hardenManagementSocket(environment); err == nil && host.healthy(environment, bundle) {
 			return bundle.digest, nil
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -311,10 +324,33 @@ func (host *NativeHost) CleanupUnknown(known map[string]struct{}) error {
 }
 
 // healthy combines the rendered/runtime invariants with the OpenVPN PKI
-// directory mode. Inspect uses the same predicate so the reconciler cannot
-// treat a directory-mode drift as clean and skip Ensure.
+// directory mode and management-socket ownership/mode. Inspect uses the same
+// predicate so the reconciler cannot treat a permissions drift as clean and
+// skip Ensure.
 func (host *NativeHost) healthy(environment DesiredEnvironment, bundle runtimeBundle) bool {
-	return host.runtimeHealthy(environment, bundle) && host.pkiDirectoryHealthy(environment)
+	return host.runtimeHealthy(environment, bundle) &&
+		host.pkiDirectoryHealthy(environment) &&
+		host.managementSocketHealthy(environment)
+}
+
+func (host *NativeHost) managementSocketPath(environment DesiredEnvironment) string {
+	return filepath.Join(host.root, environment.ID, managementSocketName)
+}
+
+// managementSocketHealthy is deliberately read-only: Inspect must never chmod
+// or otherwise mutate native state.
+func (host *NativeHost) managementSocketHealthy(environment DesiredEnvironment) bool {
+	if environment.Engine != "openvpn" {
+		return true
+	}
+	return managementSocketMatches(host.managementSocketPath(environment), host.managementUID, host.managementGID)
+}
+
+func (host *NativeHost) hardenManagementSocket(environment DesiredEnvironment) error {
+	if environment.Engine != "openvpn" {
+		return nil
+	}
+	return prepareManagementSocket(host.managementSocketPath(environment), host.managementUID, host.managementGID)
 }
 
 func (host *NativeHost) pkiDirectoryHealthy(environment DesiredEnvironment) bool {
