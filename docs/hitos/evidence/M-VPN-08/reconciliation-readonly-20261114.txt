@@ -1,0 +1,48 @@
+M-VPN-08 — conciliación: relectura SSM de solo lectura
+Fecha del registro: 2026-11-14 UTC
+Tipo: resumen de resultados SSM read-only; no es salida cruda ni log de comandos.
+No se hizo mutación API/DB en estas consultas.
+
+Alcance
+- Nodo Gamma: i-006cda6fdc86af7a5
+- Dispositivo: 6621ddea-57aa-424a-90ad-3b5d7253de52
+- Credencial: 4e89068e-18a7-4d60-a751-bcf6a6c62dc2
+- Serial: 276a302bce444bb6cde593f08a82f13c
+- Operación: 4ff85604-2437-499d-96de-119003f7d504
+
+Resultados observados
+- SSM 377cd26f-b4b1-43b0-9b61-01e447ff3cd7: credencial en
+  revocation_pending, revoked_at NULL; operación tipo
+  vpn.client_certificate.revoke.v1 en expired, completada
+  2026-11-14 13:23:39.020526+00.
+- SSM 645eca2e-4a37-4cb5-a7f4-cb6db8d7d186: serial presente en CRL,
+  revocado a 2026-11-14T13:18:52Z.
+- SSM 6b7fa501-693c-4652-802f-8365ac441c18: status 3 completo sin el CN
+  objetivo; servicios VPN y node-agent activos; journal final failed,
+  revoked=true, disconnect_confirmed=false, disconnect_within_budget=false,
+  code=disconnect_unconfirmed.
+
+Consulta auxiliar
+- SSM 414cb145-90ac-4b05-b79f-10d779748703 terminó Failed con
+  `role "nexo_app" does not exist` al consultar privilegios de un rol supuesto.
+- Fue una lectura de metadatos, no una operación de conciliación; no hubo
+  escritura. No demuestra los permisos efectivos del API ni un fallo del
+  producto. Las consultas posteriores de estado DB/CRL/status terminaron
+  correctamente.
+
+Límites
+- La ausencia de node_operation_results se reportó en el registro/encargo
+  previo; esta relectura no incluyó una captura tabular de esa tabla.
+- Los status frames acotan la transición: último frame completo con CN en poll
+  28 a 14 031.673 ms; primer frame completo sin CN en poll 32 a 20 039.364 ms.
+  Polls 29/30 dieron timeout y poll 31 BlockingIOError; no se afirma presencia
+  continua del peer durante todo el intervalo.
+- El serial en CRL y el rechazo TLS constan en la evidencia live anterior;
+  no prueban tráfico útil de plano de datos.
+- No se encontró, en el diagnóstico crítico neutral de solo lectura, un
+  endpoint o procedimiento soportado para conciliar la combinación
+  revocation_pending + operación expired. No se ejecutó SQL/API mutante.
+- El resumen del diagnóstico de código es estático. Los archivos API locales
+  tenían cambios sin commit; no se atribuye su comportamiento al API desplegado.
+- El replay posterior a expiración devolvió HTTP 422 invalid_request; no prueba
+  por sí solo la causa ni el cuerpo de la primera respuesta asíncrona.
