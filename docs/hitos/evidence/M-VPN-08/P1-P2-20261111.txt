@@ -1,0 +1,17 @@
+$ docker run --rm -v "$PWD":/src -w /src/product/agent golang:1.27.3-bookworm sh -lc "go version && go test ./..."
+sh: 1: go: not found
+
+$ docker run --rm -v "$PWD":/src -w /src/product/agent golang:1.27.3-bookworm go version
+go version go1.27.3 linux/amd64
+
+$ docker run --rm -v "$PWD":/src -w /src/product/agent golang:1.27.3-bookworm go test ./...
+ok  	nexo.local/agent/cmd/nexo-agent	0.805s
+?   	nexo.local/agent/cmd/nexo-agent-updater	[no test files]
+?   	nexo.local/agent/cmd/nexo-crl-probe	[no test files]
+ok  	nexo.local/agent/cmd/nexo-issuer	0.077s
+ok  	nexo.local/agent/internal/clientipc	0.048s
+ok  	nexo.local/agent/internal/keystore	0.049s
+ok  	nexo.local/agent/internal/labfixture	0.047s
+ok  	nexo.local/agent/internal/networkruntime	0.026s
+ok  	nexo.local/agent/internal/updater	0.639s
+ok  	nexo.local/agent/internal/vpnruntime	3.347s

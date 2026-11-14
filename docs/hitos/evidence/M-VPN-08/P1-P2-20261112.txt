@@ -1,0 +1,45 @@
+M-VPN-08 — Evidencia P1/P2 revisadas
+Fecha: 2026-11-12 UTC
+HEAD: e8106f14f80197f644d69b2f43ac410618b00906
+Rama: master
+Entorno: Docker 29.5.2; go1.27.3 linux/amd64; imagen golang:1.27.3-bookworm sha256:dc0963f32053e4bc451d24d87e3892d42d01021b61f093e98eb95c0352bb84b0.
+Checkout montado como /src:ro; contenedor con --network none y --pull=never.
+
+Intento 1 (antes de corregir el helper de socket temporal)
+Comando exacto:
+docker run --rm --pull=never --network none -v "$PWD":/src:ro -w /src/product/agent golang:1.27.3-bookworm go test ./...
+Exit code: 1.
+Paquetes PASS: cmd/nexo-agent, cmd/nexo-issuer, internal/clientipc, internal/keystore, internal/labfixture, internal/networkruntime, internal/updater.
+Sin tests: cmd/nexo-agent-updater, cmd/nexo-crl-probe.
+FAIL: internal/vpnruntime; nueve casos fallaron durante setup, antes de entrar al protocolo.
+Primer error:
+management_linux_test.go:388: listen unix /tmp/TestDisconnectUsesStatusIdentityAndConfirmsFinalStatus287224043/001/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/mgmt.sock: bind: invalid argument
+Casos con el mismo bind error: TestDisconnectAbortsWithoutCommandWhenPreReadIdentityChanges; TestDisconnectFailsClosedOnZeroOrMultipleMatches/{zero_matches,multiple_matches}; TestDisconnectTerminalErrorIsRejectionNotAcceptance; TestDisconnectEOFBeforeTerminalIsNotAcceptance; TestDisconnectStopsWhenFinalStatusShowsChangedTargetSession; TestDisconnectRequiresControlPeerForConfirmation/{no_control_peer_initially,control_peer_lost}.
+Diagnóstico estático independiente: nexo-diagnostico, sesión ses_e324756eeffe5XWbZy7KxRxgZ1. El path de error mide 119 bytes; sockaddr_un.sun_path admite 107 bytes de pathname más el terminador NUL. La longitud excesiva procede del nombre de t.TempDir() sumado al UUID y mgmt.sock; este resultado no demuestra un defecto del runtime.
+
+Corrección acotada entre intentos
+management_linux_test.go: startFakeManagementServer ahora usa os.MkdirTemp("", "mv8-") y t.Cleanup para cerrar el listener y eliminar únicamente su root temporal. Se mantienen environment ID, socket, permisos y aserciones.
+
+Intento 2 (después de la corrección)
+Comando exacto:
+docker run --rm --pull=never --network none -v "$PWD":/src:ro -w /src/product/agent golang:1.27.3-bookworm go test ./...
+Exit code: 0.
+Salida relevante:
+ok   nexo.local/agent/cmd/nexo-agent           0.834s
+?    nexo.local/agent/cmd/nexo-agent-updater   [no test files]
+?    nexo.local/agent/cmd/nexo-crl-probe       [no test files]
+ok   nexo.local/agent/cmd/nexo-issuer           0.061s
+ok   nexo.local/agent/internal/clientipc        0.024s
+ok   nexo.local/agent/internal/keystore         0.030s
+ok   nexo.local/agent/internal/labfixture       0.020s
+ok   nexo.local/agent/internal/networkruntime   0.038s
+ok   nexo.local/agent/internal/updater          0.204s
+ok   nexo.local/agent/internal/vpnruntime       2.935s
+Resultado: P1/P2 revisadas PASS como suite unitaria local del snapshot indicado; el intento 1 queda conservado como FAIL de setup y fue corregido antes del intento 2. Esto no acredita P3 ni cierre del hito.
+
+Fingerprint calculado después del intento 2; no hubo cambios de código entre esa corrida y el cálculo:
+3e80fc7da4df5e761b5bb40cb2732afaf41cf850dcc8aab40372095069ae658d  -
+Algoritmo: find product/agent -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum.
+Estado de product/agent: contiene cambios locales modificados y nuevos; el comando P1/P2 los compiló/ejecutó en ese checkout. El detalle se conserva en la salida de git status de esta sesión; no se hizo commit ni push.
+
+P3 SLA 2 s/10 s: NOT_RUN en esta evidencia. Sin producción, AWS/SSM, infraestructura ni cambios remotos.

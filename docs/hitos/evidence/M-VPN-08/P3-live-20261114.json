@@ -1,0 +1,606 @@
+{
+  "baseline": {
+    "greeting": ">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info",
+    "complete": true,
+    "target_match_count": 1,
+    "lines": [
+      "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+      "TIME\t2026-11-14 13:18:38\t1794662318",
+      "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+      "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4088\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+      "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+      "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+      "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+      "GLOBAL_STATS\tdco_enabled\t0",
+      "END"
+    ]
+  },
+  "http_status": 204,
+  "http_body_base64": "",
+  "http_body_utf8": "",
+  "http_error": null,
+  "t0_utc": "2026-11-14T13:18:38.305835+00:00",
+  "t0_monotonic_ns": 1685101972841969,
+  "t_success_monotonic_ns": 1685101995755249,
+  "t_success_elapsed_ms": 22.913,
+  "poll_interval_ms": 500,
+  "polls": [
+    {
+      "index": 1,
+      "start_elapsed_ms": 500.533,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 500.956,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:38\t1794662318",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4088\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 2,
+      "start_elapsed_ms": 1001.553,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 1002.012,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:39\t1794662319",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4088\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 3,
+      "start_elapsed_ms": 1502.6,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 1503.039,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:39\t1794662319",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4088\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 4,
+      "start_elapsed_ms": 2003.694,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 2004.158,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:40\t1794662320",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4088\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 5,
+      "start_elapsed_ms": 2504.748,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 2505.219,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:40\t1794662320",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4088\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 6,
+      "start_elapsed_ms": 3005.845,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 3006.325,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:41\t1794662321",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4088\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 7,
+      "start_elapsed_ms": 3506.921,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 3507.464,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:41\t1794662321",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 8,
+      "start_elapsed_ms": 4008.046,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 4008.514,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:42\t1794662322",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 9,
+      "start_elapsed_ms": 4509.106,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 4509.541,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:42\t1794662322",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 10,
+      "start_elapsed_ms": 5010.126,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 5010.604,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:43\t1794662323",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 11,
+      "start_elapsed_ms": 5511.178,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 5511.617,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:43\t1794662323",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4260\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 12,
+      "start_elapsed_ms": 6012.224,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 6012.668,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:44\t1794662324",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 13,
+      "start_elapsed_ms": 6513.269,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 6513.75,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:44\t1794662324",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 14,
+      "start_elapsed_ms": 7014.341,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 7014.824,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:45\t1794662325",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 15,
+      "start_elapsed_ms": 7515.43,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 7515.902,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:45\t1794662325",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 16,
+      "start_elapsed_ms": 8016.499,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 8016.945,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:46\t1794662326",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 17,
+      "start_elapsed_ms": 8517.254,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 8517.704,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:46\t1794662326",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 18,
+      "start_elapsed_ms": 9018.29,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 9018.733,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:47\t1794662327",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 19,
+      "start_elapsed_ms": 9519.316,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 9519.762,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:47\t1794662327",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 20,
+      "start_elapsed_ms": 10020.359,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 10020.825,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:48\t1794662328",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 21,
+      "start_elapsed_ms": 10521.424,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 10521.879,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:48\t1794662328",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 22,
+      "start_elapsed_ms": 11022.483,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 11022.93,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:49\t1794662329",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 23,
+      "start_elapsed_ms": 11523.534,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 11524.036,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:49\t1794662329",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 24,
+      "start_elapsed_ms": 12024.632,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 12025.065,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:50\t1794662330",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 25,
+      "start_elapsed_ms": 12526.724,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 12527.64,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:50\t1794662330",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 26,
+      "start_elapsed_ms": 13027.964,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 13029.222,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:51\t1794662331",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 27,
+      "start_elapsed_ms": 13529.802,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 13530.655,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:51\t1794662331",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4128\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 28,
+      "start_elapsed_ms": 14031.243,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 1,
+      "observed_elapsed_ms": 14031.673,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:52\t1794662332",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "CLIENT_LIST\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t10.247.43.2\t\t4300\t4168\t2026-11-14 13:11:06\t1794661866\tUNDEF\t0\t0\tAES-256-GCM",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "ROUTING_TABLE\t10.247.43.2\tnexo:6621ddea-57aa-424a-90ad-3b5d7253de52\t10.240.0.14:35733\t2026-11-14 13:11:06\t1794661866",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    },
+    {
+      "index": 29,
+      "start_elapsed_ms": 14532.261,
+      "complete": false,
+      "observed_elapsed_ms": 16534.491,
+      "error": "timeout: timed out"
+    },
+    {
+      "index": 30,
+      "start_elapsed_ms": 17035.228,
+      "complete": false,
+      "observed_elapsed_ms": 19037.448,
+      "error": "timeout: timed out"
+    },
+    {
+      "index": 31,
+      "start_elapsed_ms": 19538.14,
+      "complete": false,
+      "observed_elapsed_ms": 19538.248,
+      "error": "BlockingIOError: [Errno 11] Resource temporarily unavailable"
+    },
+    {
+      "index": 32,
+      "start_elapsed_ms": 20038.902,
+      "complete": true,
+      "end_seen": true,
+      "target_match_count": 0,
+      "observed_elapsed_ms": 20039.364,
+      "lines": [
+        "TITLE\tOpenVPN 2.6.12 x86_64-amazon-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]",
+        "TIME\t2026-11-14 13:18:58\t1794662338",
+        "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher",
+        "HEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)",
+        "GLOBAL_STATS\tMax bcast/mcast queue length\t0",
+        "GLOBAL_STATS\tdco_enabled\t0",
+        "END"
+      ]
+    }
+  ],
+  "t_caida_monotonic_ns": 1685122012205622,
+  "t_caida_elapsed_ms": 20039.364,
+  "p3_pass": false,
+  "vpn_service_before": "active",
+  "node_service_before": "active",
+  "final_poll_count": 32,
+  "final_elapsed_ms": 20039.385
+}

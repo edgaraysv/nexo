@@ -1,0 +1,53 @@
+M‑VPN‑08 — ventana Gamma live
+Fecha: 2026-11-14 UTC
+Tipo: integración real AWS/SSM, Alpha y OpenVPN 2.6.12.
+
+Alcance y artefactos evaluados
+- API Alpha: `https://nexo.sysmedia.net`; nodo/Gamma `i-006cda6fdc86af7a5` (`10.240.0.78`); endpoint temporal `i-0d438d2bb29aafcc9` (`10.240.0.14`). Entorno OpenVPN `d888126a-d410-4f9f-a6f1-e2b0e86f062e`, UDP/21603.
+- El agente de nodo activo en Gamma: SHA-256 `4b411d45ecc6586b4528a079b02e4d84f8983ae1fb871e40e556b09195e91286`; API compilada: `/opt/nexo/dist/product/application.js`, SHA-256 `80136025326e45767eb5c454187d214f0fb1dd40f7eb16d43eb4598cd0f6cb47`. El ejecutable preexistente usado en endpoint2 tenía SHA-256 `f4ec08ab38d88599b2f6d9e58ec397ee4866d47372219c3bce1fc2ce1891250e`; no se compiló ni desplegó un binario nuevo.
+- Login/MFA/select de Alpha respondió HTTP 200 en cada paso mediante SSM `106aa4ef-2a59-49a7-9ac1-aee3438e92e7`. No se registraron contraseña, secreto TOTP, código ni token.
+- Enrollment `6621ddea-57aa-424a-90ad-3b5d7253de52`, nombre `MVPN08-Endpoint2-20261114`, quedó aprobado y autenticado. La credencial OpenVPN tuvo serial `276a302bce444bb6cde593f08a82f13c`. La clave privada y material de cliente quedaron solo bajo `/run` durante la prueba.
+- Gamma y endpoint2 llegaron a SSM Online. En baseline, `status 3` completo mostró un único peer objetivo `nexo:6621ddea-57aa-424a-90ad-3b5d7253de52`, dirección `10.240.0.14:35733`, túnel `10.247.43.2`. Socket de management en Gamma: `root:root 0600`; unidades `nexo.service`, `nexo-node-agent.service` y `nexo-vpn-d888126ad410.service` estaban `active`.
+
+P3 live — FAIL
+- Comando SSM `a62d2c09-6fdf-4602-87ad-f9c96726ede1`, `AWS-RunShellScript`, en Gamma. Python realizó el POST y el polling del socket Unix `mgmt.sock`, con un solo `time.monotonic_ns()` y sondeo nominal cada 500 ms; no se usó `socat`. El JSON completo, con frames de status 3, errores de lectura, valores monotónicos y hash de captura, está en `P3-live-20261114.json` (SHA-256 `c9ea184bd9a1dafd7468a70e86b55b7eece5ce18792416edefe800f4dc22d8f0`).
+- Guardas inmediatamente previas al POST: identidad aprobada, serial ausente de CRL, una única coincidencia del CN en status 3 completo, socket `root:root 0600`, nodo y VPN activos.
+- `T0` inmediatamente antes del POST: `2026-11-14T13:18:38.305835Z`, monotónico `1685101972841969 ns`. `POST /v1/company/agents/6621ddea-57aa-424a-90ad-3b5d7253de52/revoke`: HTTP 204, cuerpo vacío. `T_success` informativo: `1685101995755249 ns`, `22.913 ms` desde T0.
+- Primera ausencia del CN en un frame status 3 completo: sondeo 32, `T_caída=1685122012205622 ns`, `20039.364 ms` desde T0 (aprox. `13:18:58.345199Z`). Supera el único límite temporal de 10 000 ms por `10039.364 ms`; resultado **FAIL**, no PASS.
+- Los sondeos completos 1–28 seguían mostrando el CN; el último se analizó a `14031.673 ms`. Los sondeos 29 y 30 agotaron timeout de lectura de 2 s; el 31 devolvió `BlockingIOError: [Errno 11] Resource temporarily unavailable`; ninguno cuenta como status completo ni como T_caída. El sondeo 32 terminó con `END` y cero coincidencias.
+- El servicio VPN siguió `active/running`. La CRL de Gamma contiene el serial `276A302BCE444BB6CDE593F08A82F13C`, con fecha de revocación `2026-11-14 13:18:52Z`; un status 3 completo posterior no tenía clientes.
+- Dos envíos SSM anteriores al comando medido fallaron antes de ejecutar cualquier mutación: `ba076bab-0a8b-4837-8a08-8527a2308361` por literal de línea Python mal escapado y `2b702b17-bc87-49fc-88d3-599ae269549d` por sintaxis de una comprensión de lista. Un timeout de la herramienta al esperar el siguiente envío no provocó un segundo POST: `ListCommands` identificó el comando `a62d2c09-6fdf-4602-87ad-f9c96726ede1` y `GetCommandInvocation` confirmó su salida completa `Success`.
+
+Resultado asíncrono y estado persistente
+- La operación de nodo de revocación `4ff85604-2437-499d-96de-119003f7d504`, revisión 22, quedó `expired` a `13:23:39.020526Z`. El journal local del agente conservó un resultado final `failed`: `revoked=true`, `management_command_sent=true`, `management_accepted=true`, `disconnect_confirmed=false`, `disconnect_within_budget=false`, `sla_met=false`, `code=disconnect_unconfirmed`; su medición interna `disconnect_elapsed_ns` fue `5444614896`. Esto no sustituye la medición externa P3, cuyo gate resultó FAIL.
+- El journal de systemd del nodo muestra `nexo_node_operation_cycle_failed` a `13:18:58`, `13:19:07`, `13:19:22`, `13:19:37`, `13:19:52`, `13:20:07` y `13:20:22`. El agente usa `postWithToken`, que no conserva el cuerpo de respuestas HTTP no exitosas. No se capturó el cuerpo de la primera devolución asíncrona.
+- Sin reejecutar la revocación, se autenticó el nodo y se reprodujo una vez el resultado ya guardado en journal después de que la operación estuviera `expired`. SSM `9e6217e7-bfe0-4485-bf34-9fb8cd35af8b`: el reenvío respondió HTTP 422 con cuerpo exacto `{"error":"invalid_request"}` (base64 `eyJlcnJvciI6ImludmFsaWRfcmVxdWVzdCJ9`). Es una reproducción diagnóstica posterior a la expiración, no el cuerpo capturado en la primera respuesta; no se afirma identidad byte a byte con esa respuesta original.
+- La fila de identidad quedó `revoked`; la credencial quedó `revocation_pending`, `revoked_at` nulo, y vinculada a la operación expirada. La CRL sí contiene el serial y el status 3 sí confirma su caída posterior. No se hizo SQL ni transición manual: no se verificó un procedimiento transaccional soportado para reconciliar los tres estados.
+
+Reconexión TLS — rechazo confirmado en el servidor
+- El cliente OpenVPN de endpoint2 se conectó a la IP privada de Gamma `10.240.0.78:21603`, con el mismo certificado y `route-noexec`; no se reintentó por EIP.
+- El primer monitor local SSM `a0df7477-d563-438a-8fc1-b1a15f611e4c` no encontró en el cliente una cadena explícita “certificate revoked” y su script salió con resultado no confirmado; el log del cliente sí muestra el TLS Initial packet y validación del certificado de servidor, sin `Initialization Sequence Completed`.
+- El journal del servidor, SSM `9ebd5733-d3fc-48a4-a8b4-d4460cafcb82`, correlaciona la conexión `10.240.0.14:38324` con el SID visto por el cliente `ca43c55b f0e23215`. El servidor registra: `VERIFY ERROR: depth=0, error=certificate revoked` para el CN objetivo y serial correspondiente; `Sent fatal SSL alert: certificate revoked`; `TLS handshake failed`. También informa `CRL: loaded 1 CRLs`. Esto confirma rechazo TLS atribuible a revocación/CRL: **PASS, integración real**. El primer script cliente por sí solo no lo habría acreditado.
+- Extracto saneado del journal de Gamma, `nexo-vpn-d888126ad410.service`, 2026-11-14 13:39:24 UTC:
+  ```text
+  10.240.0.14:38324 OpenSSL: error:0308010C:digital envelope routines::unsupported:Global default library context, Algorithm (none : 0), Properties (<null>)
+  10.240.0.14:38324 OpenSSL: error:0480006C:PEM routines::no start line:
+  10.240.0.14:38324 CRL: cannot read CRL from file /var/lib/nexo-node/environments/d888126a-d410-4f9f-a6f1-e2b0e86f062e/pki/crl.pem
+  10.240.0.14:38324 CRL: loaded 1 CRLs from file /var/lib/nexo-node/environments/d888126a-d410-4f9f-a6f1-e2b0e86f062e/pki/crl.pem
+  10.240.0.14:38324 VERIFY ERROR: depth=0, error=certificate revoked: OU=e4186fac-0dd4-4aaa-8f0f-e4342e19af8a, CN=nexo:6621ddea-57aa-424a-90ad-3b5d7253de52, serial=52391252328924850693980516740763939132
+  10.240.0.14:38324 Sent fatal SSL alert: certificate revoked
+  10.240.0.14:38324 OpenSSL: error:0A000086:SSL routines::certificate verify failed:
+  10.240.0.14:38324 TLS_ERROR: BIO read tls_read_plaintext error
+  10.240.0.14:38324 TLS Error: TLS object -> incoming plaintext read error
+  10.240.0.14:38324 TLS Error: TLS handshake failed
+  10.240.0.14:38324 SIGUSR1[soft,tls-error] received, client-instance restarting
+  ```
+  El cliente registró a la misma hora `TLS: Initial packet from [AF_INET]10.240.0.78:21603, sid=ca43c55b f0e23215` y `VERIFY OK` del certificado de servidor. La advertencia de lectura de CRL precede en el mismo evento a `loaded 1 CRLs` y al rechazo explícito por certificado revocado; no se ocultó ni se interpretó como rechazo por sí sola.
+
+Cleanup y limitaciones
+- SSM `961d7e22-6701-4536-8c1a-931241eb7823`: terminó el proceso OpenVPN cliente PID 2557; no quedaron procesos cliente asociados a la configuración temporal.
+- SSM `0de02d91-4c76-4104-a30f-65b3c6795246`: revocó los tres grants temporales de `company.agent.approve`, `.read` y `.revoke`; cada DELETE devolvió 204 y la lectura mostró `revoked_at`: grants `4a6c65ef-b322-4448-8e07-22d04a24ebb9` (`13:44:26.231Z`), `ba013de0-5631-44eb-8294-af3065037d09` (`13:44:26.247Z`) y `bac2e50d-cc3c-4875-a72e-6cf4f85f50c8` (`13:44:26.257Z`).
+- SSM `19f84f3a-24b1-40dc-8b86-f5d2505dcbf7` quitó `/run/nexo-mvpn08-auth-20261114-a` (sesión, grants y medida remota); SSM `c81d9f02-2628-46a5-a367-3f7f7b0a1070` quitó `/run/nexo-mvpn08-endpoint` (estado, credenciales, configuración y logs). Ambos comandos confirmaron rutas ausentes.
+- EC2 `StopInstances` para `i-0d438d2bb29aafcc9` respondió `stopping` desde `running`; `DescribeInstances` confirmó después `stopped`, conservando IP pública/EIP `3.222.201.200`; SSM dejó de listar la instancia Online. No se terminó la instancia.
+- La ruta administrativa soportada revoca la identidad pero no elimina físicamente el registro; no existe DELETE de agente. La credencial `revocation_pending` y la operación `expired` se conservan como inconsistencia de laboratorio, sin SQL improvisado. Cleanup de endpoint, grants, archivos y EC2: **PASS**; conciliación durable de credencial/operación: **NOT RUN**, sin procedimiento transaccional soportado verificado.
+- Resultados locales previos permanecen aparte: `npm test` PASS (184 descubiertos, 183 pass, 1 skip E5‑4); `git diff --check` PASS. Son pruebas locales, no sustituyen P3 live ni reconciliación de la credencial.

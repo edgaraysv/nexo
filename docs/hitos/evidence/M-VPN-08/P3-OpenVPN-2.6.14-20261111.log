@@ -1,0 +1,84 @@
+$ docker run --rm --cap-add NET_ADMIN --device=/dev/net/tun -v /tmp/opencode/mvpn08:/work:ro nexo-mvpn08-openvpn:local bash /work/run-p3.sh
+OpenVPN version: OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+Environment mode: 711 0:0
+PKI mode: 711 0:0
+Initial CRL read by nobody: issuer=CN = NEXO-MVPN08-test-CA
+nobody cannot list PKI: PASS
+nobody cannot read CA private key: PASS
+Initial management socket: 777 0:0
+During-bind no-root probe with socket mode 0666: rc=1 output=Traceback (most recent call last):   File "/work/ctl.py", line 11, in <module>     s.sendall(command.encode() + b"\n") BrokenPipeError: [Errno 32] Broken pipe
+Socket tightened before agent use: 600 0:0
+Root management probe after tightening: >INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info TITLE	OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO] TIME	2026-11-11 14:58:22	1794409102 HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t) GLOBAL_STATS	Max bcast/mcast queue length	0 GLOBAL_STATS	dco_enabled	0 END 
+After-tighten no-root filesystem probe: rc=1 output=Traceback (most recent call last):   File "/work/ctl.py", line 5, in <module>     s.connect(path) PermissionError: [Errno 13] Permission denied
+TCP management listener: none (Unix socket only)
+Unix listener: u_str LISTEN 0      1      /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/mgmt.sock 140800            * 0          
+Status before revocation:
+>INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info
+TITLE	OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+TIME	2026-11-11 14:58:24	1794409104
+HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher
+CLIENT_LIST	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:33558	10.246.8.3		3545	3373	2026-11-11 14:58:24	1794409104	UNDEF	1	1	AES-256-GCM
+CLIENT_LIST	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:48203	10.246.8.2		3545	3373	2026-11-11 14:58:24	1794409104	UNDEF	0	0	AES-256-GCM
+HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t)
+ROUTING_TABLE	10.246.8.2	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:48203	2026-11-11 14:58:24	1794409104
+ROUTING_TABLE	10.246.8.3	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:33558	2026-11-11 14:58:24	1794409104
+GLOBAL_STATS	Max bcast/mcast queue length	0
+GLOBAL_STATS	dco_enabled	0
+END
+Updated CRL readable by nobody: issuer=CN = NEXO-MVPN08-test-CA
+Exact agent command result: >INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info ERROR: error parsing IP address: nexo 
+Status after kill command:
+>INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info
+TITLE	OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+TIME	2026-11-11 14:58:27	1794409107
+HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher
+CLIENT_LIST	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:33558	10.246.8.3		3545	3445	2026-11-11 14:58:24	1794409104	UNDEF	1	1	AES-256-GCM
+CLIENT_LIST	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:48203	10.246.8.2		3545	3445	2026-11-11 14:58:24	1794409104	UNDEF	0	0	AES-256-GCM
+HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t)
+ROUTING_TABLE	10.246.8.2	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:48203	2026-11-11 14:58:24	1794409104
+ROUTING_TABLE	10.246.8.3	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:33558	2026-11-11 14:58:24	1794409104
+GLOBAL_STATS	Max bcast/mcast queue length	2
+GLOBAL_STATS	dco_enabled	0
+END
+KILL_RESULT=TARGET_STILL_PRESENT
+CONTROL_RESULT=PRESENT
+Restarting isolated OpenVPN process...
+Socket after restart before agent use: 600 0:0
+Restart no-root probe with socket mode 0666: rc=1 output=Traceback (most recent call last):   File "/work/ctl.py", line 11, in <module>     s.sendall(command.encode() + b"\n") BrokenPipeError: [Errno 32] Broken pipe
+Socket after re-tightening: 600 0:0
+Root probe after restart: PASS
+Post-restart CRL read by nobody: issuer=CN = NEXO-MVPN08-test-CA
+Post-restart PKI mode/key checks: env=711
+pki=711
+nobody private-key read: denied
+Generated unit expectation (checked by P1 renderer test): ReadWritePaths must be the single /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6 path, not its parent.
+SERVER_LOG_TAIL:
+2026-11-11 14:58:36 Note: --cipher is not set. OpenVPN versions before 2.5 defaulted to BF-CBC as fallback when cipher negotiation failed in this case. If you need this fallback please add '--data-ciphers-fallback BF-CBC' to your configuration and/or add BF-CBC to --data-ciphers.
+2026-11-11 14:58:36 Note: Kernel support for ovpn-dco missing, disabling data channel offload.
+2026-11-11 14:58:36 OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+2026-11-11 14:58:36 library versions: OpenSSL 3.0.22 25 Aug 2026, LZO 2.10
+2026-11-11 14:58:36 DCO version: N/A
+2026-11-11 14:58:36 MANAGEMENT: client_uid=0
+2026-11-11 14:58:36 MANAGEMENT: unix domain socket listening on /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/mgmt.sock
+2026-11-11 14:58:36 net_route_v4_best_gw query: dst 0.0.0.0
+2026-11-11 14:58:36 net_route_v4_best_gw result: via 172.17.0.1 dev eth0
+2026-11-11 14:58:36 CRL: loaded 1 CRLs from file /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/pki/crl.pem
+2026-11-11 14:58:36 TUN/TAP device tun0 opened
+2026-11-11 14:58:36 net_iface_mtu_set: mtu 1500 for tun0
+2026-11-11 14:58:36 net_iface_up: set tun0 up
+2026-11-11 14:58:36 net_addr_v4_add: 10.246.8.1/24 dev tun0
+2026-11-11 14:58:36 Could not determine IPv4/IPv6 protocol. Using AF_INET
+2026-11-11 14:58:36 Socket Buffers: R=[212992->212992] S=[212992->212992]
+2026-11-11 14:58:36 UDPv4 link local (bound): [AF_INET][undef]:24160
+2026-11-11 14:58:36 UDPv4 link remote: [AF_UNSPEC]
+2026-11-11 14:58:36 UID set to nobody
+2026-11-11 14:58:36 GID set to nobody
+2026-11-11 14:58:36 Capabilities retained: CAP_NET_ADMIN
+2026-11-11 14:58:36 MULTI: multi_init called, r=256 v=256
+2026-11-11 14:58:36 IFCONFIG POOL IPv4: base=10.246.8.2 size=253
+2026-11-11 14:58:36 Initialization Sequence Completed
+2026-11-11 14:58:36 MANAGEMENT: unix domain socket client connection rejected -- UID of socket peer (65534) doesn't match required value (0) as given by --management-client-user
+2026-11-11 14:58:36 MANAGEMENT: Client connected from /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/mgmt.sock
+2026-11-11 14:58:36 MANAGEMENT: CMD 'status 3'
+2026-11-11 14:58:38 MANAGEMENT: CMD 'quit'
+2026-11-11 14:58:38 MANAGEMENT: Client disconnected

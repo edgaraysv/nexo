@@ -1,0 +1,103 @@
+$ docker run --rm --network none --cap-add NET_ADMIN --device=/dev/net/tun -v /tmp/opencode/mvpn08:/work:ro nexo-mvpn08-openvpn:local bash -lc "ip link set lo up && /work/run-client-kill-probe.sh"
+OpenVPN version: OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+Environment mode: 711 0:0
+PKI mode: 711 0:0
+Initial CRL read by nobody: issuer=CN = NEXO-MVPN08-test-CA
+nobody cannot list PKI: PASS
+nobody cannot read CA private key: PASS
+Initial management socket: 777 0:0
+During-bind no-root probe with socket mode 0666: rc=1 output=Traceback (most recent call last):   File "/work/ctl.py", line 11, in <module>     s.sendall(command.encode() + b"\n") BrokenPipeError: [Errno 32] Broken pipe
+Socket tightened before agent use: 600 0:0
+Root management probe after tightening: >INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info TITLE	OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO] TIME	2026-11-11 23:12:32	1794438752 HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t) GLOBAL_STATS	Max bcast/mcast queue length	0 GLOBAL_STATS	dco_enabled	0 END 
+After-tighten no-root filesystem probe: rc=1 output=Traceback (most recent call last):   File "/work/ctl.py", line 5, in <module>     s.connect(path) PermissionError: [Errno 13] Permission denied
+TCP management listener: none (Unix socket only)
+Unix listener: u_str LISTEN 0      1      /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/mgmt.sock 224688            * 0          
+Status before revocation:
+>INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info
+>CLIENT:ESTABLISHED,1
+>CLIENT:ENV,n_clients=2
+>CLIENT:ENV,time_unix=1794438755
+>CLIENT:ENV,time_ascii=2026-11-11 23:12:35
+>CLIENT:ENV,ifconfig_pool_netmask=255.255.255.0
+>CLIENT:ENV,ifconfig_pool_remote_ip=10.246.8.3
+>CLIENT:ENV,trusted_port=44472
+>CLIENT:ENV,trusted_ip=127.0.0.1
+>CLIENT:ENV,common_name=nexo:22222222-2222-4222-8222-222222222222
+>CLIENT:ENV,IV_COMP_STUBv2=1
+>CLIENT:ENV,IV_COMP_STUB=1
+>CLIENT:ENV,IV_LZO_STUB=1
+>CLIENT:ENV,IV_PROTO=990
+>CLIENT:ENV,IV_CIPHERS=AES-256-GCM:AES-128-GCM
+>CLIENT:ENV,IV_NCP=2
+>CLIENT:ENV,IV_MTU=1600
+>CLIENT:ENV,IV_TCPNL=1
+>CLIENT:ENV,IV_PLAT=linux
+>CLIENT:ENV,IV_VER=2.6.14
+>CLIENT:ENV,untrusted_port=44472
+>CLIENT:ENV,untrusted_ip=127.0.0.1
+>CLIENT:ENV,tls_serial_hex_0=10:02
+>CLIENT:ENV,tls_serial_0=4098
+>CLIENT:ENV,tls_digest_sha256_0=a2:21:a1:39:13:83:fa:6f:bc:f6:f9:2e:ad:8e:14:7f:fc:97:df:ed:6b:bd:58:31:60:0e:14:45:80:f5:9f:34
+>CLIENT:ENV,tls_digest_0=1a:57:d2:16:f5:58:01:73:6e:3c:2c:50:03:1e:67:ff:7d:66:bb:60
+>CLIENT:ENV,tls_id_0=CN=nexo:22222222-2222-4222-8222-222222222222, OU=eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
+>CLIENT:ENV,X509_0_OU=eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
+>CLIENT:ENV,X509_0_CN=nexo:22222222-2222-4222-8222-222222222222
+>CLIENT:ENV,tls_serial_hex_1=7c:bd:fd:6e:5e:40:44:6a:25:55:ab:0b:e0:4b:c2:ad:58:80:ec:8d
+>CLIENT:ENV,tls_serial_1=712151773389360611640613776066855507268986793101
+>CLIENT:ENV,tls_digest_sha256_1=7e:75:24:7c:65:07:7c:43:6a:ce:13:18:79:cf:fa:8f:e8:4a:aa:8e:91:aa:0c:aa:fc:29:f1:79:f6:18:69:98
+>CLIENT:ENV,tls_digest_1=04:d5:8d:c6:d3:a3:c9:ab:01:62:75:ff:0a:2e:ae:73:fc:63:d3:8f
+>CLIENT:ENV,tls_id_1=CN=NEXO-MVPN08-test-CA
+>CLIENT:ENV,X509_1_CN=NEXO-MVPN08-test-CA
+>CLIENT:ENV,remote_port_1=24160
+>CLIENT:ENV,local_port_1=24160
+>CLIENT:ENV,local_1=127.0.0.1
+>CLIENT:ENV,proto_1=udp
+>CLIENT:ENV,daemon_pid=45
+>CLIENT:ENV,daemon_start_time=1794438752
+>CLIENT:ENV,daemon_log_redirect=1
+>CLIENT:ENV,daemon=0
+>CLIENT:ENV,verb=3
+>CLIENT:ENV,config=/tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/openvpn.conf
+>CLIENT:ENV,ifconfig_local=10.246.8.1
+>CLIENT:ENV,ifconfig_netmask=255.255.255.0
+>CLIENT:ENV,script_context=init
+>CLIENT:ENV,tun_mtu=1500
+>CLIENT:ENV,dev=tun0
+>CLIENT:ENV,dev_type=tun
+>CLIENT:ENV,redirect_gateway=0
+>CLIENT:ENV,END
+TITLE	OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+TIME	2026-11-11 23:12:35	1794438755
+HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher
+CLIENT_LIST	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:53832	10.246.8.2		3387	3373	2026-11-11 23:12:35	1794438755	UNDEF	0	0	AES-256-GCM
+CLIENT_LIST	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:44472	10.246.8.3		3387	3373	2026-11-11 23:12:35	1794438755	UNDEF	1	1	AES-256-GCM
+HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t)
+ROUTING_TABLE	10.246.8.2	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:53832	2026-11-11 23:12:35	1794438755
+ROUTING_TABLE	10.246.8.3	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:44472	2026-11-11 23:12:35	1794438755
+GLOBAL_STATS	Max bcast/mcast queue length	0
+GLOBAL_STATS	dco_enabled	0
+END
+CRL publication for probe: issuer=CN = NEXO-MVPN08-test-CA
+Traceback (most recent call last):
+  File "/work/probe-client-kill.py", line 96, in <module>
+    raise RuntimeError('unexpected target/control state; stop characterization before further commands')
+PROBE=client-kill protocol characterization; synthetic fixture only
+GREETING_RAW=b">INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info\r\n"
+LOG_ON_RAW=b'SUCCESS: real-time log notification set to ON\r\n'
+STATUS_INITIAL_RAW=b">LOG:1794438757,D,MANAGEMENT: CMD 'status 3'\r\nTITLE\tOpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]\r\nTIME\t2026-11-11 23:12:37\t1794438757\r\nHEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher\r\nCLIENT_LIST\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t10.246.8.2\t\t3545\t3445\t2026-11-11 23:12:35\t1794438755\tUNDEF\t0\t0\tAES-256-GCM\r\nCLIENT_LIST\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t10.246.8.3\t\t3545\t3445\t2026-11-11 23:12:35\t1794438755\tUNDEF\t1\t1\tAES-256-GCM\r\nHEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)\r\nROUTING_TABLE\t10.246.8.2\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t2026-11-11 23:12:35\t1794438755\r\nROUTING_TABLE\t10.246.8.3\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t2026-11-11 23:12:35\t1794438755\r\nGLOBAL_STATS\tMax bcast/mcast queue length\t2\r\nGLOBAL_STATS\tdco_enabled\t0\r\nEND\r\n"
+STATUS_INITIAL_PEERS=[{"cid": "0", "cn": "nexo:11111111-1111-4111-8111-111111111111", "peer_id": "0", "real": "127.0.0.1:53832"}, {"cid": "1", "cn": "nexo:22222222-2222-4222-8222-222222222222", "peer_id": "1", "real": "127.0.0.1:44472"}]
+STATUS_PRE_ACTION_RAW=b">LOG:1794438757,D,MANAGEMENT: CMD 'status 3'\r\nTITLE\tOpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]\r\nTIME\t2026-11-11 23:12:37\t1794438757\r\nHEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher\r\nCLIENT_LIST\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t10.246.8.2\t\t3545\t3445\t2026-11-11 23:12:35\t1794438755\tUNDEF\t0\t0\tAES-256-GCM\r\nCLIENT_LIST\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t10.246.8.3\t\t3545\t3445\t2026-11-11 23:12:35\t1794438755\tUNDEF\t1\t1\tAES-256-GCM\r\nHEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)\r\nROUTING_TABLE\t10.246.8.2\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t2026-11-11 23:12:35\t1794438755\r\nROUTING_TABLE\t10.246.8.3\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t2026-11-11 23:12:35\t1794438755\r\nGLOBAL_STATS\tMax bcast/mcast queue length\t2\r\nGLOBAL_STATS\tdco_enabled\t0\r\nEND\r\n"
+STATUS_PRE_ACTION_PEERS=[{"cid": "0", "cn": "nexo:11111111-1111-4111-8111-111111111111", "peer_id": "0", "real": "127.0.0.1:53832"}, {"cid": "1", "cn": "nexo:22222222-2222-4222-8222-222222222222", "peer_id": "1", "real": "127.0.0.1:44472"}]
+PRE_ACTION_IDENTITY_STABLE={"cid": "0", "cn": "nexo:11111111-1111-4111-8111-111111111111", "peer_id": "0", "real": "127.0.0.1:53832"}
+CLIENT_KILL_COMMAND=b'client-kill 0\n'
+CLIENT_KILL_RAW=b">LOG:1794438757,D,MANAGEMENT: CMD 'client-kill 0'\r\n>LOG:1794438757,,Delayed exit in 5 seconds\r\n>LOG:1794438757,,SENT CONTROL [nexo:11111111-1111-4111-8111-111111111111]: 'RESTART' (status=1)\r\nSUCCESS: client-kill command succeeded\r\n"
+CLIENT_KILL_TERMINAL=b'SUCCESS: client-kill command succeeded'
+STATUS_POST_ACTION_RAW=b">LOG:1794438757,D,MANAGEMENT: CMD 'status 3'\r\nTITLE\tOpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]\r\nTIME\t2026-11-11 23:12:37\t1794438757\r\nHEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher\r\nCLIENT_LIST\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t10.246.8.2\t\t3545\t3553\t2026-11-11 23:12:35\t1794438755\tUNDEF\t0\t0\tAES-256-GCM\r\nCLIENT_LIST\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t10.246.8.3\t\t3545\t3445\t2026-11-11 23:12:35\t1794438755\tUNDEF\t1\t1\tAES-256-GCM\r\nHEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)\r\nROUTING_TABLE\t10.246.8.2\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t2026-11-11 23:12:35\t1794438755\r\nROUTING_TABLE\t10.246.8.3\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t2026-11-11 23:12:35\t1794438755\r\nGLOBAL_STATS\tMax bcast/mcast queue length\t2\r\nGLOBAL_STATS\tdco_enabled\t0\r\nEND\r\n"
+STATUS_POST_ACTION_PEERS=[{"cid": "0", "cn": "nexo:11111111-1111-4111-8111-111111111111", "peer_id": "0", "real": "127.0.0.1:53832"}, {"cid": "1", "cn": "nexo:22222222-2222-4222-8222-222222222222", "peer_id": "1", "real": "127.0.0.1:44472"}]
+TARGET_AFTER_ACTION=PRESENT
+CONTROL_AFTER_ACTION=PRESENT
+STATUS_POST_RETRY_WINDOW_RAW=b">LOG:1794438758,W,127.0.0.1:39206 OpenSSL: error:0308010C:digital envelope routines::unsupported:Global default library context, Algorithm (none : 0), Properties (<null>)\r\n>LOG:1794438758,W,127.0.0.1:39206 OpenSSL: error:0480006C:PEM routines::no start line:\r\n>LOG:1794438758,W,127.0.0.1:39206 CRL: cannot read CRL from file /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/pki/crl.pem\r\n>LOG:1794438758,I,127.0.0.1:39206 CRL: loaded 1 CRLs from file /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/pki/crl.pem\r\n>LOG:1794438758,N,127.0.0.1:39206 VERIFY ERROR: depth=0, error=certificate revoked: CN=nexo:11111111-1111-4111-8111-111111111111, OU=eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee, serial=4097\r\n>LOG:1794438758,,127.0.0.1:39206 Sent fatal SSL alert: certificate revoked\r\n>LOG:1794438758,N,127.0.0.1:39206 OpenSSL: error:0A000086:SSL routines::certificate verify failed:\r\n>LOG:1794438758,N,127.0.0.1:39206 TLS_ERROR: BIO read tls_read_plaintext error\r\n>LOG:1794438758,N,127.0.0.1:39206 TLS Error: TLS object -> incoming plaintext read error\r\n>LOG:1794438758,N,127.0.0.1:39206 TLS Error: TLS handshake failed\r\n>LOG:1794438758,,127.0.0.1:39206 SIGUSR1[soft,tls-error] received, client-instance restarting\r\n>LOG:1794438759,N,read UDPv4 [ECONNREFUSED]: Connection refused (fd=6,code=111)\r\n>LOG:1794438762,D,MANAGEMENT: CMD 'status 3'\r\nTITLE\tOpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]\r\nTIME\t2026-11-11 23:12:42\t1794438762\r\nHEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tVirtual IPv6 Address\tBytes Received\tBytes Sent\tConnected Since\tConnected Since (time_t)\tUsername\tClient ID\tPeer ID\tData Channel Cipher\r\nCLIENT_LIST\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t10.246.8.2\t\t3545\t3661\t2026-11-11 23:12:35\t1794438755\tUNDEF\t0\t0\tAES-256-GCM\r\nCLIENT_LIST\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t10.246.8.3\t\t3657\t3485\t2026-11-11 23:12:35\t1794438755\tUNDEF\t1\t1\tAES-256-GCM\r\nHEADER\tROUTING_TABLE\tVirtual Address\tCommon Name\tReal Address\tLast Ref\tLast Ref (time_t)\r\nROUTING_TABLE\t10.246.8.2\tnexo:11111111-1111-4111-8111-111111111111\t127.0.0.1:53832\t2026-11-11 23:12:35\t1794438755\r\nROUTING_TABLE\t10.246.8.3\tnexo:22222222-2222-4222-8222-222222222222\t127.0.0.1:44472\t2026-11-11 23:12:35\t1794438755\r\nGLOBAL_STATS\tMax bcast/mcast queue length\t2\r\nGLOBAL_STATS\tdco_enabled\t0\r\nEND\r\n"
+STATUS_POST_RETRY_WINDOW_PEERS=[{"cid": "0", "cn": "nexo:11111111-1111-4111-8111-111111111111", "peer_id": "0", "real": "127.0.0.1:53832"}, {"cid": "1", "cn": "nexo:22222222-2222-4222-8222-222222222222", "peer_id": "1", "real": "127.0.0.1:44472"}]
+TARGET_AFTER_RETRY_WINDOW=PRESENT
+CONTROL_AFTER_RETRY_WINDOW=PRESENT
+RuntimeError: unexpected target/control state; stop characterization before further commands

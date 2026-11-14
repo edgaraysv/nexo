@@ -1,0 +1,133 @@
+$ docker run --rm --cap-add NET_ADMIN --device=/dev/net/tun -v /tmp/opencode/mvpn08:/work:ro nexo-mvpn08-openvpn:local bash /work/run-management-help.sh
+OpenVPN version: OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+Environment mode: 711 0:0
+PKI mode: 711 0:0
+Initial CRL read by nobody: issuer=CN = NEXO-MVPN08-test-CA
+nobody cannot list PKI: PASS
+nobody cannot read CA private key: PASS
+Initial management socket: 777 0:0
+During-bind no-root probe with socket mode 0666: rc=1 output=Traceback (most recent call last):   File "/work/ctl.py", line 11, in <module>     s.sendall(command.encode() + b"\n") BrokenPipeError: [Errno 32] Broken pipe
+Socket tightened before agent use: 600 0:0
+Root management probe after tightening: >INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info TITLE	OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO] TIME	2026-11-11 15:01:51	1794409311 HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t) GLOBAL_STATS	Max bcast/mcast queue length	0 GLOBAL_STATS	dco_enabled	0 END 
+After-tighten no-root filesystem probe: rc=1 output=Traceback (most recent call last):   File "/work/ctl.py", line 5, in <module>     s.connect(path) PermissionError: [Errno 13] Permission denied
+TCP management listener: none (Unix socket only)
+Unix listener: u_str LISTEN 0      1      /tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/mgmt.sock 145602            * 0          
+Status before revocation:
+>INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info
+>CLIENT:ESTABLISHED,1
+>CLIENT:ENV,n_clients=2
+>CLIENT:ENV,time_unix=1794409313
+>CLIENT:ENV,time_ascii=2026-11-11 15:01:53
+>CLIENT:ENV,ifconfig_pool_netmask=255.255.255.0
+>CLIENT:ENV,ifconfig_pool_remote_ip=10.246.8.3
+>CLIENT:ENV,trusted_port=53057
+>CLIENT:ENV,trusted_ip=127.0.0.1
+>CLIENT:ENV,common_name=nexo:22222222-2222-4222-8222-222222222222
+>CLIENT:ENV,IV_COMP_STUBv2=1
+>CLIENT:ENV,IV_COMP_STUB=1
+>CLIENT:ENV,IV_LZO_STUB=1
+>CLIENT:ENV,IV_PROTO=990
+>CLIENT:ENV,IV_CIPHERS=AES-256-GCM:AES-128-GCM
+>CLIENT:ENV,IV_NCP=2
+>CLIENT:ENV,IV_MTU=1600
+>CLIENT:ENV,IV_TCPNL=1
+>CLIENT:ENV,IV_PLAT=linux
+>CLIENT:ENV,IV_VER=2.6.14
+>CLIENT:ENV,untrusted_port=53057
+>CLIENT:ENV,untrusted_ip=127.0.0.1
+>CLIENT:ENV,tls_serial_hex_0=10:02
+>CLIENT:ENV,tls_serial_0=4098
+>CLIENT:ENV,tls_digest_sha256_0=b8:e9:e4:e0:d8:3b:a4:cc:ff:49:69:02:32:99:0e:34:16:d3:34:9c:66:84:2f:2c:5a:38:70:8b:cf:cd:01:34
+>CLIENT:ENV,tls_digest_0=13:b4:50:14:1a:16:72:d1:3d:2f:2e:b0:20:2f:e8:8d:f2:ec:5c:c2
+>CLIENT:ENV,tls_id_0=CN=nexo:22222222-2222-4222-8222-222222222222, OU=eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
+>CLIENT:ENV,X509_0_OU=eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
+>CLIENT:ENV,X509_0_CN=nexo:22222222-2222-4222-8222-222222222222
+>CLIENT:ENV,tls_serial_hex_1=16:60:f3:b9:2c:e3:c3:57:da:75:e1:d6:30:4b:24:2b:a0:65:59:85
+>CLIENT:ENV,tls_serial_1=127759899794571352700024262639275207637992823173
+>CLIENT:ENV,tls_digest_sha256_1=23:81:d9:68:2c:d5:26:97:4b:e5:5b:f1:38:62:fd:c9:f2:1a:bc:50:6f:8e:04:4d:cc:3f:99:39:28:2e:37:8c
+>CLIENT:ENV,tls_digest_1=d5:4c:e4:27:97:b8:95:bb:b4:02:09:41:cc:6b:b8:ef:a1:24:95:6c
+>CLIENT:ENV,tls_id_1=CN=NEXO-MVPN08-test-CA
+>CLIENT:ENV,X509_1_CN=NEXO-MVPN08-test-CA
+>CLIENT:ENV,remote_port_1=24160
+>CLIENT:ENV,local_port_1=24160
+>CLIENT:ENV,proto_1=udp
+>CLIENT:ENV,daemon_pid=42
+>CLIENT:ENV,daemon_start_time=1794409311
+>CLIENT:ENV,daemon_log_redirect=1
+>CLIENT:ENV,daemon=0
+>CLIENT:ENV,verb=3
+>CLIENT:ENV,config=/tmp/mvpn08-fixture/environments/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6/openvpn.conf
+>CLIENT:ENV,ifconfig_local=10.246.8.1
+>CLIENT:ENV,ifconfig_netmask=255.255.255.0
+>CLIENT:ENV,script_context=init
+>CLIENT:ENV,tun_mtu=1500
+>CLIENT:ENV,dev=tun0
+>CLIENT:ENV,dev_type=tun
+>CLIENT:ENV,redirect_gateway=0
+>CLIENT:ENV,END
+TITLE	OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+TIME	2026-11-11 15:01:53	1794409313
+HEADER	CLIENT_LIST	Common Name	Real Address	Virtual Address	Virtual IPv6 Address	Bytes Received	Bytes Sent	Connected Since	Connected Since (time_t)	Username	Client ID	Peer ID	Data Channel Cipher
+CLIENT_LIST	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:53057	10.246.8.3		3387	3077	2026-11-11 15:01:53	1794409313	UNDEF	1	1	AES-256-GCM
+CLIENT_LIST	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:44947	10.246.8.2		3545	3373	2026-11-11 15:01:53	1794409313	UNDEF	0	0	AES-256-GCM
+HEADER	ROUTING_TABLE	Virtual Address	Common Name	Real Address	Last Ref	Last Ref (time_t)
+ROUTING_TABLE	10.246.8.3	nexo:22222222-2222-4222-8222-222222222222	127.0.0.1:53057	2026-11-11 15:01:53	1794409313
+ROUTING_TABLE	10.246.8.2	nexo:11111111-1111-4111-8111-111111111111	127.0.0.1:44947	2026-11-11 15:01:53	1794409313
+GLOBAL_STATS	Max bcast/mcast queue length	0
+GLOBAL_STATS	dco_enabled	0
+END
+Read-only management help (no kill command sent):
+>INFO:OpenVPN Management Interface Version 5 -- type 'help' for more info
+Management Interface for OpenVPN 2.6.14 x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+Commands:
+auth-retry t           : Auth failure retry mode (none,interact,nointeract).
+bytecount n            : Show bytes in/out, update every n secs (0=off).
+echo [on|off] [N|all]  : Like log, but only show messages in echo buffer.
+cr-response response   : Send a challenge response answer via CR_RESPONSE to server
+exit|quit              : Close management session.
+forget-passwords       : Forget passwords entered so far.
+help                   : Print this message.
+hold [on|off|release]  : Set/show hold flag to on/off state, or
+                         release current hold and start tunnel.
+kill cn                : Kill the client instance(s) having common name cn.
+kill IP:port           : Kill the client instance connecting from IP:port.
+load-stats             : Show global server load stats.
+log [on|off] [N|all]   : Turn on/off realtime log display
+                         + show last N lines or 'all' for entire history.
+mute [n]               : Set log mute level to n, or show level if n is absent.
+needok type action     : Enter confirmation for NEED-OK request of 'type',
+                         where action = 'ok' or 'cancel'.
+needstr type action    : Enter confirmation for NEED-STR request of 'type',
+                         where action is reply string.
+net                    : (Windows only) Show network info and routing table.
+password type p        : Enter password p for a queried OpenVPN password.
+remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.
+remote-entry-count     : Get number of available remote entries.
+remote-entry-get  i|all [j]: Get remote entry at index = i to to j-1 or all.
+proxy type [host port flags] : Enter dynamic proxy server info.
+pid                    : Show process ID of the current OpenVPN process.
+pkcs11-id-count        : Get number of available PKCS#11 identities.
+pkcs11-id-get index    : Get PKCS#11 identity at index.
+client-auth CID KID    : Authenticate client-id/key-id CID/KID (MULTILINE)
+client-auth-nt CID KID : Authenticate client-id/key-id CID/KID
+client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason
+                             text R and optional client reason text CR
+client-pending-auth CID KID MSG timeout : Instruct OpenVPN to send AUTH_PENDING and INFO_PRE msg
+                                      to the client and wait for a final client-auth/client-deny
+client-kill CID [M]    : Kill client instance CID with message M (def=RESTART)
+env-filter [level]     : Set env-var filter level
+rsa-sig                : Enter a signature in response to >RSA_SIGN challenge
+                         Enter signature base64 on subsequent lines followed by END
+pk-sig                 : Enter a signature in response to >PK_SIGN challenge
+                         Enter signature base64 on subsequent lines followed by END
+certificate            : Enter a client certificate in response to >NEED-CERT challenge
+                         Enter certificate base64 on subsequent lines followed by END
+signal s               : Send signal s to daemon,
+                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.
+state [on|off] [N|all] : Like log, but show state history.
+status [n]             : Show current daemon status info using format #n.
+test n                 : Produce n lines of output for testing/debugging.
+username type u        : Enter username u for a queried OpenVPN username.
+verb [n]               : Set log verbosity level to n, or show if n is absent.
+version [n]            : Set client's version to n or show current version of daemon.
+END
